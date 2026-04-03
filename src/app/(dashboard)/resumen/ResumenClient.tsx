@@ -1,0 +1,299 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { api } from "@/api/client";
+import type { JornadaTrabajo, AlertaHistorial, TipoAlerta } from "@/types";
+import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock } from "lucide-react";
+
+interface Props {
+  initialJornadas: JornadaTrabajo[];
+  initialAlertas: AlertaHistorial[];
+}
+
+const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
+  RESPIRATORIA: <Wind size={20} />,
+  AJUSTE: <Wrench size={20} />,
+  FILTRO: <Activity size={20} />,
+  BATERIA: <Battery size={20} />,
+  DESCONEXION: <Wifi size={20} />,
+};
+
+const TIPO_LABELS: Record<TipoAlerta, string> = {
+  RESPIRATORIA: "Respiratorias",
+  AJUSTE: "Ajuste",
+  FILTRO: "Filtro",
+  BATERIA: "Batería",
+  DESCONEXION: "Desconexión",
+};
+
+const TIPO_COLORS: Record<TipoAlerta, string> = {
+  RESPIRATORIA: "#ef4444",
+  AJUSTE: "#f97316",
+  FILTRO: "#eab308",
+  BATERIA: "#8b949e",
+  DESCONEXION: "#8b5cf6",
+};
+
+export default function ResumenClient({ initialJornadas, initialAlertas }: Props) {
+  const [jornadas, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
+  const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialAlertas);
+  const [loading] = useState(false);
+
+  // Polling cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const [newJornadas, newAlertas] = await Promise.all([
+          api.jornadas.activas(),
+          api.alertas.activas(),
+        ]);
+        setJornadas(newJornadas);
+        setAlertas(newAlertas);
+      } catch {
+        // Silenciar errores de polling para no interrumpir la UI
+      }
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const trabajadoresActivos = jornadas.length;
+
+  const countByTipo = (tipo: TipoAlerta) =>
+    alertas.filter((a) => a.tipo === tipo).length;
+
+  const alertCards: { tipo: TipoAlerta; count: number }[] = [
+    { tipo: "RESPIRATORIA", count: countByTipo("RESPIRATORIA") },
+    { tipo: "AJUSTE", count: countByTipo("AJUSTE") },
+    { tipo: "FILTRO", count: countByTipo("FILTRO") },
+    { tipo: "BATERIA", count: countByTipo("BATERIA") },
+    { tipo: "DESCONEXION", count: countByTipo("DESCONEXION") },
+  ];
+
+  const formatTime = (timestamp: string): string => {
+    const d = new Date(timestamp);
+    return d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  };
+
+  return (
+    <div>
+      {/* Header with title and refresh badge */}
+      <div style={{ marginBottom: "2rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>Resumen</h1>
+          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+            Indicadores clave del sistema en tiempo real
+          </p>
+        </div>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.375rem",
+            fontSize: "0.7rem",
+            fontWeight: 600,
+            color: "var(--color-text-secondary)",
+            background: "rgba(139,148,158,0.1)",
+            border: "1px solid rgba(139,148,158,0.2)",
+            borderRadius: "9999px",
+            padding: "0.25rem 0.75rem",
+            letterSpacing: "0.025em",
+          }}
+        >
+          <Clock size={12} />
+          ACTUALIZACIÓN CADA 30S
+        </span>
+      </div>
+
+      {/* Trabajadores activos - KPI principal */}
+      <div
+        className="card"
+        style={{
+          marginBottom: "1.5rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
+        }}
+      >
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: "0.75rem",
+            background: "rgba(249,115,22,0.15)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--color-accent)",
+            flexShrink: 0,
+          }}
+        >
+          <Activity size={26} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <p
+            style={{
+              color: "var(--color-text-secondary)",
+              fontSize: "0.7rem",
+              fontWeight: 600,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              marginBottom: "0.125rem",
+            }}
+          >
+            Trabajadores activos ahora
+          </p>
+          <p style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--color-accent)", lineHeight: 1 }}>
+            {loading ? "--" : trabajadoresActivos}
+          </p>
+        </div>
+        <div style={{ flexShrink: 0 }}>
+          <span className="badge-green" style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase" }}>
+            {loading ? "..." : `${jornadas.length} turno${jornadas.length !== 1 ? "s" : ""} activo${jornadas.length !== 1 ? "s" : ""}`}
+          </span>
+        </div>
+      </div>
+
+      {/* Alertas activas - header */}
+      <h2
+        style={{
+          marginBottom: "1rem",
+          fontSize: "0.8rem",
+          fontWeight: 700,
+          color: "var(--color-text-secondary)",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.375rem",
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+        }}
+      >
+        <AlertTriangle size={14} />
+        Alertas activas
+      </h2>
+
+      {/* Alert cards - 5 equal columns */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1rem" }}>
+        {alertCards.map(({ tipo, count }) => {
+          const color = TIPO_COLORS[tipo];
+          const isActive = count > 0;
+
+          return (
+            <div
+              key={tipo}
+              className="card"
+              style={{
+                borderTop: `3px solid ${isActive ? color : "var(--color-border)"}`,
+                borderRadius: "0.75rem",
+                textAlign: "center",
+                padding: "1.25rem 1rem",
+                transition: "transform 0.15s",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginBottom: "0.625rem",
+                  color: isActive ? color : "var(--color-text-secondary)",
+                }}
+              >
+                {TIPO_ICONS[tipo]}
+              </div>
+              <p
+                style={{
+                  fontSize: "0.65rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: isActive ? color : "var(--color-text-secondary)",
+                  marginBottom: "0.375rem",
+                }}
+              >
+                {TIPO_LABELS[tipo]}
+              </p>
+              <p
+                style={{
+                  fontSize: "2rem",
+                  fontWeight: 800,
+                  color: isActive ? color : "var(--color-text-primary)",
+                  lineHeight: 1,
+                }}
+              >
+                {loading ? "--" : String(count).padStart(2, "0")}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Últimas alertas */}
+      <div className="card" style={{ marginTop: "1.5rem" }}>
+        <h3 style={{ fontWeight: 700, marginBottom: "1rem", fontSize: "0.9rem" }}>Últimas alertas</h3>
+
+        {alertas.length === 0 ? (
+          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.85rem", textAlign: "center", padding: "1rem 0" }}>
+            Sin alertas activas
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {alertas.slice(0, 5).map((a, idx) => {
+              const dotColor = TIPO_COLORS[a.tipo];
+              const isLast = idx === Math.min(alertas.length, 5) - 1;
+
+              return (
+                <div
+                  key={a.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                    padding: "0.625rem 0",
+                    borderBottom: isLast ? "none" : "1px solid var(--color-border)",
+                  }}
+                >
+                  {/* Colored dot */}
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      backgroundColor: dotColor,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ fontSize: "0.85rem", flex: 1 }}>
+                    <span style={{ fontWeight: 600 }}>{TIPO_LABELS[a.tipo]}</span>
+                    <span style={{ color: "var(--color-text-secondary)" }}> — </span>
+                    {a.trabajador?.nombre} {a.trabajador?.apellidoPaterno}
+                  </span>
+                  <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", fontFamily: "monospace", flexShrink: 0 }}>
+                    {formatTime(a.timestamp)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Ver todo el historial link */}
+        <div style={{ textAlign: "center", marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--color-border)" }}>
+          <Link
+            href="/historial-alertas"
+            style={{
+              color: "var(--color-accent)",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              textDecoration: "none",
+            }}
+          >
+            Ver todo el historial
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

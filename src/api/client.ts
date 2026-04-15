@@ -6,15 +6,21 @@ import {
   tipoFiltroEndpoints,
   tipoRespiradorEndpoints,
   alertaHistorialEndpoints,
+  alertasUmbralesEndpoints,
   ticketEndpoints,
   filterLifecycleEndpoints,
   reporteEndpoints,
+  trabajadorRolEndpoints,
+  trabajadorUbicacionEndpoints,
 } from './endpoints';
 import type {
   Trabajador,
   TrabajadorRequest,
+  TrabajadorRol,
+  TrabajadorUbicacion,
   JornadaTrabajo,
   AlertaHistorial,
+  AlertasUmbrales,
   TipoFiltro,
   TipoRespirador,
   Rol,
@@ -206,6 +212,19 @@ export const api = {
         body: JSON.stringify(data),
         cookieHeader,
       }),
+    update: (id: number, data: Partial<AlertaHistorial>, cookieHeader?: string) =>
+      request<AlertaHistorial>(alertaHistorialEndpoints.byId(id), {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        cookieHeader,
+      }),
+    resolver: (id: number, cookieHeader?: string) =>
+      request<AlertaHistorial>(alertaHistorialEndpoints.resolver(id), {
+        method: 'PATCH',
+        cookieHeader,
+      }),
+    delete: (id: number, cookieHeader?: string) =>
+      request<void>(alertaHistorialEndpoints.byId(id), { method: 'DELETE', cookieHeader }),
   },
 
   roles: {
@@ -328,6 +347,12 @@ export const api = {
         body: JSON.stringify(data),
         cookieHeader,
       }),
+    update: (id: number, data: Partial<Ticket>, cookieHeader?: string) =>
+      request<Ticket>(ticketEndpoints.byId(id), {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        cookieHeader,
+      }),
     cambiarEstado: (id: number, estado: string, cookieHeader?: string) =>
       request<Ticket>(`${ticketEndpoints.cambiarEstado(id)}?estado=${estado}`, {
         method: 'PATCH',
@@ -344,6 +369,65 @@ export const api = {
       request<FilterStatus>(filterLifecycleEndpoints.estadoByRut(rut), { cookieHeader }),
     proximosVencer: (cookieHeader?: string) =>
       request<FilterStatus[]>(filterLifecycleEndpoints.proximosVencer(), { cookieHeader }),
+  },
+
+  umbrales: {
+    list: (cookieHeader?: string) =>
+      request<AlertasUmbrales[]>(alertasUmbralesEndpoints.all(), { cookieHeader }),
+    byId: (id: number, cookieHeader?: string) =>
+      request<AlertasUmbrales>(alertasUmbralesEndpoints.byId(id), { cookieHeader }),
+    byTrabajador: (rut: string, cookieHeader?: string) =>
+      request<AlertasUmbrales[]>(alertasUmbralesEndpoints.byTrabajador(rut), { cookieHeader }),
+    lastByTrabajador: (rut: string, cookieHeader?: string) =>
+      request<AlertasUmbrales>(alertasUmbralesEndpoints.lastByTrabajador(rut), { cookieHeader }),
+    create: (data: Partial<AlertasUmbrales>, cookieHeader?: string) =>
+      request<AlertasUmbrales>(alertasUmbralesEndpoints.all(), {
+        method: 'POST',
+        body: JSON.stringify(data),
+        cookieHeader,
+      }),
+    update: (id: number, data: Partial<AlertasUmbrales>, cookieHeader?: string) =>
+      request<AlertasUmbrales>(alertasUmbralesEndpoints.byId(id), {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        cookieHeader,
+      }),
+    delete: (id: number, cookieHeader?: string) =>
+      request<void>(alertasUmbralesEndpoints.byId(id), { method: 'DELETE', cookieHeader }),
+  },
+
+  trabajadorRoles: {
+    list: (cookieHeader?: string) =>
+      request<TrabajadorRol[]>(trabajadorRolEndpoints.all(), { cookieHeader }),
+    create: (data: { trabajador: string; rol: number }, cookieHeader?: string) =>
+      request<TrabajadorRol>(trabajadorRolEndpoints.all(), {
+        method: 'POST',
+        body: JSON.stringify({ id: data }),
+        cookieHeader,
+      }),
+    delete: (data: { trabajador: string; rol: number }, cookieHeader?: string) =>
+      request<void>(trabajadorRolEndpoints.byId(), {
+        method: 'DELETE',
+        body: JSON.stringify({ trabajador: data.trabajador, rol: data.rol }),
+        cookieHeader,
+      }),
+  },
+
+  trabajadorUbicaciones: {
+    list: (cookieHeader?: string) =>
+      request<TrabajadorUbicacion[]>(trabajadorUbicacionEndpoints.all(), { cookieHeader }),
+    create: (data: { trabajador: string; ubicacion: number }, cookieHeader?: string) =>
+      request<TrabajadorUbicacion>(trabajadorUbicacionEndpoints.all(), {
+        method: 'POST',
+        body: JSON.stringify({ id: data }),
+        cookieHeader,
+      }),
+    delete: (data: { trabajador: string; ubicacion: number }, cookieHeader?: string) =>
+      request<void>(trabajadorUbicacionEndpoints.byId(), {
+        method: 'DELETE',
+        body: JSON.stringify({ trabajador: data.trabajador, ubicacion: data.ubicacion }),
+        cookieHeader,
+      }),
   },
 
   reportes: {

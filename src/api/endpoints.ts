@@ -20,7 +20,7 @@ export const jornadaEndpoints = {
   all: () => `${API_BASE_URL}/jornada-trabajo/`,
   byId: (id: number) => `${API_BASE_URL}/jornada-trabajo/${id}/`,
   activas: () => `${API_BASE_URL}/jornada-trabajo/activas/`,
-  byUsuario: (rut: string) => `${API_BASE_URL}/jornada-trabajo/usuario/${rut}`,
+  byUsuario: (rut: string) => `${API_BASE_URL}/jornada-trabajo/usuario/${rut}/`,
   bySupervisor: (rut: string) => `${API_BASE_URL}/jornada-trabajo/supervisor/${rut}/`,
 };
 
@@ -57,6 +57,24 @@ export const alertaHistorialEndpoints = {
   byTrabajador: (rut: string) => `${API_BASE_URL}/alertas-historial/trabajador/${rut}/`,
   activasByTrabajador: (rut: string) => `${API_BASE_URL}/alertas-historial/trabajador/${rut}/activas/`,
   byJornada: (id: number) => `${API_BASE_URL}/alertas-historial/jornada/${id}/`,
+  resolver: (id: number) => `${API_BASE_URL}/alertas-historial/${id}/resolver/`,
+};
+
+export const alertasUmbralesEndpoints = {
+  all: () => `${API_BASE_URL}/alertas-umbrales/`,
+  byId: (id: number) => `${API_BASE_URL}/alertas-umbrales/${id}/`,
+  byTrabajador: (rut: string) => `${API_BASE_URL}/alertas-umbrales/trabajador/${rut}/`,
+  lastByTrabajador: (rut: string) => `${API_BASE_URL}/alertas-umbrales/trabajador/last/${rut}/`,
+};
+
+export const trabajadorRolEndpoints = {
+  all: () => `${API_BASE_URL}/trabajador-rol/`,
+  byId: () => `${API_BASE_URL}/trabajador-rol/id/`,
+};
+
+export const trabajadorUbicacionEndpoints = {
+  all: () => `${API_BASE_URL}/trabajador-ubicacion/`,
+  byId: () => `${API_BASE_URL}/trabajador-ubicacion/id/`,
 };
 
 export const ticketEndpoints = {

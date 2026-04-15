@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import api from "@/api/client";
+import Swal from "sweetalert2";
 import type { AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
 import { Search, ChevronDown, ChevronUp, X } from "lucide-react";
 
@@ -61,6 +62,16 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
   }
 
   async function handleBuscar() {
+    if (fechaDesde && fechaHasta && new Date(fechaDesde) >= new Date(fechaHasta)) {
+      Swal.fire({
+        icon: "error",
+        title: "Rango de fechas inválido",
+        text: "La fecha de inicio debe ser anterior a la fecha de fin",
+        background: "#1c2333",
+        color: "#e6edf3",
+      });
+      return;
+    }
     await fetchPage(0);
   }
 

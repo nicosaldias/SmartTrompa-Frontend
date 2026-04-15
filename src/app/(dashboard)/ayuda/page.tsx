@@ -8,5 +8,5 @@ export default async function AyudaPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
   const user = await getCurrentUser();
-  return <AyudaClient userRut={user?.rut || ""} />;
+  return <AyudaClient userRut={user?.rut || ""} userCargo={user?.cargo || "Trabajador"} />;
 }

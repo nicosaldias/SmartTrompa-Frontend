@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/api/client";
-import type { Ticket, EstadoTicket } from "@/types";
+import type { Ticket, EstadoTicket, Cargo } from "@/types";
 import Swal from "sweetalert2";
 
 interface Props {
   userRut: string;
+  userCargo: Cargo | string;
 }
 
 const FAQS = [
@@ -49,12 +50,15 @@ const ESTADO_LABEL: Record<EstadoTicket, string> = {
   CERRADO: "Cerrado",
 };
 
-export default function AyudaClient({ userRut }: Props) {
+export default function AyudaClient({ userRut, userCargo }: Props) {
   const [abiertos, setAbiertos] = useState<number[]>([]);
   const [ticket, setTicket] = useState({ asunto: "", descripcion: "" });
   const [enviando, setEnviando] = useState(false);
   const [misTickets, setMisTickets] = useState<Ticket[]>([]);
+  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
+  const [vistaAdmin, setVistaAdmin] = useState(false);
+  const isAdmin = userCargo === "Administrador";
 
   function toggleFaq(i: number) {
     setAbiertos((prev) =>
@@ -75,10 +79,51 @@ export default function AyudaClient({ userRut }: Props) {
     }
   }
 
+  async function cargarTodosTickets() {
+    setLoadingTickets(true);
+    try {
+      const data = await api.tickets.list();
+      setAllTickets(Array.isArray(data) ? data : (data as unknown as { content: Ticket[] }).content || []);
+    } catch (err) {
+      console.error("Error cargando todos los tickets:", err);
+    } finally {
+      setLoadingTickets(false);
+    }
+  }
+
+  async function cambiarEstadoTicket(ticketId: number, nuevoEstado: EstadoTicket) {
+    try {
+      await api.tickets.cambiarEstado(ticketId, nuevoEstado);
+      Swal.fire({
+        icon: "success",
+        title: "Estado actualizado",
+        text: `Ticket actualizado a ${ESTADO_LABEL[nuevoEstado]}`,
+        background: "#1c2333",
+        color: "#e6edf3",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      if (vistaAdmin) cargarTodosTickets();
+      else cargarTickets();
+    } catch (err: unknown) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: (err as Error).message,
+        background: "#1c2333",
+        color: "#e6edf3",
+      });
+    }
+  }
+
   useEffect(() => {
-    cargarTickets();
+    if (vistaAdmin && isAdmin) {
+      cargarTodosTickets();
+    } else {
+      cargarTickets();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRut]);
+  }, [userRut, vistaAdmin]);
 
   async function enviarTicket(e: React.FormEvent) {
     e.preventDefault();
@@ -298,17 +343,29 @@ export default function AyudaClient({ userRut }: Props) {
             </div>
           </div>
 
-          {/* My tickets */}
+          {/* My tickets / Admin tickets */}
           <div>
-            <h2
-              style={{
-                fontWeight: 700,
-                fontSize: "1rem",
-                marginBottom: "1rem",
-              }}
-            >
-              Mis tickets
-            </h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h2 style={{ fontWeight: 700, fontSize: "1rem" }}>
+                {vistaAdmin ? "Todos los tickets" : "Mis tickets"}
+              </h2>
+              {isAdmin && (
+                <button
+                  onClick={() => setVistaAdmin(!vistaAdmin)}
+                  style={{
+                    fontSize: "0.75rem",
+                    padding: "0.375rem 0.75rem",
+                    borderRadius: "0.375rem",
+                    border: "1px solid var(--color-border)",
+                    background: vistaAdmin ? "var(--color-accent)" : "transparent",
+                    color: vistaAdmin ? "#fff" : "var(--color-text-secondary)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {vistaAdmin ? "Ver mis tickets" : "Administrar tickets"}
+                </button>
+              )}
+            </div>
             <div className="card">
               {loadingTickets && (
                 <p
@@ -323,7 +380,7 @@ export default function AyudaClient({ userRut }: Props) {
                 </p>
               )}
 
-              {!loadingTickets && misTickets.length === 0 && (
+              {!loadingTickets && (vistaAdmin ? allTickets : misTickets).length === 0 && (
                 <p
                   style={{
                     color: "var(--color-text-secondary)",
@@ -332,11 +389,11 @@ export default function AyudaClient({ userRut }: Props) {
                     padding: "1.5rem 0",
                   }}
                 >
-                  No tienes tickets registrados
+                  {vistaAdmin ? "No hay tickets registrados" : "No tienes tickets registrados"}
                 </p>
               )}
 
-              {!loadingTickets && misTickets.length > 0 && (
+              {!loadingTickets && (vistaAdmin ? allTickets : misTickets).length > 0 && (
                 <div
                   style={{
                     display: "flex",
@@ -344,7 +401,7 @@ export default function AyudaClient({ userRut }: Props) {
                     gap: "0.5rem",
                   }}
                 >
-                  {misTickets.map((t) => (
+                  {(vistaAdmin ? allTickets : misTickets).map((t) => (
                     <div
                       key={t.id}
                       style={{
@@ -375,19 +432,40 @@ export default function AyudaClient({ userRut }: Props) {
                             marginTop: "0.125rem",
                           }}
                         >
+                          {vistaAdmin && t.trabajador
+                            ? `${t.trabajador.nombre} ${t.trabajador.apellidoPaterno || ""} — `
+                            : ""}
                           {formatFecha(t.creadoEn)}
                         </p>
                       </div>
-                      <span
-                        className={ESTADO_BADGE[t.estado] || "badge-gray"}
-                        style={{
-                          fontSize: "0.7rem",
-                          flexShrink: 0,
-                          marginLeft: "0.75rem",
-                        }}
-                      >
-                        {ESTADO_LABEL[t.estado] || t.estado}
-                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, marginLeft: "0.75rem" }}>
+                        {isAdmin && vistaAdmin && t.estado !== "CERRADO" ? (
+                          <select
+                            value={t.estado}
+                            onChange={(e) => cambiarEstadoTicket(t.id, e.target.value as EstadoTicket)}
+                            style={{
+                              fontSize: "0.7rem",
+                              padding: "0.25rem 0.5rem",
+                              borderRadius: "0.375rem",
+                              border: "1px solid var(--color-border)",
+                              background: "var(--color-bg-secondary)",
+                              color: "var(--color-text-primary)",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <option value="ABIERTO">Abierto</option>
+                            <option value="EN_PROGRESO">En progreso</option>
+                            <option value="CERRADO">Cerrado</option>
+                          </select>
+                        ) : (
+                          <span
+                            className={ESTADO_BADGE[t.estado] || "badge-gray"}
+                            style={{ fontSize: "0.7rem" }}
+                          >
+                            {ESTADO_LABEL[t.estado] || t.estado}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

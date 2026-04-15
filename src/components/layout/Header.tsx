@@ -79,6 +79,43 @@ export default function Header() {
         <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", display: "flex" }}>
           <Settings size={20} />
         </button>
+        {user?.cargo && (
+          <span
+            style={{
+              fontSize: "0.65rem",
+              fontWeight: 700,
+              padding: "0.2rem 0.5rem",
+              borderRadius: "9999px",
+              letterSpacing: "0.03em",
+              backgroundColor:
+                user.cargo === "Administrador"
+                  ? "rgba(239,68,68,0.15)"
+                  : user.cargo === "Supervisor"
+                    ? "rgba(59,130,246,0.15)"
+                    : "rgba(139,148,158,0.15)",
+              color:
+                user.cargo === "Administrador"
+                  ? "#ef4444"
+                  : user.cargo === "Supervisor"
+                    ? "#3b82f6"
+                    : "#8b949e",
+              border: `1px solid ${
+                user.cargo === "Administrador"
+                  ? "rgba(239,68,68,0.3)"
+                  : user.cargo === "Supervisor"
+                    ? "rgba(59,130,246,0.3)"
+                    : "rgba(139,148,158,0.3)"
+              }`,
+            }}
+          >
+            {user.cargo}
+          </span>
+        )}
+        {user?.nombre && (
+          <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>
+            {user.nombre}
+          </span>
+        )}
         <div style={{
           width: 36, height: 36, borderRadius: "50%",
           background: "linear-gradient(135deg, #f97316, #ea580c)",

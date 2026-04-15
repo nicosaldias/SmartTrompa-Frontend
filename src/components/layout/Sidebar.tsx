@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -17,23 +18,46 @@ import {
   FileBarChart,
 } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
+import { getUserFromCookie } from "@/utils/cookies";
 
-const navItems = [
-  { href: "/resumen", label: "Resumen", icon: LayoutDashboard },
-  { href: "/cuadrilla", label: "Estado de Cuadrilla", icon: Users },
-  { href: "/historial-alertas", label: "Historial de Alertas", icon: ClipboardList },
-  { href: "/visualizacion", label: "Visualización de Cuadrilla", icon: Eye },
-  { href: "/trabajadores", label: "Gestión de Trabajadores", icon: UserCog },
-  { href: "/umbrales", label: "Gestión de Umbrales", icon: Sliders },
-  { href: "/filtros", label: "Filtros y Respiradores", icon: Wind },
-  { href: "/vida-util-filtros", label: "Vida Útil de Filtros", icon: Timer },
-  { href: "/reportes", label: "Reportes", icon: FileBarChart },
-  { href: "/roles-ubicaciones", label: "Roles y Ubicaciones", icon: MapPin },
-  { href: "/ayuda", label: "Ayuda", icon: HelpCircle },
+type Cargo = "Administrador" | "Supervisor" | "Trabajador";
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  roles: Cargo[];
+}
+
+const ALL_ROLES: Cargo[] = ["Administrador", "Supervisor"];
+const ADMIN_ONLY: Cargo[] = ["Administrador"];
+
+const navItems: NavItem[] = [
+  { href: "/resumen", label: "Resumen", icon: LayoutDashboard, roles: ALL_ROLES },
+  { href: "/cuadrilla", label: "Estado de Cuadrilla", icon: Users, roles: ALL_ROLES },
+  { href: "/historial-alertas", label: "Historial de Alertas", icon: ClipboardList, roles: ALL_ROLES },
+  { href: "/visualizacion", label: "Visualización de Cuadrilla", icon: Eye, roles: ALL_ROLES },
+  { href: "/trabajadores", label: "Gestión de Trabajadores", icon: UserCog, roles: ADMIN_ONLY },
+  { href: "/umbrales", label: "Gestión de Umbrales", icon: Sliders, roles: ADMIN_ONLY },
+  { href: "/filtros", label: "Filtros y Respiradores", icon: Wind, roles: ALL_ROLES },
+  { href: "/vida-util-filtros", label: "Vida Útil de Filtros", icon: Timer, roles: ALL_ROLES },
+  { href: "/reportes", label: "Reportes", icon: FileBarChart, roles: ALL_ROLES },
+  { href: "/roles-ubicaciones", label: "Roles y Ubicaciones", icon: MapPin, roles: ADMIN_ONLY },
+  { href: "/ayuda", label: "Ayuda", icon: HelpCircle, roles: ALL_ROLES },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [userCargo, setUserCargo] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const user = getUserFromCookie();
+    setUserCargo(user?.cargo);
+  }, []);
+
+  const visibleItems = navItems.filter((item) =>
+    userCargo ? item.roles.includes(userCargo as Cargo) : false
+  );
 
   return (
     <aside
@@ -87,7 +111,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: "0.75rem 0.5rem", overflowY: "auto" }}>
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {visibleItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link

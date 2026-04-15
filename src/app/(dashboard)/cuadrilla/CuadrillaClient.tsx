@@ -44,6 +44,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
   const [jornadas, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialAlertas);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [pollFailures, setPollFailures] = useState(0);
 
   const poll = useCallback(async () => {
     try {
@@ -53,8 +54,9 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
       ]);
       setJornadas(newJornadas);
       setAlertas(newAlertas);
+      setPollFailures(0);
     } catch {
-      // silently fail polling — keep stale data
+      setPollFailures((prev) => prev + 1);
     }
   }, []);
 
@@ -277,6 +279,36 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           </button>
         </div>
       </div>
+
+      {/* Polling failure warning */}
+      {pollFailures >= 3 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.5rem 0.75rem",
+            marginBottom: "1rem",
+            borderRadius: "0.5rem",
+            backgroundColor: "rgba(245,158,11,0.1)",
+            border: "1px solid rgba(245,158,11,0.25)",
+            color: "#f59e0b",
+            fontSize: "0.8rem",
+            fontWeight: 500,
+          }}
+        >
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              backgroundColor: "#f59e0b",
+              flexShrink: 0,
+            }}
+          />
+          Error al actualizar datos — los valores mostrados pueden estar desactualizados
+        </div>
+      )}
 
       {/* Content */}
       {viewMode === "cards" ? renderCards() : renderTable()}

@@ -39,6 +39,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
   const [jornadas, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialAlertas);
   const [loading] = useState(false);
+  const [pollFailures, setPollFailures] = useState(0);
 
   // Polling cada 30 segundos
   useEffect(() => {
@@ -50,8 +51,9 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
         ]);
         setJornadas(newJornadas);
         setAlertas(newAlertas);
+        setPollFailures(0);
       } catch {
-        // Silenciar errores de polling para no interrumpir la UI
+        setPollFailures((prev) => prev + 1);
       }
     }, 30_000);
 
@@ -105,6 +107,36 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
           ACTUALIZACIÓN CADA 30S
         </span>
       </div>
+
+      {/* Polling failure warning */}
+      {pollFailures >= 3 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.5rem 0.75rem",
+            marginBottom: "1rem",
+            borderRadius: "0.5rem",
+            backgroundColor: "rgba(245,158,11,0.1)",
+            border: "1px solid rgba(245,158,11,0.25)",
+            color: "#f59e0b",
+            fontSize: "0.8rem",
+            fontWeight: 500,
+          }}
+        >
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              backgroundColor: "#f59e0b",
+              flexShrink: 0,
+            }}
+          />
+          Error al actualizar datos — los valores mostrados pueden estar desactualizados
+        </div>
+      )}
 
       {/* Trabajadores activos - KPI principal */}
       <div

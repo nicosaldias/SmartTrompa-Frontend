@@ -53,10 +53,10 @@ export interface JornadaTrabajo {
   id: number;
   rutUsuario: string;
   idSupervisor: string;
+  idFiltro?: number;
+  idRespirador?: number;
   ubicacion?: Ubicacion;
   rol?: Rol;
-  tipoFiltro?: TipoFiltro;
-  tipoRespirador?: TipoRespirador;
   inicio: string;
   fin?: string;
   dispositivo?: string;
@@ -136,4 +136,18 @@ export interface Ticket {
   creadoEn: string;
   rutTrabajador?: string;
   trabajador?: Trabajador;
+}
+
+export interface AlertasUmbrales {
+  id: number;
+  alrtRespAlto?: number;
+  alrtRespBajo?: number;
+  alrtAjus?: number;
+  alrtFiltrAlto?: number;
+  alrtFiltrBajo?: number;
+  alrtBateAlto?: number;
+  alrtBateMedio?: number;
+  alrtBateBajo?: number;
+  fechaAlerta?: string;
+  rutTrabajador?: string;
 }

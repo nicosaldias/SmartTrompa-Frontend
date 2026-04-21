@@ -464,6 +464,14 @@ export const api = {
   mediciones: {
     byJornada: (id: number, cookieHeader?: string) =>
       request<MedicionesAmbientales[]>(medicionesEndpoints.byJornada(id), { cookieHeader }),
+    latestByJornada: async (id: number, cookieHeader?: string): Promise<MedicionesAmbientales | null> => {
+      try {
+        const all = await request<MedicionesAmbientales[]>(medicionesEndpoints.byJornada(id), { cookieHeader });
+        return all.length > 0 ? all[all.length - 1] : null;
+      } catch {
+        return null;
+      }
+    },
   },
 
   reportes: {

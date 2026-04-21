@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/api/client";
-import type { JornadaTrabajo, AlertaHistorial, TipoAlerta } from "@/types";
+import type { JornadaTrabajo, AlertaHistorial, TipoAlerta, MedicionesAmbientales } from "@/types";
 import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock, RefreshCw } from "lucide-react";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
   initialAlertas: AlertaHistorial[];
+  initialMediciones?: Record<string, MedicionesAmbientales | null>;
 }
 
 const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
@@ -35,9 +36,12 @@ const TIPO_COLORS: Record<TipoAlerta, string> = {
   DESCONEXION: "#8b5cf6",
 };
 
-export default function ResumenClient({ initialJornadas, initialAlertas }: Props) {
+export default function ResumenClient({ initialJornadas, initialAlertas, initialMediciones }: Props) {
   const [jornadas, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialAlertas);
+  const [medicionesMap, setMedicionesMap] = useState<Record<string, MedicionesAmbientales | null>>(
+    initialMediciones || {}
+  );
   const [loading] = useState(false);
   const [pollFailures, setPollFailures] = useState(0);
 
@@ -49,6 +53,15 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
       ]);
       setJornadas(newJornadas);
       setAlertas(newAlertas);
+
+      const medMap: Record<string, MedicionesAmbientales | null> = {};
+      await Promise.all(
+        newJornadas.map(async (j) => {
+          medMap[String(j.id)] = await api.mediciones.latestByJornada(j.id);
+        })
+      );
+      setMedicionesMap(medMap);
+
       setPollFailures(0);
     } catch {
       setPollFailures((prev) => prev + 1);
@@ -77,6 +90,27 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
     const d = new Date(timestamp);
     return d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
   };
+
+  // --- Sensor KPI aggregations ---
+  const medValues = Object.values(medicionesMap).filter((m): m is MedicionesAmbientales => m !== null);
+
+  const frecValues = medValues.filter(m => m.frecuenciaRespiratoria != null);
+  const avgFrec = frecValues.length > 0
+    ? Math.round(frecValues.reduce((sum, m) => sum + (m.frecuenciaRespiratoria ?? 0), 0) / frecValues.length)
+    : null;
+
+  const desajusteCount = medValues.filter(m => m.nivelAjuste === 1).length;
+
+  const atolloCounts = {
+    bajo: medValues.filter(m => m.nivelAtollo === 0 || m.nivelAtollo == null).length,
+    medio: medValues.filter(m => m.nivelAtollo === 1).length,
+    alto: medValues.filter(m => m.nivelAtollo === 2).length,
+  };
+
+  const bateriaValues = medValues.filter(m => m.bateria != null).map(m => m.bateria!);
+  const avgBateria = bateriaValues.length > 0
+    ? Math.round(bateriaValues.reduce((a, b) => a + b, 0) / bateriaValues.length)
+    : null;
 
   return (
     <div>
@@ -288,6 +322,71 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
           >
             Ver todo el historial
           </Link>
+        </div>
+      </div>
+
+      {/* Indicadores de Sensor */}
+      <h2 style={{
+        marginBottom: "1rem",
+        marginTop: "1.5rem",
+        fontSize: "0.8rem",
+        fontWeight: 700,
+        color: "var(--color-text-secondary)",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.375rem",
+        letterSpacing: "0.05em",
+        textTransform: "uppercase",
+      }}>
+        <Activity size={14} />
+        Indicadores de sensor
+      </h2>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+        {/* Promedio frec. respiratoria */}
+        <div className="card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
+          <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
+            Frec. Respiratoria
+          </p>
+          <p style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
+            {avgFrec != null ? `${avgFrec}` : '--'}
+          </p>
+          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>bpm promedio</p>
+        </div>
+
+        {/* Desajustes */}
+        <div className="card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
+          <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
+            Desajustes
+          </p>
+          <p style={{ fontSize: "2rem", fontWeight: 800, color: desajusteCount > 0 ? "#ef4444" : "#22c55e" }}>
+            {desajusteCount}
+          </p>
+          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>trabajadores</p>
+        </div>
+
+        {/* Atollo */}
+        <div className="card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
+          <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
+            Saturacion Filtro
+          </p>
+          <div style={{ display: "flex", justifyContent: "center", gap: "0.75rem", fontSize: "0.75rem", fontWeight: 700 }}>
+            <span style={{ color: "#22c55e" }}>{atolloCounts.bajo}</span>
+            <span style={{ color: "#f59e0b" }}>{atolloCounts.medio}</span>
+            <span style={{ color: "#ef4444" }}>{atolloCounts.alto}</span>
+          </div>
+          <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>bajo / medio / alto</p>
+        </div>
+
+        {/* Bateria promedio */}
+        <div className="card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
+          <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
+            Bateria Sensores
+          </p>
+          <p style={{ fontSize: "2rem", fontWeight: 800, color: avgBateria != null && avgBateria < 20 ? "#ef4444" : "var(--color-text-primary)" }}>
+            {avgBateria != null ? `${avgBateria}%` : '--'}
+          </p>
+          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>promedio</p>
         </div>
       </div>
     </div>

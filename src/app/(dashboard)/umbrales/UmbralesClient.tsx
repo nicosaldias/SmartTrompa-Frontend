@@ -3,8 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "@/api/client";
 import type { AlertasUmbrales, Trabajador } from "@/types";
+import { DEFAULT_THRESHOLDS } from "@/utils/sensorMappings";
 import Swal from "sweetalert2";
-import { Search, Plus, Pencil, Trash2, Sliders } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Sliders, RotateCcw } from "lucide-react";
 
 export default function UmbralesClient() {
   const [umbrales, setUmbrales] = useState<AlertasUmbrales[]>([]);
@@ -88,6 +89,41 @@ export default function UmbralesClient() {
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
+
+    // Validate threshold relationships
+    const errors: string[] = [];
+    const filtrAlto = form.alrtFiltrAlto ? Number(form.alrtFiltrAlto) : null;
+    const filtrBajo = form.alrtFiltrBajo ? Number(form.alrtFiltrBajo) : null;
+    const respAlto = form.alrtRespAlto ? Number(form.alrtRespAlto) : null;
+    const respBajo = form.alrtRespBajo ? Number(form.alrtRespBajo) : null;
+    const bateAlto = form.alrtBateAlto ? Number(form.alrtBateAlto) : null;
+    const bateMedio = form.alrtBateMedio ? Number(form.alrtBateMedio) : null;
+    const bateBajo = form.alrtBateBajo ? Number(form.alrtBateBajo) : null;
+
+    if (filtrAlto != null && filtrBajo != null && filtrAlto >= filtrBajo) {
+      errors.push("Filtro Alto (atollo critico) debe ser menor que Filtro Bajo (atollo medio) en Pa");
+    }
+    if (respBajo != null && respAlto != null && respBajo >= respAlto) {
+      errors.push("Resp. Bajo debe ser menor que Resp. Alto en bpm");
+    }
+    if (bateAlto != null && bateMedio != null && bateAlto >= bateMedio) {
+      errors.push("Bat. Alto (critico) debe ser menor que Bat. Medio (alerta) en %");
+    }
+    if (bateMedio != null && bateBajo != null && bateMedio >= bateBajo) {
+      errors.push("Bat. Medio (alerta) debe ser menor que Bat. Bajo en %");
+    }
+
+    if (errors.length > 0) {
+      await Swal.fire({
+        icon: "error",
+        title: "Error de validacion",
+        html: errors.map((e) => `• ${e}`).join("<br/>"),
+        background: "#1c2333",
+        color: "#e6edf3",
+      });
+      return;
+    }
+
     const confirmResult = await Swal.fire({
       title: "Confirmar",
       text: editando ? "Se actualizara el registro" : "Se creara el registro",
@@ -167,15 +203,34 @@ export default function UmbralesClient() {
   }
 
   const CAMPOS_UMBRAL = [
-    { key: "alrtRespAlto", label: "Resp. Alto" },
-    { key: "alrtRespBajo", label: "Resp. Bajo" },
-    { key: "alrtAjus", label: "Ajuste" },
-    { key: "alrtFiltrAlto", label: "Filtro Alto" },
-    { key: "alrtFiltrBajo", label: "Filtro Bajo" },
-    { key: "alrtBateAlto", label: "Bat. Alto" },
-    { key: "alrtBateMedio", label: "Bat. Medio" },
-    { key: "alrtBateBajo", label: "Bat. Bajo" },
+    { key: "alrtRespAlto", label: "Resp. Alto", unit: "bpm", defaultVal: DEFAULT_THRESHOLDS.respAlto, help: "Frecuencia respiratoria alta" },
+    { key: "alrtRespBajo", label: "Resp. Bajo", unit: "bpm", defaultVal: DEFAULT_THRESHOLDS.respBajo, help: "Frecuencia respiratoria baja" },
+    { key: "alrtAjus", label: "Ajuste", unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thFit, help: "Presion sobre la cual el respirador se considera desajustado" },
+    { key: "alrtFiltrAlto", label: "Filtro Alto", unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thClogHigh, help: "Presion bajo la cual se detecta atollo critico" },
+    { key: "alrtFiltrBajo", label: "Filtro Bajo", unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thClogLow, help: "Presion bajo la cual se detecta atollo medio" },
+    { key: "alrtBateAlto", label: "Bat. Alto", unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateAlto, help: "Nivel de bateria critico" },
+    { key: "alrtBateMedio", label: "Bat. Medio", unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateMedio, help: "Nivel de bateria en alerta" },
+    { key: "alrtBateBajo", label: "Bat. Bajo", unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateBajo, help: "Nivel de bateria bajo" },
   ] as const;
+
+  function fillDefaults() {
+    setForm({
+      ...form,
+      alrtRespAlto: String(DEFAULT_THRESHOLDS.respAlto),
+      alrtRespBajo: String(DEFAULT_THRESHOLDS.respBajo),
+      alrtAjus: String(DEFAULT_THRESHOLDS.thFit),
+      alrtFiltrAlto: String(DEFAULT_THRESHOLDS.thClogHigh),
+      alrtFiltrBajo: String(DEFAULT_THRESHOLDS.thClogLow),
+      alrtBateAlto: String(DEFAULT_THRESHOLDS.bateAlto),
+      alrtBateMedio: String(DEFAULT_THRESHOLDS.bateMedio),
+      alrtBateBajo: String(DEFAULT_THRESHOLDS.bateBajo),
+    });
+  }
+
+  function formatWithUnit(value: number | null | undefined, unit: string): string {
+    if (value == null) return "—";
+    return unit === "%" ? `${value}%` : `${value} ${unit}`;
+  }
 
   return (
     <div>
@@ -251,7 +306,7 @@ export default function UmbralesClient() {
                   </td>
                   {CAMPOS_UMBRAL.map((c) => (
                     <td key={c.key} style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
-                      {u[c.key] != null ? String(u[c.key]) : "—"}
+                      {formatWithUnit(u[c.key] as number | null | undefined, c.unit)}
                     </td>
                   ))}
                   <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
@@ -328,27 +383,37 @@ export default function UmbralesClient() {
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                       Resp. Alto
                     </label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      step="any"
-                      placeholder="0.0"
-                      value={form.alrtRespAlto}
-                      onChange={(e) => setForm({ ...form, alrtRespAlto: e.target.value })}
-                    />
+                    <div style={{ position: "relative" }}>
+                      <input
+                        className="input-field"
+                        type="number"
+                        step="any"
+                        placeholder={String(DEFAULT_THRESHOLDS.respAlto)}
+                        value={form.alrtRespAlto}
+                        onChange={(e) => setForm({ ...form, alrtRespAlto: e.target.value })}
+                        style={{ paddingRight: "3rem" }}
+                      />
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>bpm</span>
+                    </div>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Frecuencia respiratoria alta</p>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                       Resp. Bajo
                     </label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      step="any"
-                      placeholder="0.0"
-                      value={form.alrtRespBajo}
-                      onChange={(e) => setForm({ ...form, alrtRespBajo: e.target.value })}
-                    />
+                    <div style={{ position: "relative" }}>
+                      <input
+                        className="input-field"
+                        type="number"
+                        step="any"
+                        placeholder={String(DEFAULT_THRESHOLDS.respBajo)}
+                        value={form.alrtRespBajo}
+                        onChange={(e) => setForm({ ...form, alrtRespBajo: e.target.value })}
+                        style={{ paddingRight: "3rem" }}
+                      />
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>bpm</span>
+                    </div>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Frecuencia respiratoria baja</p>
                   </div>
                 </div>
               </div>
@@ -370,29 +435,39 @@ export default function UmbralesClient() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Filtro Alto
+                      Filtro Alto (atollo critico)
                     </label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      step="any"
-                      placeholder="0.0"
-                      value={form.alrtFiltrAlto}
-                      onChange={(e) => setForm({ ...form, alrtFiltrAlto: e.target.value })}
-                    />
+                    <div style={{ position: "relative" }}>
+                      <input
+                        className="input-field"
+                        type="number"
+                        step="any"
+                        placeholder={String(DEFAULT_THRESHOLDS.thClogHigh)}
+                        value={form.alrtFiltrAlto}
+                        onChange={(e) => setForm({ ...form, alrtFiltrAlto: e.target.value })}
+                        style={{ paddingRight: "2.5rem" }}
+                      />
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
+                    </div>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Presion bajo la cual se detecta atollo critico</p>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Filtro Bajo
+                      Filtro Bajo (atollo medio)
                     </label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      step="any"
-                      placeholder="0.0"
-                      value={form.alrtFiltrBajo}
-                      onChange={(e) => setForm({ ...form, alrtFiltrBajo: e.target.value })}
-                    />
+                    <div style={{ position: "relative" }}>
+                      <input
+                        className="input-field"
+                        type="number"
+                        step="any"
+                        placeholder={String(DEFAULT_THRESHOLDS.thClogLow)}
+                        value={form.alrtFiltrBajo}
+                        onChange={(e) => setForm({ ...form, alrtFiltrBajo: e.target.value })}
+                        style={{ paddingRight: "2.5rem" }}
+                      />
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
+                    </div>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Presion bajo la cual se detecta atollo medio</p>
                   </div>
                 </div>
               </div>
@@ -414,42 +489,57 @@ export default function UmbralesClient() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Bat. Alto
+                      Bat. Alto (critico)
                     </label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      step="any"
-                      placeholder="0.0"
-                      value={form.alrtBateAlto}
-                      onChange={(e) => setForm({ ...form, alrtBateAlto: e.target.value })}
-                    />
+                    <div style={{ position: "relative" }}>
+                      <input
+                        className="input-field"
+                        type="number"
+                        step="any"
+                        placeholder={String(DEFAULT_THRESHOLDS.bateAlto)}
+                        value={form.alrtBateAlto}
+                        onChange={(e) => setForm({ ...form, alrtBateAlto: e.target.value })}
+                        style={{ paddingRight: "2rem" }}
+                      />
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
+                    </div>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Nivel de bateria critico</p>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Bat. Medio
+                      Bat. Medio (alerta)
                     </label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      step="any"
-                      placeholder="0.0"
-                      value={form.alrtBateMedio}
-                      onChange={(e) => setForm({ ...form, alrtBateMedio: e.target.value })}
-                    />
+                    <div style={{ position: "relative" }}>
+                      <input
+                        className="input-field"
+                        type="number"
+                        step="any"
+                        placeholder={String(DEFAULT_THRESHOLDS.bateMedio)}
+                        value={form.alrtBateMedio}
+                        onChange={(e) => setForm({ ...form, alrtBateMedio: e.target.value })}
+                        style={{ paddingRight: "2rem" }}
+                      />
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
+                    </div>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Nivel de bateria en alerta</p>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                       Bat. Bajo
                     </label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      step="any"
-                      placeholder="0.0"
-                      value={form.alrtBateBajo}
-                      onChange={(e) => setForm({ ...form, alrtBateBajo: e.target.value })}
-                    />
+                    <div style={{ position: "relative" }}>
+                      <input
+                        className="input-field"
+                        type="number"
+                        step="any"
+                        placeholder={String(DEFAULT_THRESHOLDS.bateBajo)}
+                        value={form.alrtBateBajo}
+                        onChange={(e) => setForm({ ...form, alrtBateBajo: e.target.value })}
+                        style={{ paddingRight: "2rem" }}
+                      />
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
+                    </div>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Nivel de bateria bajo</p>
                   </div>
                 </div>
               </div>
@@ -466,26 +556,34 @@ export default function UmbralesClient() {
                   paddingBottom: "0.375rem",
                   borderBottom: "1px solid var(--color-border)",
                 }}>
-                  Ajuste
+                  Ajuste de respirador
                 </p>
                 <div>
                   <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                    Ajuste
+                    Umbral de ajuste
                   </label>
-                  <input
-                    className="input-field"
-                    type="number"
-                    step="any"
-                    placeholder="0.0"
-                    value={form.alrtAjus}
-                    onChange={(e) => setForm({ ...form, alrtAjus: e.target.value })}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      className="input-field"
+                      type="number"
+                      step="any"
+                      placeholder={String(DEFAULT_THRESHOLDS.thFit)}
+                      value={form.alrtAjus}
+                      onChange={(e) => setForm({ ...form, alrtAjus: e.target.value })}
+                      style={{ paddingRight: "2.5rem" }}
+                    />
+                    <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
+                  </div>
+                  <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Presion sobre la cual el respirador se considera desajustado</p>
                 </div>
               </div>
 
               <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
                 <button type="button" onClick={() => setShowForm(false)} className="btn-secondary" style={{ flex: 1 }}>
                   Cancelar
+                </button>
+                <button type="button" onClick={fillDefaults} className="btn-secondary" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.375rem" }}>
+                  <RotateCcw size={14} /> Valores por defecto
                 </button>
                 <button className="btn-primary" type="submit" style={{ flex: 1 }}>
                   {editando ? "Actualizar" : "Crear"}

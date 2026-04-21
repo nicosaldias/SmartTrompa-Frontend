@@ -5,91 +5,112 @@ import { jwtVerify } from "jose";
 const PUBLIC_PATHS = ["/login", "/reset-password"];
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next();
+async function verifyToken(token: string, secret: string): Promise<boolean> {
+  try {
+    const key = new Uint8Array(Buffer.from(secret, "base64"));
+    const { payload } = await jwtVerify(token, key);
+    return !!payload.sub;
+  } catch {
+    return false;
   }
+}
 
-  const token = request.cookies.get("accessToken")?.value;
-  const refreshToken = request.cookies.get("refreshToken")?.value;
+async function attemptRefresh(
+  refreshToken: string,
+  response: NextResponse
+): Promise<boolean> {
+  try {
+    const refreshRes = await fetch(`${API_BASE_URL}/trabajador/refresh/`, {
+      method: "POST",
+      headers: { Cookie: `refreshToken=${refreshToken}` },
+    });
 
-  if (!token && !refreshToken) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
+    if (!refreshRes.ok) return false;
 
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    const response = NextResponse.redirect(new URL("/login", request.url));
-    response.cookies.delete("accessToken");
-    response.cookies.delete("refreshToken");
-    return response;
-  }
-
-  // If access token exists, try to verify it
-  if (token) {
-    try {
-      const secret = Buffer.from(jwtSecret, "base64");
-      const { payload } = await jwtVerify(token, new Uint8Array(secret));
-      const sub = payload.sub as string;
-      if (!sub) throw new Error("Token inválido");
-      return NextResponse.next();
-    } catch {
-      // Access token invalid/expired — fall through to try refresh
-    }
-  }
-
-  // Access token missing or expired — attempt refresh using refresh token
-  if (refreshToken) {
-    try {
-      const refreshRes = await fetch(`${API_BASE_URL}/trabajador/refresh/`, {
-        method: "POST",
-        headers: {
-          Cookie: `refreshToken=${refreshToken}`,
-        },
-      });
-
-      if (refreshRes.ok) {
-        // Extract new cookies from backend response
-        const response = NextResponse.redirect(request.url);
-        const setCookies = refreshRes.headers.getSetCookie?.() ?? [];
-
-        for (const cookieStr of setCookies) {
-          const accessMatch = cookieStr.match(/accessToken=([^;]+)/);
-          if (accessMatch) {
-            response.cookies.set("accessToken", accessMatch[1], {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              maxAge: 60 * 15,
-              path: "/",
-            });
-          }
-
-          const refreshMatch = cookieStr.match(/refreshToken=([^;]+)/);
-          if (refreshMatch) {
-            response.cookies.set("refreshToken", refreshMatch[1], {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              maxAge: 60 * 60 * 24 * 7,
-              path: "/",
-            });
-          }
-        }
-
-        return response;
+    const setCookies = refreshRes.headers.getSetCookie?.() ?? [];
+    for (const cookieStr of setCookies) {
+      const accessMatch = cookieStr.match(/accessToken=([^;]+)/);
+      if (accessMatch) {
+        response.cookies.set("accessToken", accessMatch[1], {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 60 * 15,
+          path: "/",
+        });
       }
-    } catch {
-      // Refresh failed — redirect to login
+      const refreshMatch = cookieStr.match(/refreshToken=([^;]+)/);
+      if (refreshMatch) {
+        response.cookies.set("refreshToken", refreshMatch[1], {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 60 * 60 * 24 * 7,
+          path: "/",
+        });
+      }
     }
+    return setCookies.length > 0;
+  } catch {
+    return false;
   }
+}
 
-  // Both access and refresh failed
+function clearSessionAndRedirectToLogin(request: NextRequest): NextResponse {
   const response = NextResponse.redirect(new URL("/login", request.url));
   response.cookies.delete("accessToken");
   response.cookies.delete("refreshToken");
   response.cookies.delete("st_user");
   return response;
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const token = request.cookies.get("accessToken")?.value;
+  const refreshToken = request.cookies.get("refreshToken")?.value;
+  const jwtSecret = process.env.JWT_SECRET;
+  const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+
+  // Si estamos en /login y hay sesion valida, redirigir al dashboard
+  if (isPublicPath && token && jwtSecret) {
+    const isValid = await verifyToken(token, jwtSecret);
+    if (isValid) {
+      return NextResponse.redirect(new URL("/resumen", request.url));
+    }
+  }
+
+  // Rutas publicas: dejar pasar
+  if (isPublicPath) {
+    return NextResponse.next();
+  }
+
+  // Sin tokens: ir a login
+  if (!token && !refreshToken) {
+    return clearSessionAndRedirectToLogin(request);
+  }
+
+  // Sin secret JWT: no podemos verificar, limpiar todo
+  if (!jwtSecret) {
+    return clearSessionAndRedirectToLogin(request);
+  }
+
+  // Verificar access token
+  if (token) {
+    const isValid = await verifyToken(token, jwtSecret);
+    if (isValid) {
+      return NextResponse.next();
+    }
+  }
+
+  // Access token expirado o invalido — intentar refresh
+  if (refreshToken) {
+    const response = NextResponse.redirect(request.url);
+    const refreshed = await attemptRefresh(refreshToken, response);
+    if (refreshed) {
+      return response;
+    }
+  }
+
+  // Todo fallo — limpiar y al login
+  return clearSessionAndRedirectToLogin(request);
 }
 
 export const config = {

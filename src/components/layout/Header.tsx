@@ -1,55 +1,103 @@
 "use client";
 
-import { Bell, Settings, AlertTriangle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Bell, LogOut, User, AlertTriangle, Clock } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/api/client";
-import type { FilterStatus } from "@/types";
+import type { FilterStatus, AlertaHistorial } from "@/types";
 import { getUserFromCookie } from "@/utils/cookies";
+import { logoutAction } from "@/actions/auth";
+import Swal from "sweetalert2";
 
 export default function Header() {
-  const [user, setUser] = useState<{nombre?: string; cargo?: string} | null>(null);
+  const [user, setUser] = useState<{ nombre?: string; cargo?: string; rut?: string } | null>(null);
   const [filtrosEnRiesgo, setFiltrosEnRiesgo] = useState<number>(0);
+  const [alertasActivas, setAlertasActivas] = useState<number>(0);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [sessionWarning, setSessionWarning] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setUser(getUserFromCookie());
 
-    // Fetch filter lifecycle warnings
-    async function fetchFilterWarnings() {
+    async function fetchData() {
       try {
-        const data: FilterStatus[] = await api.filterLifecycle.proximosVencer();
-        setFiltrosEnRiesgo(data.length);
+        const [filtros, alertas] = await Promise.all([
+          api.filterLifecycle.proximosVencer().catch(() => [] as FilterStatus[]),
+          api.alertas.activas().catch(() => [] as AlertaHistorial[]),
+        ]);
+        setFiltrosEnRiesgo(filtros.length);
+        setAlertasActivas(alertas.length);
       } catch {
         // silently fail
       }
     }
-    fetchFilterWarnings();
-    const interval = setInterval(fetchFilterWarnings, 30000);
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
+  // Session expiry warning timer
+  useEffect(() => {
+    const warningTimer = setTimeout(() => setSessionWarning(true), 13 * 60 * 1000);
+    const hideTimer = setTimeout(() => setSessionWarning(false), 16 * 60 * 1000);
+    return () => { clearTimeout(warningTimer); clearTimeout(hideTimer); };
+  }, []);
+
+  // Cerrar menu al hacer click fuera
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const initials = user?.nombre ? user.nombre.charAt(0).toUpperCase() : "U";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+  const [avatarError, setAvatarError] = useState(false);
+  const avatarSrc = user?.rut ? `${API_URL}/trabajador/${user.rut}/imagen/?t=${Date.now()}` : null;
 
   return (
-    <header style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "0.75rem 0",
-      marginBottom: "1.5rem",
-      borderBottom: "1px solid var(--color-border)",
-    }}>
-      <span style={{
-        color: "var(--color-accent)",
-        fontSize: "0.7rem",
-        fontWeight: 700,
-        letterSpacing: "0.15em",
-        textTransform: "uppercase",
-      }}>
+    <div>
+      {sessionWarning && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: "0.5rem",
+          padding: "0.375rem 0.75rem", marginBottom: "0.5rem",
+          borderRadius: "0.375rem", fontSize: "0.75rem",
+          backgroundColor: "rgba(59,130,246,0.1)",
+          border: "1px solid rgba(59,130,246,0.25)",
+          color: "#3b82f6",
+        }}>
+          <Clock size={14} />
+          La sesion se renovara automaticamente
+        </div>
+      )}
+    <header
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0.75rem 0",
+        marginBottom: "1.5rem",
+        borderBottom: "1px solid var(--color-border)",
+      }}
+    >
+      <span
+        style={{
+          color: "var(--color-accent)",
+          fontSize: "0.7rem",
+          fontWeight: 700,
+          letterSpacing: "0.15em",
+          textTransform: "uppercase",
+        }}
+      >
         INDUSTRIAL COCKPIT
       </span>
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-        {/* Filter lifecycle warning indicator */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        {/* Filter lifecycle warning */}
         {filtrosEnRiesgo > 0 && (
           <Link
             href="/vida-util-filtros"
@@ -65,22 +113,59 @@ export default function Header() {
               fontWeight: 600,
               textDecoration: "none",
               border: "1px solid rgba(245,158,11,0.3)",
-              transition: "background-color 0.15s",
             }}
-            title={`${filtrosEnRiesgo} filtro(s) requieren atención`}
+            title={`${filtrosEnRiesgo} filtro(s) requieren atencion`}
           >
             <AlertTriangle size={14} />
-            {filtrosEnRiesgo} filtro{filtrosEnRiesgo > 1 ? "s" : ""} en riesgo
+            <span className="header-hide-mobile">
+              {filtrosEnRiesgo} filtro{filtrosEnRiesgo > 1 ? "s" : ""} en riesgo
+            </span>
           </Link>
         )}
-        <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", display: "flex", position: "relative" }}>
+
+        {/* Alertas activas — link a historial */}
+        <Link
+          href="/historial-alertas"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: alertasActivas > 0 ? "#ef4444" : "var(--color-text-secondary)",
+            display: "flex",
+            position: "relative",
+            textDecoration: "none",
+          }}
+          title={`${alertasActivas} alerta(s) activa(s)`}
+          aria-label="Ver alertas activas"
+        >
           <Bell size={20} />
-        </button>
-        <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", display: "flex" }}>
-          <Settings size={20} />
-        </button>
+          {alertasActivas > 0 && (
+            <span
+              style={{
+                position: "absolute",
+                top: -4,
+                right: -4,
+                width: 16,
+                height: 16,
+                borderRadius: "50%",
+                backgroundColor: "#ef4444",
+                color: "white",
+                fontSize: "0.6rem",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {alertasActivas > 9 ? "9+" : alertasActivas}
+            </span>
+          )}
+        </Link>
+
+        {/* Role badge */}
         {user?.cargo && (
           <span
+            className="header-hide-mobile"
             style={{
               fontSize: "0.65rem",
               fontWeight: 700,
@@ -111,21 +196,164 @@ export default function Header() {
             {user.cargo}
           </span>
         )}
-        {user?.nombre && (
-          <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>
-            {user.nombre}
-          </span>
-        )}
-        <div style={{
-          width: 36, height: 36, borderRadius: "50%",
-          background: "linear-gradient(135deg, #f97316, #ea580c)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: "white", fontWeight: 700, fontSize: "0.85rem",
-          border: "2px solid var(--color-accent)",
-        }}>
-          {initials}
+
+        {/* User avatar + dropdown menu */}
+        <div ref={menuRef} style={{ position: "relative" }}>
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            aria-label="Menu de usuario"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "0.25rem",
+              borderRadius: "0.5rem",
+            }}
+          >
+            <span
+              className="header-hide-mobile"
+              style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", fontWeight: 500 }}
+            >
+              {user?.nombre}
+            </span>
+            {avatarSrc && !avatarError ? (
+              <img
+                src={avatarSrc}
+                alt=""
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  border: "1px solid var(--color-accent)",
+                  flexShrink: 0,
+                }}
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #f97316, #ea580c)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  border: "2px solid var(--color-accent)",
+                  flexShrink: 0,
+                }}
+              >
+                {initials}
+              </div>
+            )}
+          </button>
+
+          {/* Dropdown */}
+          {showUserMenu && (
+            <div
+              style={{
+                position: "absolute",
+                right: 0,
+                top: "calc(100% + 0.5rem)",
+                width: 220,
+                backgroundColor: "var(--color-bg-secondary)",
+                border: "1px solid var(--color-border)",
+                borderRadius: "0.5rem",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+                zIndex: 100,
+                overflow: "hidden",
+              }}
+            >
+              {/* User info */}
+              <div
+                style={{
+                  padding: "0.75rem 1rem",
+                  borderBottom: "1px solid var(--color-border)",
+                }}
+              >
+                <p style={{ fontWeight: 600, fontSize: "0.85rem" }}>{user?.nombre}</p>
+                <p style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", marginTop: "0.125rem" }}>
+                  {user?.cargo} — {user?.rut}
+                </p>
+              </div>
+
+              {/* Menu items */}
+              <div style={{ padding: "0.375rem" }}>
+                <Link
+                  href="/ayuda"
+                  onClick={() => setShowUserMenu(false)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.5rem 0.625rem",
+                    borderRadius: "0.375rem",
+                    color: "var(--color-text-secondary)",
+                    fontSize: "0.8rem",
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                  className="sidebar-link"
+                >
+                  <User size={16} />
+                  Ayuda y soporte
+                </Link>
+                <button
+                  onClick={async () => {
+                    const result = await Swal.fire({
+                      title: "Cerrar sesion",
+                      text: "Estas seguro que deseas cerrar sesion?",
+                      icon: "question",
+                      showCancelButton: true,
+                      confirmButtonText: "Si, cerrar sesion",
+                      cancelButtonText: "Cancelar",
+                      background: "#1c2333",
+                      color: "#e6edf3",
+                      confirmButtonColor: "#f97316",
+                    });
+                    if (result.isConfirmed) {
+                      logoutAction();
+                    }
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.5rem 0.625rem",
+                    borderRadius: "0.375rem",
+                    color: "#ef4444",
+                    fontSize: "0.8rem",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left",
+                  }}
+                >
+                  <LogOut size={16} />
+                  Cerrar sesion
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .header-hide-mobile {
+            display: none !important;
+          }
+        }
+      `}</style>
     </header>
+    </div>
   );
 }

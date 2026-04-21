@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/api/client";
 import Swal from "sweetalert2";
 import type { AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
@@ -27,6 +28,7 @@ function getInitials(nombre?: string, apellido?: string): string {
 }
 
 export default function HistorialAlertasClient({ initialPage }: Props) {
+  const router = useRouter();
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialPage.content);
   const [totalElements, setTotalElements] = useState(initialPage.totalElements);
   const [serverTotalPages, setServerTotalPages] = useState(initialPage.totalPages);
@@ -81,7 +83,8 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
     setTrabajadorSearch("");
     setTipo("");
     setNivel("");
-    // Re-fetch unfiltered
+    setCurrentPage(0);
+    // Re-fetch unfiltered from first page
     setLoading(true);
     api.alertas.listPaged(0, PAGE_SIZE, {})
       .then((result) => {
@@ -320,12 +323,12 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-                {["Timestamp", "Trabajador", "Tipo", "Nivel", "Jornada", "Descripción"].map((h) => (
+                {["Timestamp", "Trabajador", "Tipo", "Nivel", "Descripción"].map((h) => (
                   <th
                     key={h}
                     style={{
-                      padding: "0.75rem",
-                      textAlign: "left",
+                      padding: "0.75rem 0.5rem",
+                      textAlign: h === "Trabajador" ? "left" : "center",
                       color: "var(--color-text-secondary)",
                       fontWeight: 600,
                       fontSize: "0.8rem",
@@ -340,13 +343,13 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
+                  <td colSpan={5} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
                     Cargando...
                   </td>
                 </tr>
               ) : pageData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
+                  <td colSpan={5} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
                     Sin alertas que coincidan con los filtros
                   </td>
                 </tr>
@@ -358,14 +361,14 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
                   const initials = getInitials(a.trabajador?.nombre, a.trabajador?.apellidoPaterno);
 
                   return (
-                    <tr key={a.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
+                    <tr key={a.id} onClick={() => router.push(`/historial-alertas/${a.id}`)} style={{ borderBottom: "1px solid var(--color-border)", cursor: "pointer", transition: "background-color 0.15s" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.03)")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
                       {/* TIMESTAMP */}
-                      <td style={{ padding: "0.75rem", color: "var(--color-text-secondary)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      <td style={{ padding: "0.75rem 0.5rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
                         {new Date(a.timestamp).toLocaleString("es-CL")}
                       </td>
 
                       {/* TRABAJADOR — avatar + name + rut */}
-                      <td style={{ padding: "0.75rem" }}>
+                      <td style={{ padding: "0.75rem 0.5rem" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                           <div
                             style={{
@@ -396,33 +399,26 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
                       </td>
 
                       {/* TIPO */}
-                      <td style={{ padding: "0.75rem", color: "var(--color-text-primary)" }}>
+                      <td style={{ padding: "0.75rem 0.5rem", textAlign: "center", color: "var(--color-text-primary)" }}>
                         {a.tipo}
                       </td>
 
                       {/* NIVEL — badge */}
-                      <td style={{ padding: "0.75rem" }}>
+                      <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
                         <span className={nivelBadgeClass(a.nivel)}>
                           {a.nivel}
                         </span>
                       </td>
 
-                      {/* JORNADA */}
-                      <td style={{ padding: "0.75rem", color: "var(--color-text-secondary)" }}>
-                        {a.jornadaId ?? "—"}
-                      </td>
-
                       {/* DESCRIPCION */}
                       <td
                         style={{
-                          padding: "0.75rem",
+                          padding: "0.75rem 0.5rem",
+                          textAlign: "left",
                           color: "var(--color-text-secondary)",
-                          maxWidth: "250px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
+                          maxWidth: "300px",
+                          wordBreak: "break-word",
                         }}
-                        title={a.descripcion || ""}
                       >
                         {a.descripcion || "—"}
                       </td>

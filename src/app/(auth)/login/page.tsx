@@ -41,13 +41,17 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const rawRut = rut.replace(/\./g, "");
-    const result = await loginAction(rawRut, password);
-    if (result?.error) {
-      setError(result.error);
+    try {
+      const result = await loginAction(rut, password);
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+      } else {
+        router.push("/resumen");
+      }
+    } catch {
+      setError("Error inesperado al iniciar sesion. Intenta nuevamente.");
       setLoading(false);
-    } else {
-      router.push("/resumen");
     }
   }
 
@@ -83,10 +87,7 @@ export default function LoginPage() {
           justifyContent: "center",
           alignItems: "center",
           padding: "3rem 4rem",
-          backgroundImage: "linear-gradient(to bottom, rgba(13, 17, 23, 0.8), rgba(22, 27, 34, 0.9)), url('/login-bg.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundColor: "#0d1117",
+          background: "linear-gradient(to bottom, rgba(13, 17, 23, 0.8), rgba(22, 27, 34, 0.9)), #0d1117",
         }}
       >
         {/* Subtle orange glow */}
@@ -329,7 +330,7 @@ export default function LoginPage() {
                       <input
                         className="input-field"
                         type={showPass ? "text" : "password"}
-                        placeholder="Tu contrase\u00F1a"
+                        placeholder="Tu contraseña"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         style={{ paddingRight: "2.5rem" }}
@@ -338,6 +339,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={() => setShowPass(!showPass)}
+                        aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
                         style={{
                           position: "absolute",
                           right: "0.75rem",

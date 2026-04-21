@@ -10,28 +10,20 @@ interface Props {
   filtrosProximosCount: number;
 }
 
-type ReportTab = "semanal" | "mensual";
-
 export default function ReportesClient({ alertasActivasCount, filtrosProximosCount }: Props) {
-  const [activeTab, setActiveTab] = useState<ReportTab>("semanal");
   const [loading, setLoading] = useState(false);
 
-  // Weekly
   const today = new Date();
   const lastWeekStart = new Date(today);
   lastWeekStart.setDate(today.getDate() - 7);
   const [desde, setDesde] = useState(formatDateForInput(lastWeekStart));
   const [hasta, setHasta] = useState(formatDateForInput(today));
 
-  // Monthly
-  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
-
   function formatDateForInput(d: Date): string {
     return d.toISOString().split("T")[0];
   }
 
-  async function handleDescargarSemanal() {
+  async function handleDescargarReporte() {
     if (!desde || !hasta) {
       Swal.fire({
         icon: "warning",
@@ -42,45 +34,24 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
       });
       return;
     }
-    setLoading(true);
-    try {
-      const blob = await api.reportes.descargarSemanal(desde, hasta);
-      downloadBlob(blob, `reporte_semanal_${desde}_${hasta}.pdf`);
+    if (desde > hasta) {
       Swal.fire({
-        icon: "success",
-        title: "Reporte generado",
-        text: "El PDF se descargó correctamente",
-        timer: 2000,
-        showConfirmButton: false,
+        icon: "warning",
+        title: "Rango invalido",
+        text: "La fecha 'Desde' no puede ser posterior a 'Hasta'",
         background: "#1c2333",
         color: "#e6edf3",
       });
-    } catch (err: unknown) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: (err as Error).message || "No se pudo generar el reporte",
-        background: "#1c2333",
-        color: "#e6edf3",
-      });
-    } finally {
-      setLoading(false);
+      return;
     }
-  }
-
-  async function handleDescargarMensual() {
     setLoading(true);
     try {
-      const blob = await api.reportes.descargarMensual(selectedYear, selectedMonth);
-      const meses = [
-        "", "enero", "febrero", "marzo", "abril", "mayo", "junio",
-        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-      ];
-      downloadBlob(blob, `reporte_mensual_${meses[selectedMonth]}_${selectedYear}.pdf`);
+      const blob = await api.reportes.descargarPorJornada(desde, hasta);
+      downloadBlob(blob, `reporte_jornadas_${desde}_${hasta}.pdf`);
       Swal.fire({
         icon: "success",
         title: "Reporte generado",
-        text: "El PDF se descargó correctamente",
+        text: "El PDF se descargo correctamente",
         timer: 2000,
         showConfirmButton: false,
         background: "#1c2333",
@@ -110,13 +81,6 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
     window.URL.revokeObjectURL(url);
   }
 
-  const mesesNombres = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-  ];
-
-  const years = Array.from({ length: 5 }, (_, i) => today.getFullYear() - i);
-
   return (
     <div>
       {/* Header */}
@@ -129,7 +93,7 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
             marginTop: "0.25rem",
           }}
         >
-          Genera reportes PDF de seguridad industrial para gerencia
+          Genera reportes PDF por jornada de trabajo para gerencia
         </p>
       </div>
 
@@ -205,216 +169,90 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
             <p style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
               Tipo de reporte
             </p>
-            <p style={{ fontSize: "1rem", fontWeight: 600 }}>
-              {activeTab === "semanal" ? "Semanal" : "Mensual"}
-            </p>
+            <p style={{ fontSize: "1rem", fontWeight: 600 }}>Por Jornada</p>
           </div>
         </div>
       </div>
 
-      {/* Tab toggle */}
-      <div
-        style={{
-          display: "flex",
-          gap: 0,
-          marginBottom: "1.5rem",
-          backgroundColor: "var(--color-bg-secondary)",
-          borderRadius: "0.5rem",
-          border: "1px solid var(--color-border)",
-          overflow: "hidden",
-          width: "fit-content",
-        }}
-      >
-        {(["semanal", "mensual"] as ReportTab[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              padding: "0.625rem 1.5rem",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              border: "none",
-              cursor: "pointer",
-              backgroundColor:
-                activeTab === tab ? "var(--color-accent)" : "transparent",
-              color: activeTab === tab ? "white" : "var(--color-text-secondary)",
-              transition: "all 0.15s",
-              textTransform: "uppercase",
-              letterSpacing: "0.025em",
-            }}
-          >
-            {tab === "semanal" ? "Reporte Semanal" : "Reporte Mensual"}
-          </button>
-        ))}
-      </div>
-
       {/* Report form card */}
-      <div className="card" style={{ maxWidth: 600 }}>
-        {activeTab === "semanal" ? (
-          <>
-            <h2 style={{ fontWeight: 700, fontSize: "1.125rem", marginBottom: "1rem" }}>
-              Reporte Semanal
-            </h2>
-            <p
-              style={{
-                fontSize: "0.85rem",
-                color: "var(--color-text-secondary)",
-                marginBottom: "1.5rem",
-                lineHeight: 1.5,
-              }}
-            >
-              Selecciona el rango de fechas para generar el reporte semanal de seguridad.
-              Incluye resumen de jornadas, alertas por tipo, estado de filtros y
-              recomendaciones.
-            </p>
-            <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.375rem",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  <Calendar size={14} />
-                  Desde
-                </label>
-                <input
-                  className="input-field"
-                  type="date"
-                  value={desde}
-                  onChange={(e) => setDesde(e.target.value)}
-                  style={{ width: "100%" }}
-                />
-              </div>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.375rem",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  <Calendar size={14} />
-                  Hasta
-                </label>
-                <input
-                  className="input-field"
-                  type="date"
-                  value={hasta}
-                  onChange={(e) => setHasta(e.target.value)}
-                  style={{ width: "100%" }}
-                />
-              </div>
-            </div>
-            <button
-              className="btn-primary"
-              onClick={handleDescargarSemanal}
-              disabled={loading}
+      <div className="card" style={{ maxWidth: 900 }}>
+        <h2 style={{ fontWeight: 700, fontSize: "1.125rem", marginBottom: "1rem" }}>
+          Reporte por Jornada
+        </h2>
+        <p
+          style={{
+            fontSize: "0.85rem",
+            color: "var(--color-text-secondary)",
+            marginBottom: "1.5rem",
+            lineHeight: 1.5,
+          }}
+        >
+          Selecciona el rango de fechas para generar el reporte por jornada de trabajo.
+          Incluye el detalle de cada jornada con trabajador, supervisor, duracion y
+          alertas registradas durante la sesion.
+        </p>
+        <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <label
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "0.5rem",
-                width: "100%",
-                justifyContent: "center",
-                padding: "0.75rem",
-              }}
-            >
-              <Download size={18} />
-              {loading ? "Generando reporte..." : "Generar Reporte Semanal"}
-            </button>
-          </>
-        ) : (
-          <>
-            <h2 style={{ fontWeight: 700, fontSize: "1.125rem", marginBottom: "1rem" }}>
-              Reporte Mensual
-            </h2>
-            <p
-              style={{
-                fontSize: "0.85rem",
+                gap: "0.375rem",
+                fontSize: "0.8rem",
                 color: "var(--color-text-secondary)",
-                marginBottom: "1.5rem",
-                lineHeight: 1.5,
+                marginBottom: "0.375rem",
               }}
             >
-              Selecciona el mes y año para generar el reporte mensual de seguridad.
-              Incluye resumen general, desglose de alertas, estado de filtros y
-              observaciones con recomendaciones.
-            </p>
-            <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Mes
-                </label>
-                <select
-                  className="input-field"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                  style={{ width: "100%" }}
-                >
-                  {mesesNombres.map((nombre, idx) => (
-                    <option key={idx} value={idx + 1}>
-                      {nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Año
-                </label>
-                <select
-                  className="input-field"
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  style={{ width: "100%" }}
-                >
-                  {years.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <button
-              className="btn-primary"
-              onClick={handleDescargarMensual}
-              disabled={loading}
+              <Calendar size={14} />
+              Desde
+            </label>
+            <input
+              className="input-field"
+              type="date"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <label
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "0.5rem",
-                width: "100%",
-                justifyContent: "center",
-                padding: "0.75rem",
+                gap: "0.375rem",
+                fontSize: "0.8rem",
+                color: "var(--color-text-secondary)",
+                marginBottom: "0.375rem",
               }}
             >
-              <Download size={18} />
-              {loading ? "Generando reporte..." : "Generar Reporte Mensual"}
-            </button>
-          </>
-        )}
+              <Calendar size={14} />
+              Hasta
+            </label>
+            <input
+              className="input-field"
+              type="date"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
+        </div>
+        <button
+          className="btn-primary"
+          onClick={handleDescargarReporte}
+          disabled={loading}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            width: "100%",
+            justifyContent: "center",
+            padding: "0.75rem",
+          }}
+        >
+          <Download size={18} />
+          {loading ? "Generando reporte..." : "Generar Reporte"}
+        </button>
       </div>
 
       {/* Info section */}
@@ -422,7 +260,7 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
         className="card"
         style={{
           marginTop: "1.5rem",
-          maxWidth: 600,
+          maxWidth: 900,
           borderLeft: "3px solid var(--color-accent)",
         }}
       >
@@ -438,11 +276,11 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
             margin: 0,
           }}
         >
-          <li>Resumen general: jornadas completadas, trabajadores activos, promedio de horas</li>
-          <li>Desglose de alertas por tipo (respiratoria, ajuste, filtro, batería, desconexión)</li>
-          <li>Top 5 trabajadores con más alertas</li>
-          <li>Estado de vida útil de filtros (vencidos y próximos a vencer)</li>
-          <li>Observaciones y recomendaciones automáticas basadas en los datos</li>
+          <li>Resumen de jornadas y tandas en el periodo seleccionado</li>
+          <li>Estado de cada trabajador por jornada (supervisor, duracion, ubicacion)</li>
+          <li>Alertas por tipo durante las jornadas (respiratoria, ajuste, filtro, bateria, desconexion)</li>
+          <li>Desglose de alertas individuales por cada jornada de trabajo</li>
+          <li>Observaciones y recomendaciones automaticas basadas en los datos</li>
         </ul>
       </div>
     </div>

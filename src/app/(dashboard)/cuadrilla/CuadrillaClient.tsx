@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/api/client";
 import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAlerta } from "@/types";
-import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table } from "lucide-react";
+import { BINARY_ALERT_TYPES } from "@/types";
+import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw } from "lucide-react";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
@@ -11,6 +12,7 @@ interface Props {
   trabajadores: Trabajador[];
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 const ALERTA_TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
 
 const TIPO_LABELS: Record<TipoAlerta, string> = {
@@ -80,9 +82,30 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     !ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, j.rutUsuario, tipo) === "CRITICO")
   ).length;
 
+  const sinProblemas = totalActivos - alertasCriticas - advertencias;
+
   const operativity = totalActivos > 0
     ? Math.round(((totalActivos - alertasCriticas) / totalActivos) * 100)
     : 0;
+
+  // Conteo por tipo de alerta
+  const alertasPorTipo = ALERTA_TIPOS.reduce((acc, tipo) => {
+    acc[tipo] = jornadas.filter((j) => {
+      const nivel = getAlertNivel(alertas, j.rutUsuario, tipo);
+      return nivel !== "OK";
+    }).length;
+    return acc;
+  }, {} as Record<TipoAlerta, number>);
+
+  // Agrupar jornadas por supervisor
+  const jornadasPorSupervisor = jornadas.reduce((groups, j) => {
+    const supRut = j.idSupervisor || "sin-supervisor";
+    if (!groups[supRut]) groups[supRut] = [];
+    groups[supRut].push(j);
+    return groups;
+  }, {} as Record<string, JornadaTrabajo[]>);
+
+  const supervisorRuts = Object.keys(jornadasPorSupervisor);
 
   // ── Render helpers ──
 
@@ -102,81 +125,250 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     );
   }
 
+  function alertAnimClass(nivel: NivelAlerta): string {
+    if (nivel === "OK") return "pulse-ok";
+    if (nivel === "ALERTA") return "pulse-warn";
+    return "pulse-crit";
+  }
+
+  function alertColor(nivel: NivelAlerta): string {
+    if (nivel === "OK") return "#22c55e";
+    if (nivel === "ALERTA") return "#f59e0b";
+    return "#ef4444";
+  }
+
+  function renderWorkerCard(jornada: JornadaTrabajo) {
+    const t = findTrabajador(jornada.rutUsuario);
+    const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "CRITICO");
+    const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "ALERTA");
+    const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
+
+    return (
+      <div
+        key={jornada.id}
+        className="card"
+        style={{ padding: "0.75rem", borderLeft: `3px solid ${alertColor(estadoGeneral)}` }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.625rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+            {t?.tieneImagen ? (
+              <img src={`${API_URL}/trabajador/${t.rut}/imagen/`} alt=""
+                style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--color-border)" }} />
+            ) : (
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                background: "linear-gradient(135deg, #f97316, #ea580c)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "white", fontWeight: 700, fontSize: "0.75rem",
+              }}>
+                {t ? `${t.nombre.charAt(0)}${t.apellidoPaterno.charAt(0)}` : "?"}
+              </div>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontWeight: 700, fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {t ? `${t.nombre} ${t.apellidoPaterno}` : jornada.rutUsuario}
+              </p>
+              <p style={{ color: "var(--color-text-secondary)", fontSize: "0.65rem" }}>
+                {t?.rut || jornada.rutUsuario}
+              </p>
+            </div>
+          </div>
+          <span className={alertAnimClass(estadoGeneral)} style={{
+            fontSize: "0.6rem", fontWeight: 700, color: alertColor(estadoGeneral),
+            letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
+          }}>
+            {estadoGeneral === "OK" ? "NORMAL" : estadoGeneral}
+          </span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.25rem" }}>
+          {ALERTA_TIPOS.map((tipo) => {
+            const nivel = getAlertNivel(alertas, jornada.rutUsuario, tipo);
+            return (
+              <div key={tipo} className={alertAnimClass(nivel)} style={{
+                display: "flex", alignItems: "center", gap: "0.25rem",
+                padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
+                color: alertColor(nivel), fontSize: "0.65rem", fontWeight: 600,
+              }} title={`${TIPO_LABELS[tipo]}: ${nivel}`}>
+                {TIPO_ICONS[tipo]}
+                <span>{TIPO_LABELS[tipo]}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Check if a supervisor has their own active jornada
+  function supervisorHasJornada(supRut: string): boolean {
+    return jornadas.some((j) => j.rutUsuario === supRut);
+  }
+
+  function renderSupervisorCard(supRut: string) {
+    const sup = findTrabajador(supRut);
+    const hasJornada = supervisorHasJornada(supRut);
+
+    if (hasJornada) {
+      // Supervisor is active in the field - show their alert status
+      const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, supRut, tipo) === "CRITICO");
+      const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, supRut, tipo) === "ALERTA");
+      const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
+
+      return (
+        <div
+          className="card"
+          style={{ padding: "0.75rem", borderLeft: `3px solid ${alertColor(estadoGeneral)}`, backgroundColor: "rgba(59,130,246,0.04)" }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.625rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+              {sup?.tieneImagen ? (
+                <img src={`${API_URL}/trabajador/${sup.rut}/imagen/`} alt=""
+                  style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "2px solid #3b82f6" }} />
+              ) : (
+                <div style={{
+                  width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "white", fontWeight: 700, fontSize: "0.75rem",
+                }}>
+                  {sup ? `${sup.nombre.charAt(0)}${sup.apellidoPaterno.charAt(0)}` : "?"}
+                </div>
+              )}
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontWeight: 700, fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
+                </p>
+                <p style={{ color: "#3b82f6", fontSize: "0.65rem", fontWeight: 600 }}>
+                  SUPERVISOR
+                </p>
+              </div>
+            </div>
+            <span className={alertAnimClass(estadoGeneral)} style={{
+              fontSize: "0.6rem", fontWeight: 700, color: alertColor(estadoGeneral),
+              letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
+            }}>
+              {estadoGeneral === "OK" ? "NORMAL" : estadoGeneral}
+            </span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.25rem" }}>
+            {ALERTA_TIPOS.map((tipo) => {
+              const nivel = getAlertNivel(alertas, supRut, tipo);
+              return (
+                <div key={tipo} className={alertAnimClass(nivel)} style={{
+                  display: "flex", alignItems: "center", gap: "0.25rem",
+                  padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
+                  color: alertColor(nivel), fontSize: "0.65rem", fontWeight: 600,
+                }} title={`${TIPO_LABELS[tipo]}: ${nivel}`}>
+                  {TIPO_ICONS[tipo]}
+                  <span>{TIPO_LABELS[tipo]}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // Supervisor is NOT active - show as INACTIVO
+    return (
+      <div
+        className="card"
+        style={{ padding: "0.75rem", borderLeft: "3px solid var(--color-border)", opacity: 0.6 }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+            {sup?.tieneImagen ? (
+              <img src={`${API_URL}/trabajador/${sup.rut}/imagen/`} alt=""
+                style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--color-border)", filter: "grayscale(50%)" }} />
+            ) : (
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                background: "var(--color-bg-secondary)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "var(--color-text-secondary)", fontWeight: 700, fontSize: "0.75rem",
+                border: "1px solid var(--color-border)",
+              }}>
+                {sup ? `${sup.nombre.charAt(0)}${sup.apellidoPaterno.charAt(0)}` : "?"}
+              </div>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontWeight: 700, fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--color-text-secondary)" }}>
+                {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
+              </p>
+              <p style={{ color: "var(--color-text-secondary)", fontSize: "0.65rem", fontWeight: 600 }}>
+                SUPERVISOR
+              </p>
+            </div>
+          </div>
+          <span style={{
+            fontSize: "0.6rem", fontWeight: 700, color: "var(--color-text-secondary)",
+            letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
+            padding: "0.2rem 0.5rem", borderRadius: "9999px",
+            backgroundColor: "rgba(139,148,158,0.1)", border: "1px solid rgba(139,148,158,0.2)",
+          }}>
+            INACTIVO
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  function renderSupervisorHeader(supRut: string, count: number) {
+    const sup = findTrabajador(supRut);
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.75rem", marginTop: "0.5rem" }}>
+        {sup?.tieneImagen ? (
+          <img src={`${API_URL}/trabajador/${sup.rut}/imagen/`} alt=""
+            style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--color-accent)" }} />
+        ) : (
+          <div style={{
+            width: 36, height: 36, borderRadius: "50%",
+            background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "white", fontWeight: 700, fontSize: "0.8rem",
+          }}>
+            {sup ? `${sup.nombre.charAt(0)}${sup.apellidoPaterno.charAt(0)}` : "?"}
+          </div>
+        )}
+        <div>
+          <p style={{ fontWeight: 700, fontSize: "0.9rem" }}>
+            {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
+          </p>
+          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>
+            Supervisor · {count} trabajador{count !== 1 ? "es" : ""} activo{count !== 1 ? "s" : ""}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   function renderCards() {
     if (jornadas.length === 0) {
       return (
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
-          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.95rem" }}>
-            No hay jornadas activas en este momento
+          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
+          <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
+            No hay trabajadores activos
+          </p>
+          <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
+            Los trabajadores activos apareceran aqui cuando inicien una tanda de trabajo
           </p>
         </div>
       );
     }
 
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
-        {jornadas.map((jornada) => {
-          const t = findTrabajador(jornada.rutUsuario);
-          const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "CRITICO");
-          const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "ALERTA");
-          const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
-
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        {supervisorRuts.map((supRut) => {
+          const supJornadas = jornadasPorSupervisor[supRut];
+          // Filter out supervisor's own jornada from worker list (shown separately)
+          const workerJornadas = supJornadas.filter((j) => j.rutUsuario !== supRut);
           return (
-            <div
-              key={jornada.id}
-              className="card"
-              style={{
-                borderTop: `3px solid ${nivelColor(estadoGeneral)}`,
-                transition: "transform 0.15s, box-shadow 0.15s",
-              }}
-            >
-              {/* Header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
-                <div>
-                  <p style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--color-text-primary)" }}>
-                    {t ? `${t.nombre} ${t.apellidoPaterno}` : jornada.rutUsuario}
-                  </p>
-                  <p style={{ color: "var(--color-text-secondary)", fontSize: "0.75rem", marginTop: "0.125rem" }}>
-                    {t?.rut || jornada.rutUsuario} · {t?.cargo || "Sin cargo"}
-                  </p>
-                </div>
-                <div
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: "50%",
-                    backgroundColor: nivelColor(estadoGeneral),
-                    boxShadow: `0 0 8px ${nivelColor(estadoGeneral)}`,
-                    flexShrink: 0,
-                    marginTop: 4,
-                  }}
-                />
-              </div>
-
-              {/* Alert indicators */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-                {ALERTA_TIPOS.map((tipo) => {
-                  const nivel = getAlertNivel(alertas, jornada.rutUsuario, tipo);
-                  return (
-                    <div
-                      key={tipo}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "0.3rem 0.5rem",
-                        borderRadius: "0.375rem",
-                        backgroundColor: nivel !== "OK" ? `${nivelColor(nivel)}12` : "transparent",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", color: "var(--color-text-secondary)", fontSize: "0.75rem" }}>
-                        {TIPO_ICONS[tipo]}
-                        <span>{TIPO_LABELS[tipo]}</span>
-                      </div>
-                      {renderDot(nivel)}
-                    </div>
-                  );
-                })}
+            <div key={supRut}>
+              {renderSupervisorHeader(supRut, workerJornadas.length)}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.75rem" }}>
+                {renderSupervisorCard(supRut)}
+                {workerJornadas.map((j) => renderWorkerCard(j))}
               </div>
             </div>
           );
@@ -185,71 +377,245 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     );
   }
 
+  function renderSupervisorTableRow(supRut: string) {
+    const sup = findTrabajador(supRut);
+    const hasJornada = supervisorHasJornada(supRut);
+
+    if (!hasJornada) {
+      return (
+        <tr key={`sup-${supRut}`} style={{ borderBottom: "1px solid var(--color-border)", opacity: 0.6 }}>
+          <td style={{ padding: "0.75rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                background: "var(--color-bg-secondary)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "var(--color-text-secondary)", fontWeight: 700, fontSize: "0.65rem",
+                border: "1px solid var(--color-border)",
+              }}>
+                {sup ? `${sup.nombre.charAt(0)}${sup.apellidoPaterno.charAt(0)}` : "?"}
+              </div>
+              <div>
+                <span style={{ fontWeight: 600, color: "var(--color-text-secondary)" }}>
+                  {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
+                </span>
+                <span style={{ fontSize: "0.65rem", color: "#3b82f6", fontWeight: 600, marginLeft: "0.5rem" }}>SUP</span>
+              </div>
+            </div>
+          </td>
+          <td style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>
+            {sup?.rut || supRut}
+          </td>
+          {ALERTA_TIPOS.map((tipo) => (
+            <td key={tipo} style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>—</td>
+          ))}
+          <td style={{ padding: "0.75rem", textAlign: "center" }}>
+            <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em" }}>
+              INACTIVO
+            </span>
+          </td>
+        </tr>
+      );
+    }
+
+    const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, supRut, tipo) === "CRITICO");
+    const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, supRut, tipo) === "ALERTA");
+    const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
+
+    return (
+      <tr key={`sup-${supRut}`} style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "rgba(59,130,246,0.03)" }}>
+        <td style={{ padding: "0.75rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            {sup?.tieneImagen ? (
+              <img src={`${API_URL}/trabajador/${sup.rut}/imagen/`} alt=""
+                style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "2px solid #3b82f6" }} />
+            ) : (
+              <div style={{
+                width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "white", fontWeight: 700, fontSize: "0.65rem",
+              }}>
+                {sup ? `${sup.nombre.charAt(0)}${sup.apellidoPaterno.charAt(0)}` : "?"}
+              </div>
+            )}
+            <div>
+              <span style={{ fontWeight: 600 }}>
+                {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
+              </span>
+              <span style={{ fontSize: "0.65rem", color: "#3b82f6", fontWeight: 600, marginLeft: "0.5rem" }}>SUP</span>
+            </div>
+          </div>
+        </td>
+        <td style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>
+          {sup?.rut || supRut}
+        </td>
+        {ALERTA_TIPOS.map((tipo) => {
+          const nivel = getAlertNivel(alertas, supRut, tipo);
+          return (
+            <td key={tipo} style={{ padding: "0.75rem", textAlign: "center" }}>
+              <div className={alertAnimClass(nivel)} style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                gap: "0.25rem", color: alertColor(nivel), fontSize: "0.7rem", fontWeight: 700,
+              }}>
+                {TIPO_ICONS[tipo]}
+                <span>{nivel}</span>
+              </div>
+            </td>
+          );
+        })}
+        <td style={{ padding: "0.75rem", textAlign: "center" }}>
+          <span className={alertAnimClass(estadoGeneral)} style={{
+            fontSize: "0.65rem", fontWeight: 700,
+            color: alertColor(estadoGeneral), letterSpacing: "0.05em",
+          }}>
+            {estadoGeneral === "OK" ? "NORMAL" : estadoGeneral}
+          </span>
+        </td>
+      </tr>
+    );
+  }
+
   function renderTable() {
     if (jornadas.length === 0) {
       return (
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
-          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.95rem" }}>
-            No hay jornadas activas en este momento
+          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
+          <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
+            No hay trabajadores activos
+          </p>
+          <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
+            Los trabajadores activos apareceran aqui cuando inicien una tanda de trabajo
           </p>
         </div>
       );
     }
 
+    const headerIcons: Record<TipoAlerta, React.ReactNode> = {
+      RESPIRATORIA: <Wind size={14} />,
+      AJUSTE: <Wrench size={14} />,
+      FILTRO: <Activity size={14} />,
+      BATERIA: <Battery size={14} />,
+      DESCONEXION: <Wifi size={14} />,
+    };
+
     return (
-      <div className="card" style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-              {["Trabajador", "RUT", "Cargo", "Resp.", "Ajuste", "Filtro", "Batería", "Desconexión"].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "0.75rem",
-                    textAlign: "left",
-                    color: "var(--color-text-secondary)",
-                    fontWeight: 600,
-                    fontSize: "0.8rem",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {jornadas.map((jornada) => {
-              const t = findTrabajador(jornada.rutUsuario);
-              return (
-                <tr key={jornada.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                  <td style={{ padding: "0.75rem", fontWeight: 600, color: "var(--color-text-primary)" }}>
-                    {t ? `${t.nombre} ${t.apellidoPaterno}` : jornada.rutUsuario}
-                  </td>
-                  <td style={{ padding: "0.75rem", color: "var(--color-text-secondary)" }}>
-                    {t?.rut || jornada.rutUsuario}
-                  </td>
-                  <td style={{ padding: "0.75rem", color: "var(--color-text-secondary)" }}>
-                    {t?.cargo || "—"}
-                  </td>
-                  {ALERTA_TIPOS.map((tipo) => (
-                    <td key={tipo} style={{ padding: "0.75rem" }}>
-                      <div style={{ display: "flex", justifyContent: "center" }}>
-                        {renderDot(getAlertNivel(alertas, jornada.rutUsuario, tipo))}
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        {supervisorRuts.map((supRut) => {
+          const supJornadas = jornadasPorSupervisor[supRut];
+          const workerJornadas = supJornadas.filter((j) => j.rutUsuario !== supRut);
+          return (
+            <div key={supRut}>
+              {renderSupervisorHeader(supRut, workerJornadas.length)}
+              <div className="card" style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
+                      <th style={{ padding: "0.75rem", textAlign: "left", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem" }}>
+                        Trabajador
+                      </th>
+                      <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem" }}>
+                        RUT
+                      </th>
+                      {ALERTA_TIPOS.map((tipo) => (
+                        <th key={tipo} style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }}>
+                            {headerIcons[tipo]}
+                            {TIPO_LABELS[tipo]}
+                          </div>
+                        </th>
+                      ))}
+                      <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem" }}>
+                        Estado
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {renderSupervisorTableRow(supRut)}
+                    {workerJornadas.map((jornada) => {
+                      const t = findTrabajador(jornada.rutUsuario);
+                      const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "CRITICO");
+                      const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "ALERTA");
+                      const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
+                      return (
+                        <tr key={jornada.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
+                          <td style={{ padding: "0.75rem" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                              {t?.tieneImagen ? (
+                                <img src={`${API_URL}/trabajador/${t.rut}/imagen/`} alt=""
+                                  style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--color-border)" }} />
+                              ) : (
+                                <div style={{
+                                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                                  background: "linear-gradient(135deg, #f97316, #ea580c)",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  color: "white", fontWeight: 700, fontSize: "0.65rem",
+                                }}>
+                                  {t ? `${t.nombre.charAt(0)}${t.apellidoPaterno.charAt(0)}` : "?"}
+                                </div>
+                              )}
+                              <span style={{ fontWeight: 600 }}>
+                                {t ? `${t.nombre} ${t.apellidoPaterno}` : jornada.rutUsuario}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>
+                            {t?.rut || jornada.rutUsuario}
+                          </td>
+                          {ALERTA_TIPOS.map((tipo) => {
+                            const nivel = getAlertNivel(alertas, jornada.rutUsuario, tipo);
+                            return (
+                              <td key={tipo} style={{ padding: "0.75rem", textAlign: "center" }}>
+                                <div className={alertAnimClass(nivel)} style={{
+                                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                  gap: "0.25rem", color: alertColor(nivel), fontSize: "0.7rem", fontWeight: 700,
+                                }}>
+                                  {TIPO_ICONS[tipo]}
+                                  <span>{nivel}</span>
+                                </div>
+                              </td>
+                            );
+                          })}
+                          <td style={{ padding: "0.75rem", textAlign: "center" }}>
+                            <span className={alertAnimClass(estadoGeneral)} style={{
+                              fontSize: "0.65rem", fontWeight: 700,
+                              color: alertColor(estadoGeneral), letterSpacing: "0.05em",
+                            }}>
+                              {estadoGeneral === "OK" ? "NORMAL" : estadoGeneral}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   }
 
   return (
     <div>
+      <style>{`
+        @keyframes pulseOk {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+        @keyframes pulseWarn {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        @keyframes pulseCrit {
+          0%, 100% { opacity: 1; text-shadow: 0 0 8px currentColor; }
+          50% { opacity: 0.3; text-shadow: none; }
+        }
+        .pulse-ok { animation: pulseOk 3s ease-in-out infinite; }
+        .pulse-warn { animation: pulseWarn 1.5s ease-in-out infinite; }
+        .pulse-crit { animation: pulseCrit 0.8s ease-in-out infinite; }
+      `}</style>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
         <div>
@@ -257,10 +623,18 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             Estado de Cuadrilla
           </h1>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-            Vista en tiempo real de todos los trabajadores en jornada activa
+            Vista en tiempo real de supervisores y trabajadores activos
           </p>
         </div>
-        <div style={{ display: "flex", gap: "0.25rem" }}>
+        <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
+          <button onClick={poll} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--color-text-secondary)", padding: "0.25rem",
+            display: "flex", alignItems: "center",
+            marginRight: "0.5rem",
+          }} title="Actualizar ahora">
+            <RefreshCw size={16} />
+          </button>
           <button
             onClick={() => setViewMode("cards")}
             className={viewMode === "cards" ? "btn-primary" : "btn-secondary"}
@@ -311,43 +685,68 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
       )}
 
       {/* Content */}
-      {viewMode === "cards" ? renderCards() : renderTable()}
+      <div style={{ transition: "opacity 0.2s ease" }} key={viewMode}>
+        {viewMode === "cards" ? renderCards() : renderTable()}
+      </div>
 
       {/* Summary Card */}
       {totalActivos > 0 && (
-        <div className="card" style={{ marginTop: "2rem" }}>
-          <h2 style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em", marginBottom: "1rem" }}>
+        <div className="card" style={{ marginTop: "1.5rem", padding: "1.25rem" }}>
+          <h2 style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.1em", marginBottom: "1rem" }}>
             RESUMEN DE TURNO
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem" }}>
-            {/* Operatividad */}
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "2rem", fontWeight: 800, color: operativity >= 80 ? "var(--color-green)" : operativity >= 50 ? "var(--color-yellow)" : "var(--color-red)" }}>
-                {operativity}%
-              </p>
-              <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>Operatividad</p>
+
+          {/* Main stats row */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
+            <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(249,115,22,0.08)" }}>
+              <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "#f97316" }}>{totalActivos}</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>ACTIVOS</p>
             </div>
-            {/* Total activos */}
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-accent)" }}>
-                {totalActivos}
-              </p>
-              <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>Total activos</p>
+            <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(34,197,94,0.08)" }}>
+              <p className="pulse-ok" style={{ fontSize: "1.75rem", fontWeight: 800, color: "#22c55e" }}>{sinProblemas}</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>SIN PROBLEMAS</p>
             </div>
-            {/* Alertas críticas */}
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "2rem", fontWeight: 800, color: alertasCriticas > 0 ? "var(--color-red)" : "var(--color-green)" }}>
-                {alertasCriticas}
-              </p>
-              <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>Alertas críticas</p>
+            <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: advertencias > 0 ? "rgba(245,158,11,0.08)" : "transparent" }}>
+              <p className={advertencias > 0 ? "pulse-warn" : ""} style={{ fontSize: "1.75rem", fontWeight: 800, color: advertencias > 0 ? "#f59e0b" : "var(--color-text-secondary)" }}>{advertencias}</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>ADVERTENCIAS</p>
             </div>
-            {/* Advertencias */}
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "2rem", fontWeight: 800, color: advertencias > 0 ? "var(--color-yellow)" : "var(--color-green)" }}>
-                {advertencias}
-              </p>
-              <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>Advertencias</p>
+            <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: alertasCriticas > 0 ? "rgba(239,68,68,0.08)" : "transparent" }}>
+              <p className={alertasCriticas > 0 ? "pulse-crit" : ""} style={{ fontSize: "1.75rem", fontWeight: 800, color: alertasCriticas > 0 ? "#ef4444" : "var(--color-text-secondary)" }}>{alertasCriticas}</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>CRITICAS</p>
             </div>
+            <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--color-border)" }}>
+              <p style={{ fontSize: "1.75rem", fontWeight: 800, color: operativity >= 80 ? "#22c55e" : operativity >= 50 ? "#f59e0b" : "#ef4444" }}>{operativity}%</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>OPERATIVIDAD</p>
+            </div>
+          </div>
+
+          {/* Alertas por tipo */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            {ALERTA_TIPOS.map((tipo) => {
+              const count = alertasPorTipo[tipo];
+              const hasIssue = count > 0;
+              return (
+                <div
+                  key={tipo}
+                  className={hasIssue ? "pulse-warn" : ""}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.375rem",
+                    padding: "0.3rem 0.625rem",
+                    borderRadius: "9999px",
+                    fontSize: "0.7rem",
+                    fontWeight: 600,
+                    color: hasIssue ? "#f59e0b" : "var(--color-text-secondary)",
+                    backgroundColor: hasIssue ? "rgba(245,158,11,0.1)" : "rgba(139,148,158,0.08)",
+                    border: `1px solid ${hasIssue ? "rgba(245,158,11,0.25)" : "transparent"}`,
+                  }}
+                >
+                  {TIPO_ICONS[tipo]}
+                  {TIPO_LABELS[tipo]}: {count}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

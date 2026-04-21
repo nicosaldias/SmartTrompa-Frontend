@@ -5,6 +5,16 @@ import { api } from "@/api/client";
 import type { Rol, Ubicacion } from "@/types";
 import Swal from "sweetalert2";
 
+function CharCounter({ current, max }: { current: number; max: number }) {
+  const pct = current / max;
+  const color = pct >= 1 ? "#ef4444" : pct >= 0.8 ? "#f59e0b" : "var(--color-text-secondary)";
+  return (
+    <span style={{ display: "block", textAlign: "right", fontSize: "0.65rem", color, marginTop: "0.25rem" }}>
+      {current}/{max}
+    </span>
+  );
+}
+
 interface Props {
   initialRoles: Rol[];
   initialUbicaciones: Ubicacion[];
@@ -70,6 +80,18 @@ export default function RolesUbicacionesClient({
 
   async function guardarRol(e: React.FormEvent) {
     e.preventDefault();
+    const confirmResult = await Swal.fire({
+      title: "Confirmar",
+      text: editandoRol ? "Se actualizara el registro" : "Se creara el registro",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Si, guardar",
+      cancelButtonText: "Cancelar",
+      background: "#1c2333",
+      color: "#e6edf3",
+      confirmButtonColor: "#f97316",
+    });
+    if (!confirmResult.isConfirmed) return;
     try {
       if (editandoRol) {
         await api.roles.update(editandoRol.id, {
@@ -169,6 +191,18 @@ export default function RolesUbicacionesClient({
 
   async function guardarUbicacion(e: React.FormEvent) {
     e.preventDefault();
+    const confirmResult = await Swal.fire({
+      title: "Confirmar",
+      text: editandoUbicacion ? "Se actualizara el registro" : "Se creara el registro",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Si, guardar",
+      cancelButtonText: "Cancelar",
+      background: "#1c2333",
+      color: "#e6edf3",
+      confirmButtonColor: "#f97316",
+    });
+    if (!confirmResult.isConfirmed) return;
     try {
       const payload = {
         nombre: ubicacionForm.nombre,
@@ -516,8 +550,11 @@ export default function RolesUbicacionesClient({
             justifyContent: "center",
             zIndex: 100,
           }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setRolModalOpen(false);
+          }}
         >
-          <div className="card" style={{ width: "100%", maxWidth: 400 }}>
+          <div className="card modal-content" style={{ width: "100%", maxWidth: 780 }}>
             <h2 style={{ fontWeight: 700, marginBottom: "1.25rem" }}>
               {editandoRol ? "Editar rol" : "Nuevo rol"}
             </h2>
@@ -547,8 +584,10 @@ export default function RolesUbicacionesClient({
                     setRolForm({ ...rolForm, nombreRol: e.target.value })
                   }
                   required
+                  maxLength={100}
                   placeholder="Ej: Operador de maquinaria"
                 />
+                <CharCounter current={rolForm.nombreRol.length} max={100} />
               </div>
               <div>
                 <label
@@ -561,23 +600,20 @@ export default function RolesUbicacionesClient({
                 >
                   Descripcion (opcional)
                 </label>
-                <input
+                <textarea
                   className="input-field"
+                  rows={3}
                   value={rolForm.descripcion}
                   onChange={(e) =>
                     setRolForm({ ...rolForm, descripcion: e.target.value })
                   }
+                  maxLength={255}
                   placeholder="Descripcion breve del rol"
+                  style={{ resize: "vertical" }}
                 />
+                <CharCounter current={rolForm.descripcion.length} max={255} />
               </div>
-              <div style={{ display: "flex", gap: "0.75rem" }}>
-                <button
-                  className="btn-primary"
-                  type="submit"
-                  style={{ flex: 1 }}
-                >
-                  Guardar
-                </button>
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
                 <button
                   className="btn-secondary"
                   type="button"
@@ -585,6 +621,13 @@ export default function RolesUbicacionesClient({
                   style={{ flex: 1 }}
                 >
                   Cancelar
+                </button>
+                <button
+                  className="btn-primary"
+                  type="submit"
+                  style={{ flex: 1 }}
+                >
+                  Guardar
                 </button>
               </div>
             </form>
@@ -604,8 +647,11 @@ export default function RolesUbicacionesClient({
             justifyContent: "center",
             zIndex: 100,
           }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setUbicacionModalOpen(false);
+          }}
         >
-          <div className="card" style={{ width: "100%", maxWidth: 440 }}>
+          <div className="card modal-content" style={{ width: "100%", maxWidth: 780 }}>
             <h2 style={{ fontWeight: 700, marginBottom: "1.25rem" }}>
               {editandoUbicacion ? "Editar ubicacion" : "Nueva ubicacion"}
             </h2>
@@ -614,37 +660,34 @@ export default function RolesUbicacionesClient({
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "0.875rem",
+                gap: "1rem",
               }}
             >
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Nombre
-                </label>
-                <input
-                  className="input-field"
-                  value={ubicacionForm.nombre}
-                  onChange={(e) =>
-                    setUbicacionForm({ ...ubicacionForm, nombre: e.target.value })
-                  }
-                  required
-                  placeholder="Ej: Sala de calderas"
-                />
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "0.75rem",
-                }}
-              >
+              {/* Nombre | Edificio */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      color: "var(--color-text-secondary)",
+                      marginBottom: "0.375rem",
+                    }}
+                  >
+                    Nombre
+                  </label>
+                  <input
+                    className="input-field"
+                    value={ubicacionForm.nombre}
+                    onChange={(e) =>
+                      setUbicacionForm({ ...ubicacionForm, nombre: e.target.value })
+                    }
+                    required
+                    maxLength={100}
+                    placeholder="Ej: Sala de calderas"
+                  />
+                  <CharCounter current={ubicacionForm.nombre.length} max={100} />
+                </div>
                 <div>
                   <label
                     style={{
@@ -665,9 +708,15 @@ export default function RolesUbicacionesClient({
                         edificio: e.target.value,
                       })
                     }
+                    maxLength={100}
                     placeholder="Ej: Edificio A"
                   />
+                  <CharCounter current={ubicacionForm.edificio.length} max={100} />
                 </div>
+              </div>
+
+              {/* Piso (half width) */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                 <div>
                   <label
                     style={{
@@ -689,7 +738,10 @@ export default function RolesUbicacionesClient({
                     placeholder="Ej: 2"
                   />
                 </div>
+                <div />
               </div>
+
+              {/* Descripcion - full width, textarea */}
               <div>
                 <label
                   style={{
@@ -701,8 +753,9 @@ export default function RolesUbicacionesClient({
                 >
                   Descripcion (opcional)
                 </label>
-                <input
+                <textarea
                   className="input-field"
+                  rows={3}
                   value={ubicacionForm.descripcion}
                   onChange={(e) =>
                     setUbicacionForm({
@@ -710,17 +763,13 @@ export default function RolesUbicacionesClient({
                       descripcion: e.target.value,
                     })
                   }
+                  maxLength={255}
                   placeholder="Descripcion adicional"
+                  style={{ resize: "vertical" }}
                 />
+                <CharCounter current={ubicacionForm.descripcion.length} max={255} />
               </div>
-              <div style={{ display: "flex", gap: "0.75rem" }}>
-                <button
-                  className="btn-primary"
-                  type="submit"
-                  style={{ flex: 1 }}
-                >
-                  Guardar
-                </button>
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
                 <button
                   className="btn-secondary"
                   type="button"
@@ -728,6 +777,13 @@ export default function RolesUbicacionesClient({
                   style={{ flex: 1 }}
                 >
                   Cancelar
+                </button>
+                <button
+                  className="btn-primary"
+                  type="submit"
+                  style={{ flex: 1 }}
+                >
+                  Guardar
                 </button>
               </div>
             </form>

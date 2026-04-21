@@ -202,12 +202,17 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
           style={{
             textAlign: "center",
             padding: "3rem",
-            color: "var(--color-text-secondary)",
           }}
         >
-          {data.length === 0
-            ? "No hay datos de filtros disponibles. Asegúrese de que existan trabajadores con jornadas y filtros asignados."
-            : "No se encontraron resultados con los filtros aplicados."}
+          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
+          <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
+            {data.length === 0 ? "No hay datos de filtros disponibles" : "Sin resultados"}
+          </p>
+          <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
+            {data.length === 0
+              ? "Asegurese de que existan trabajadores con jornadas y filtros asignados"
+              : "No se encontraron resultados con los filtros aplicados"}
+          </p>
         </div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
@@ -220,7 +225,7 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
                     borderBottom: "1px solid var(--color-border)",
                   }}
                 >
-                  <th style={thStyle}>Trabajador</th>
+                  <th style={thStyleLeft}>Trabajador</th>
                   <th style={thStyle}>RUT</th>
                   <th style={thStyle}>Filtro</th>
                   <th style={thStyle}>Uso</th>
@@ -245,7 +250,7 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
                         (e.currentTarget.style.backgroundColor = "transparent")
                       }
                     >
-                      <td style={tdStyle}>
+                      <td style={tdStyleLeft}>
                         <span style={{ fontWeight: 600 }}>{item.trabajadorNombre}</span>
                       </td>
                       <td style={tdStyle}>
@@ -328,8 +333,8 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
 }
 
 const thStyle: React.CSSProperties = {
-  padding: "0.75rem 1rem",
-  textAlign: "left",
+  padding: "0.75rem 0.5rem",
+  textAlign: "center",
   fontSize: "0.75rem",
   fontWeight: 600,
   color: "var(--color-text-secondary)",
@@ -338,7 +343,18 @@ const thStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+const thStyleLeft: React.CSSProperties = {
+  ...thStyle,
+  textAlign: "left",
+};
+
 const tdStyle: React.CSSProperties = {
-  padding: "0.75rem 1rem",
+  padding: "0.75rem 0.5rem",
+  textAlign: "center",
   fontSize: "0.875rem",
+};
+
+const tdStyleLeft: React.CSSProperties = {
+  ...tdStyle,
+  textAlign: "left",
 };

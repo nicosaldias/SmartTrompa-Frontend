@@ -3,8 +3,18 @@
 import { useState, useMemo } from "react";
 import { api } from "@/api/client";
 import { Trabajador, TrabajadorRequest, Cargo, PageResponse } from "@/types";
-import { Plus, Pencil, Trash2, Search, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Eye, EyeOff, Upload } from "lucide-react";
 import Swal from "sweetalert2";
+
+function CharCounter({ current, max }: { current: number; max: number }) {
+  const pct = current / max;
+  const color = pct >= 1 ? "#ef4444" : pct >= 0.8 ? "#f59e0b" : "var(--color-text-secondary)";
+  return (
+    <span style={{ display: "block", textAlign: "right", fontSize: "0.65rem", color, marginTop: "0.25rem" }}>
+      {current}/{max}
+    </span>
+  );
+}
 
 interface Props {
   initialPage: PageResponse<Trabajador>;
@@ -57,6 +67,21 @@ export default function TrabajadoresClient({ initialPage }: Props) {
   const [formCargo, setFormCargo] = useState<Cargo>("Trabajador");
   const [formPassword, setFormPassword] = useState("");
   const [formConfirmPassword, setFormConfirmPassword] = useState("");
+  const [formImageFile, setFormImageFile] = useState<File | null>(null);
+  const [formImagePreview, setFormImagePreview] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  function getFieldError(field: string, value: string): string | null {
+    if (!touched[field]) return null;
+    switch (field) {
+      case "rut": return value.length < 3 ? "RUT invalido" : null;
+      case "nombre": return !value.trim() ? "Nombre es obligatorio" : null;
+      case "apellidoPaterno": return !value.trim() ? "Apellido es obligatorio" : null;
+      case "correo": return value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "Correo invalido" : null;
+      case "password": return value && value.length < 6 ? "Minimo 6 caracteres" : null;
+      default: return null;
+    }
+  }
 
   async function fetchPage(page: number) {
     try {
@@ -96,6 +121,19 @@ export default function TrabajadoresClient({ initialPage }: Props) {
 
   const paginated = filtered;
 
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({ icon: "error", title: "Error", text: "La imagen no puede superar los 5 MB", background: "#1c2333", color: "#e6edf3" });
+      return;
+    }
+    setFormImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setFormImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
   function openCreate() {
     setEditingTrabajador(null);
     setFormRut("");
@@ -106,6 +144,9 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     setFormCargo("Trabajador");
     setFormPassword("");
     setFormConfirmPassword("");
+    setFormImageFile(null);
+    setFormImagePreview(null);
+    setTouched({});
     setShowModal(true);
   }
 
@@ -119,6 +160,13 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     setFormCargo(t.cargo);
     setFormPassword("");
     setFormConfirmPassword("");
+    if (t.tieneImagen) {
+      setFormImagePreview(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/trabajador/${t.rut}/imagen/`);
+    } else {
+      setFormImagePreview(null);
+    }
+    setFormImageFile(null);
+    setTouched({});
     setShowModal(true);
   }
 
@@ -136,6 +184,19 @@ export default function TrabajadoresClient({ initialPage }: Props) {
       return;
     }
 
+    const confirmResult = await Swal.fire({
+      title: "Confirmar",
+      text: editingTrabajador ? "Se actualizara el registro" : "Se creara el registro",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Si, guardar",
+      cancelButtonText: "Cancelar",
+      background: "#1c2333",
+      color: "#e6edf3",
+      confirmButtonColor: "#f97316",
+    });
+    if (!confirmResult.isConfirmed) return;
+
     try {
       if (editingTrabajador) {
         const updateData: Partial<TrabajadorRequest> = {
@@ -146,10 +207,10 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           cargo: formCargo,
           ...(formPassword ? { password: formPassword } : {}),
         };
-        await api.trabajadores.update(editingTrabajador.rut, updateData);
+        await api.trabajadores.update(editingTrabajador.rut, updateData, formImageFile || undefined);
       } else {
         const createData: TrabajadorRequest = {
-          rut: cleanRut(formRut),
+          rut: formRut,
           nombre: formNombre,
           apellidoPaterno: formApellidoPaterno,
           apellidoMaterno: formApellidoMaterno,
@@ -157,7 +218,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           cargo: formCargo,
           password: formPassword,
         };
-        await api.trabajadores.create(createData);
+        await api.trabajadores.create(createData, formImageFile || undefined);
       }
       setShowModal(false);
       await refreshList();
@@ -375,8 +436,8 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                   <th
                     key={h}
                     style={{
-                      padding: "0.875rem 1rem",
-                      textAlign: "left",
+                      padding: "0.75rem 0.5rem",
+                      textAlign: h === "TRABAJADOR" ? "left" : "center",
                       color: "var(--color-text-secondary)",
                       fontWeight: 600,
                       fontSize: "0.75rem",
@@ -417,25 +478,33 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                   >
                     {/* TRABAJADOR column: avatar + name + rut */}
-                    <td style={{ padding: "0.75rem 1rem" }}>
+                    <td style={{ padding: "0.75rem 0.5rem" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            backgroundColor: "rgba(249,115,22,0.15)",
-                            color: "var(--color-accent)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "0.8rem",
-                            fontWeight: 700,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {getInitials(t.nombre, t.apellidoPaterno)}
-                        </div>
+                        {t.tieneImagen ? (
+                          <img
+                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/trabajador/${t.rut}/imagen/`}
+                            alt=""
+                            style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: "50%",
+                              background: "linear-gradient(135deg, #f97316, #ea580c)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "white",
+                              fontWeight: 700,
+                              fontSize: "0.85rem",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {getInitials(t.nombre, t.apellidoPaterno)}
+                          </div>
+                        )}
                         <div>
                           <div style={{ fontWeight: 600 }}>
                             {t.nombre} {t.apellidoPaterno} {t.apellidoMaterno}
@@ -454,14 +523,15 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                     </td>
 
                     {/* CARGO */}
-                    <td style={{ padding: "0.75rem 1rem" }}>
+                    <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
                       <span className={CARGO_BADGE[t.cargo]}>{t.cargo}</span>
                     </td>
 
                     {/* CONTACTO */}
                     <td
                       style={{
-                        padding: "0.75rem 1rem",
+                        padding: "0.75rem 0.5rem",
+                        textAlign: "center",
                         color: "var(--color-text-secondary)",
                       }}
                     >
@@ -469,15 +539,15 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                     </td>
 
                     {/* ESTADO */}
-                    <td style={{ padding: "0.75rem 1rem" }}>
+                    <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
                       <span className={t.activo ? "badge-green" : "badge-red"}>
                         {t.activo ? "Activo" : "Inactivo"}
                       </span>
                     </td>
 
                     {/* ACCIONES */}
-                    <td style={{ padding: "0.75rem 1rem" }}>
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
+                      <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem" }}>
                         <button
                           onClick={() => openEdit(t)}
                           className="btn-secondary"
@@ -602,8 +672,8 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           }}
         >
           <div
-            className="card"
-            style={{ width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" }}
+            className="card modal-content"
+            style={{ width: "100%", maxWidth: 960, maxHeight: "90vh", overflowY: "auto" }}
           >
             <h2 style={{ fontWeight: 700, fontSize: "1.125rem", marginBottom: "1.5rem" }}>
               {editingTrabajador ? "Editar Trabajador" : "Nuevo Trabajador"}
@@ -612,181 +682,317 @@ export default function TrabajadoresClient({ initialPage }: Props) {
               onSubmit={handleSave}
               style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
             >
-              {/* RUT */}
-              <div>
-                <label
+              {/* Profile image upload zone */}
+              <div style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+                <div
                   style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
+                    width: 100,
+                    height: 100,
+                    borderRadius: "50%",
+                    margin: "0 auto 0.75rem",
+                    overflow: "hidden",
+                    border: "2px dashed var(--color-border)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "var(--color-bg-primary)",
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "border-color 0.2s",
                   }}
+                  onClick={() => document.getElementById("trabajador-imagen-input")?.click()}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = "#f97316"}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--color-border)"}
                 >
-                  RUT
-                </label>
+                  {formImagePreview ? (
+                    <>
+                      <img src={formImagePreview} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <div style={{
+                        position: "absolute", inset: 0,
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        opacity: 0, transition: "opacity 0.2s",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = "0"}
+                      >
+                        <span style={{ color: "white", fontSize: "0.75rem", fontWeight: 600 }}>Cambiar</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "0.5rem" }}>
+                      <Upload size={24} color="var(--color-text-secondary)" style={{ margin: "0 auto 0.375rem" }} />
+                      <p style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>
+                        Subir imagen
+                      </p>
+                    </div>
+                  )}
+                </div>
                 <input
-                  className="input-field"
-                  type="text"
-                  placeholder="12.345.678-9"
-                  value={formRut}
-                  onChange={(e) => setFormRut(formatRut(e.target.value))}
-                  disabled={!!editingTrabajador}
-                  required
-                  style={editingTrabajador ? { opacity: 0.6, cursor: "not-allowed" } : {}}
+                  id="trabajador-imagen-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: "none" }}
+                  onChange={handleImageChange}
                 />
+                <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)" }}>
+                  JPG, PNG o WebP · Max. 5 MB
+                </p>
               </div>
 
-              {/* Nombre */}
+              {/* Section: Datos personales */}
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Nombre
-                </label>
-                <input
-                  className="input-field"
-                  type="text"
-                  value={formNombre}
-                  onChange={(e) => setFormNombre(e.target.value)}
-                  required
-                />
+                <p style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  color: "var(--color-text-secondary)",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  marginBottom: "0.5rem",
+                  paddingBottom: "0.375rem",
+                  borderBottom: "1px solid var(--color-border)",
+                }}>
+                  Datos personales
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {/* RUT - full width */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "0.8rem",
+                        color: "var(--color-text-secondary)",
+                        marginBottom: "0.375rem",
+                      }}
+                    >
+                      RUT
+                    </label>
+                    <input
+                      className="input-field"
+                      type="text"
+                      placeholder="12.345.678-9"
+                      value={formRut}
+                      onChange={(e) => setFormRut(formatRut(e.target.value))}
+                      onBlur={() => setTouched(prev => ({ ...prev, rut: true }))}
+                      disabled={!!editingTrabajador}
+                      required
+                      maxLength={12}
+                      style={editingTrabajador ? { opacity: 0.6, cursor: "not-allowed" } : { borderColor: getFieldError("rut", cleanRut(formRut)) ? "#ef4444" : undefined }}
+                    />
+                    <CharCounter current={cleanRut(formRut).length} max={12} />
+                    {getFieldError("rut", cleanRut(formRut)) && (
+                      <span style={{ fontSize: "0.65rem", color: "#ef4444", marginTop: "0.125rem", display: "block" }}>
+                        {getFieldError("rut", cleanRut(formRut))}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Nombre | Apellido Paterno */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.8rem",
+                          color: "var(--color-text-secondary)",
+                          marginBottom: "0.375rem",
+                        }}
+                      >
+                        Nombre
+                      </label>
+                      <input
+                        className="input-field"
+                        type="text"
+                        value={formNombre}
+                        onChange={(e) => setFormNombre(e.target.value)}
+                        onBlur={() => setTouched(prev => ({ ...prev, nombre: true }))}
+                        required
+                        maxLength={100}
+                        style={{ borderColor: getFieldError("nombre", formNombre) ? "#ef4444" : undefined }}
+                      />
+                      <CharCounter current={formNombre.length} max={100} />
+                      {getFieldError("nombre", formNombre) && (
+                        <span style={{ fontSize: "0.65rem", color: "#ef4444", marginTop: "0.125rem", display: "block" }}>
+                          {getFieldError("nombre", formNombre)}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.8rem",
+                          color: "var(--color-text-secondary)",
+                          marginBottom: "0.375rem",
+                        }}
+                      >
+                        Apellido Paterno
+                      </label>
+                      <input
+                        className="input-field"
+                        type="text"
+                        value={formApellidoPaterno}
+                        onChange={(e) => setFormApellidoPaterno(e.target.value)}
+                        onBlur={() => setTouched(prev => ({ ...prev, apellidoPaterno: true }))}
+                        required
+                        maxLength={100}
+                        style={{ borderColor: getFieldError("apellidoPaterno", formApellidoPaterno) ? "#ef4444" : undefined }}
+                      />
+                      <CharCounter current={formApellidoPaterno.length} max={100} />
+                      {getFieldError("apellidoPaterno", formApellidoPaterno) && (
+                        <span style={{ fontSize: "0.65rem", color: "#ef4444", marginTop: "0.125rem", display: "block" }}>
+                          {getFieldError("apellidoPaterno", formApellidoPaterno)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Apellido Materno | Correo */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.8rem",
+                          color: "var(--color-text-secondary)",
+                          marginBottom: "0.375rem",
+                        }}
+                      >
+                        Apellido Materno
+                      </label>
+                      <input
+                        className="input-field"
+                        type="text"
+                        value={formApellidoMaterno}
+                        onChange={(e) => setFormApellidoMaterno(e.target.value)}
+                        required
+                        maxLength={100}
+                      />
+                      <CharCounter current={formApellidoMaterno.length} max={100} />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.8rem",
+                          color: "var(--color-text-secondary)",
+                          marginBottom: "0.375rem",
+                        }}
+                      >
+                        Correo
+                      </label>
+                      <input
+                        className="input-field"
+                        type="email"
+                        value={formCorreo}
+                        onChange={(e) => setFormCorreo(e.target.value)}
+                        onBlur={() => setTouched(prev => ({ ...prev, correo: true }))}
+                        required
+                        maxLength={150}
+                        style={{ borderColor: getFieldError("correo", formCorreo) ? "#ef4444" : undefined }}
+                      />
+                      <CharCounter current={formCorreo.length} max={150} />
+                      {getFieldError("correo", formCorreo) && (
+                        <span style={{ fontSize: "0.65rem", color: "#ef4444", marginTop: "0.125rem", display: "block" }}>
+                          {getFieldError("correo", formCorreo)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Apellido Paterno */}
+              {/* Section: Acceso */}
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Apellido Paterno
-                </label>
-                <input
-                  className="input-field"
-                  type="text"
-                  value={formApellidoPaterno}
-                  onChange={(e) => setFormApellidoPaterno(e.target.value)}
-                  required
-                />
-              </div>
+                <p style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  color: "var(--color-text-secondary)",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  marginBottom: "0.5rem",
+                  paddingBottom: "0.375rem",
+                  borderBottom: "1px solid var(--color-border)",
+                }}>
+                  Acceso
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {/* Cargo - full width */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "0.8rem",
+                        color: "var(--color-text-secondary)",
+                        marginBottom: "0.375rem",
+                      }}
+                    >
+                      Cargo
+                    </label>
+                    <select
+                      className="input-field"
+                      value={formCargo}
+                      onChange={(e) => setFormCargo(e.target.value as Cargo)}
+                    >
+                      {CARGOS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              {/* Apellido Materno */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Apellido Materno
-                </label>
-                <input
-                  className="input-field"
-                  type="text"
-                  value={formApellidoMaterno}
-                  onChange={(e) => setFormApellidoMaterno(e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Correo */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Correo
-                </label>
-                <input
-                  className="input-field"
-                  type="email"
-                  value={formCorreo}
-                  onChange={(e) => setFormCorreo(e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Cargo */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Cargo
-                </label>
-                <select
-                  className="input-field"
-                  value={formCargo}
-                  onChange={(e) => setFormCargo(e.target.value as Cargo)}
-                >
-                  {CARGOS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Password */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Contrasena
-                </label>
-                <input
-                  className="input-field"
-                  type="password"
-                  placeholder={editingTrabajador ? "Dejar en blanco para no cambiar" : ""}
-                  value={formPassword}
-                  onChange={(e) => setFormPassword(e.target.value)}
-                  required={!editingTrabajador}
-                />
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Confirmar contrasena
-                </label>
-                <input
-                  className="input-field"
-                  type="password"
-                  placeholder={editingTrabajador ? "Dejar en blanco para no cambiar" : ""}
-                  value={formConfirmPassword}
-                  onChange={(e) => setFormConfirmPassword(e.target.value)}
-                  required={!editingTrabajador}
-                />
+                  {/* Contrasena | Confirmar contrasena */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.8rem",
+                          color: "var(--color-text-secondary)",
+                          marginBottom: "0.375rem",
+                        }}
+                      >
+                        Contrasena
+                      </label>
+                      <input
+                        className="input-field"
+                        type="password"
+                        placeholder={editingTrabajador ? "Dejar en blanco para no cambiar" : ""}
+                        value={formPassword}
+                        onChange={(e) => setFormPassword(e.target.value)}
+                        onBlur={() => setTouched(prev => ({ ...prev, password: true }))}
+                        required={!editingTrabajador}
+                        style={{ borderColor: getFieldError("password", formPassword) ? "#ef4444" : undefined }}
+                      />
+                      {getFieldError("password", formPassword) && (
+                        <span style={{ fontSize: "0.65rem", color: "#ef4444", marginTop: "0.125rem", display: "block" }}>
+                          {getFieldError("password", formPassword)}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.8rem",
+                          color: "var(--color-text-secondary)",
+                          marginBottom: "0.375rem",
+                        }}
+                      >
+                        Confirmar contrasena
+                      </label>
+                      <input
+                        className="input-field"
+                        type="password"
+                        placeholder={editingTrabajador ? "Dejar en blanco para no cambiar" : ""}
+                        value={formConfirmPassword}
+                        onChange={(e) => setFormConfirmPassword(e.target.value)}
+                        required={!editingTrabajador}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Buttons */}

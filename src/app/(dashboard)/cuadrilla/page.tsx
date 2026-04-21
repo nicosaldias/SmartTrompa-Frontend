@@ -9,11 +9,12 @@ export default async function CuadrillaPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
   try {
-    const [jornadas, alertas, trabajadores] = await Promise.all([
+    const [jornadas, alertas, trabajadoresPage] = await Promise.all([
       api.jornadas.activas(cookieHeader),
       api.alertas.activas(cookieHeader),
-      api.trabajadores.list(cookieHeader),
+      api.trabajadores.listPaged(0, 200, cookieHeader),
     ]);
+    const trabajadores = trabajadoresPage.content || [];
     return <CuadrillaClient initialJornadas={jornadas} initialAlertas={alertas} trabajadores={trabajadores} />;
   } catch {
     redirect("/login");

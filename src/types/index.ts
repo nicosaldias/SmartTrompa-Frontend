@@ -14,6 +14,11 @@ export interface PageResponse<T> {
 export type Cargo = 'Supervisor' | 'Trabajador' | 'Administrador';
 export type TipoAlerta = 'RESPIRATORIA' | 'AJUSTE' | 'FILTRO' | 'BATERIA' | 'DESCONEXION';
 export type NivelAlerta = 'OK' | 'ALERTA' | 'CRITICO';
+
+// Tipos binarios: solo NORMAL o CRITICO (si hay alerta, siempre es critica)
+export const BINARY_ALERT_TYPES: TipoAlerta[] = ['RESPIRATORIA', 'AJUSTE', 'DESCONEXION'];
+// Tipos ternarios: OK, ALERTA, CRITICO
+export const TERNARY_ALERT_TYPES: TipoAlerta[] = ['FILTRO', 'BATERIA'];
 export type EstadoEquipamiento = 'NUEVO' | 'USADO';
 export type EstadoTicket = 'ABIERTO' | 'EN_PROGRESO' | 'CERRADO';
 
@@ -25,6 +30,7 @@ export interface Trabajador {
   cargo: Cargo;
   activo: boolean;
   correo: string;
+  tieneImagen?: boolean;
   trabajadorRols?: TrabajadorRol[];
   trabajadorUbicacions?: TrabajadorUbicacion[];
 }
@@ -76,11 +82,29 @@ export interface AlertaHistorial {
   valorMedido?: number;
   activa: boolean;
   trabajador?: Trabajador;
+  resolucion?: string;
+  medidasTomadas?: string;
+  resueltaEn?: string;
+  resueltaPor?: string;
+}
+
+export interface MedicionesAmbientales {
+  id: number;
+  timestamp: string;
+  temperatura?: number;
+  presion?: number;
+  humedad?: number;
+  bateria?: number;
+  frecuenciaRespiratoria?: number;
+  nivelAjuste?: number;
+  nivelAtollo?: number;
+  counter?: number;
+  jornadaId?: number;
 }
 
 export interface TipoFiltro {
   id: number;
-  nombre: string;
+  nombre?: string;
   marca: string;
   modelo: string;
   fechaHomologacion?: string;
@@ -103,7 +127,7 @@ export interface FilterStatus {
 
 export interface TipoRespirador {
   id: number;
-  nombre: string;
+  nombre?: string;
   marca: string;
   modelo: string;
   fechaHomologacion?: string;

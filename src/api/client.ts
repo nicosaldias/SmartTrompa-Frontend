@@ -12,6 +12,7 @@ import {
   reporteEndpoints,
   trabajadorRolEndpoints,
   trabajadorUbicacionEndpoints,
+  medicionesEndpoints,
 } from './endpoints';
 import type {
   Trabajador,
@@ -28,6 +29,7 @@ import type {
   Ticket,
   PageResponse,
   FilterStatus,
+  MedicionesAmbientales,
 } from '@/types';
 
 interface RequestOptions extends RequestInit {
@@ -137,18 +139,34 @@ export const api = {
       ),
     get: (rut: string, cookieHeader?: string) =>
       request<Trabajador>(trabajadorEndpoints.byRut(rut), { cookieHeader }),
-    create: (data: TrabajadorRequest, cookieHeader?: string) =>
-      request<Trabajador>(trabajadorEndpoints.create(), {
+    create: (data: TrabajadorRequest, imageFile?: File, cookieHeader?: string) => {
+      const formData = new FormData();
+      formData.append("trabajador", JSON.stringify(data));
+      if (imageFile) {
+        formData.append("imagen", imageFile);
+      } else {
+        formData.append("imagen", new Blob(), "empty.png");
+      }
+      return request<Trabajador>(trabajadorEndpoints.create(), {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: formData,
         cookieHeader,
-      }),
-    update: (rut: string, data: Partial<TrabajadorRequest>, cookieHeader?: string) =>
-      request<Trabajador>(trabajadorEndpoints.update(rut), {
+      });
+    },
+    update: (rut: string, data: Partial<TrabajadorRequest>, imageFile?: File, cookieHeader?: string) => {
+      const formData = new FormData();
+      formData.append("trabajador", JSON.stringify(data));
+      if (imageFile) {
+        formData.append("imagen", imageFile);
+      } else {
+        formData.append("imagen", new Blob(), "empty.png");
+      }
+      return request<Trabajador>(trabajadorEndpoints.update(rut), {
         method: 'PUT',
-        body: JSON.stringify(data),
+        body: formData,
         cookieHeader,
-      }),
+      });
+    },
     toggleActivo: (rut: string, cookieHeader?: string) =>
       request<Trabajador>(trabajadorEndpoints.toggleActivo(rut), {
         method: 'PATCH',
@@ -180,6 +198,16 @@ export const api = {
         url += `?inicio=${params.inicio}&fin=${params.fin}`;
       }
       return request<JornadaTrabajo[]>(url, { cookieHeader });
+    },
+    historial: (page: number = 0, size: number = 20, params?: { supervisor?: string; inicio?: string; fin?: string }, cookieHeader?: string) => {
+      const searchParams = new URLSearchParams({ page: String(page), size: String(size) });
+      if (params?.supervisor) searchParams.set("supervisor", params.supervisor);
+      if (params?.inicio) searchParams.set("inicio", params.inicio);
+      if (params?.fin) searchParams.set("fin", params.fin);
+      return request<PageResponse<JornadaTrabajo>>(
+        `${jornadaEndpoints.historial()}?${searchParams.toString()}`,
+        { cookieHeader }
+      );
     },
   },
 
@@ -218,11 +246,14 @@ export const api = {
         body: JSON.stringify(data),
         cookieHeader,
       }),
-    resolver: (id: number, cookieHeader?: string) =>
+    resolver: (id: number, data?: { resolucion?: string; medidasTomadas?: string; resueltaPor?: string }, cookieHeader?: string) =>
       request<AlertaHistorial>(alertaHistorialEndpoints.resolver(id), {
         method: 'PATCH',
+        body: data ? JSON.stringify(data) : undefined,
         cookieHeader,
       }),
+    detalle: (id: number, cookieHeader?: string) =>
+      request<{ alerta: AlertaHistorial; jornadaId?: number }>(alertaHistorialEndpoints.detalle(id), { cookieHeader }),
     delete: (id: number, cookieHeader?: string) =>
       request<void>(alertaHistorialEndpoints.byId(id), { method: 'DELETE', cookieHeader }),
   },
@@ -430,6 +461,11 @@ export const api = {
       }),
   },
 
+  mediciones: {
+    byJornada: (id: number, cookieHeader?: string) =>
+      request<MedicionesAmbientales[]>(medicionesEndpoints.byJornada(id), { cookieHeader }),
+  },
+
   reportes: {
     descargarSemanal: async (desde: string, hasta: string, cookieHeader?: string) => {
       const url = reporteEndpoints.semanal(desde, hasta);
@@ -451,6 +487,17 @@ export const api = {
         },
       });
       if (!res.ok) throw new Error('Error al generar el reporte mensual');
+      return res.blob();
+    },
+    descargarPorJornada: async (desde: string, hasta: string, cookieHeader?: string) => {
+      const url = reporteEndpoints.porJornada(desde, hasta);
+      const res = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+        },
+      });
+      if (!res.ok) throw new Error('Error al generar el reporte por jornada');
       return res.blob();
     },
   },

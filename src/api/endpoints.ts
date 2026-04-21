@@ -7,6 +7,7 @@ export const trabajadorEndpoints = {
   update: (rut: string) => `${API_BASE_URL}/trabajador/${rut}/`,
   toggleActivo: (rut: string) => `${API_BASE_URL}/trabajador/${rut}/activo/`,
   delete: (rut: string) => `${API_BASE_URL}/trabajador/${rut}/`,
+  imagen: (rut: string) => `${API_BASE_URL}/trabajador/${rut}/imagen/`,
   login: () => `${API_BASE_URL}/trabajador/login/`,
   logout: () => `${API_BASE_URL}/trabajador/logout/`,
   token: () => `${API_BASE_URL}/trabajador/token/`,
@@ -22,6 +23,7 @@ export const jornadaEndpoints = {
   activas: () => `${API_BASE_URL}/jornada-trabajo/activas/`,
   byUsuario: (rut: string) => `${API_BASE_URL}/jornada-trabajo/usuario/${rut}/`,
   bySupervisor: (rut: string) => `${API_BASE_URL}/jornada-trabajo/supervisor/${rut}/`,
+  historial: () => `${API_BASE_URL}/jornada-trabajo/historial/`,
 };
 
 export const rolEndpoints = {
@@ -58,6 +60,11 @@ export const alertaHistorialEndpoints = {
   activasByTrabajador: (rut: string) => `${API_BASE_URL}/alertas-historial/trabajador/${rut}/activas/`,
   byJornada: (id: number) => `${API_BASE_URL}/alertas-historial/jornada/${id}/`,
   resolver: (id: number) => `${API_BASE_URL}/alertas-historial/${id}/resolver/`,
+  detalle: (id: number) => `${API_BASE_URL}/alertas-historial/${id}/detalle/`,
+};
+
+export const medicionesEndpoints = {
+  byJornada: (id: number) => `${API_BASE_URL}/mediciones-ambientales/jornada/${id}/`,
 };
 
 export const alertasUmbralesEndpoints = {
@@ -95,4 +102,6 @@ export const reporteEndpoints = {
     `${API_BASE_URL}/reportes/semanal/?desde=${desde}&hasta=${hasta}`,
   mensual: (year: number, month: number) =>
     `${API_BASE_URL}/reportes/mensual/?year=${year}&month=${month}`,
+  porJornada: (desde: string, hasta: string) =>
+    `${API_BASE_URL}/reportes/jornada/?desde=${desde}&hasta=${hasta}`,
 };

@@ -5,6 +5,16 @@ import { api } from "@/api/client";
 import type { Ticket, EstadoTicket, Cargo } from "@/types";
 import Swal from "sweetalert2";
 
+function CharCounter({ current, max }: { current: number; max: number }) {
+  const pct = current / max;
+  const color = pct >= 1 ? "#ef4444" : pct >= 0.8 ? "#f59e0b" : "var(--color-text-secondary)";
+  return (
+    <span style={{ display: "block", textAlign: "right", fontSize: "0.65rem", color, marginTop: "0.25rem" }}>
+      {current}/{max}
+    </span>
+  );
+}
+
 interface Props {
   userRut: string;
   userCargo: Cargo | string;
@@ -54,6 +64,16 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
   const [abiertos, setAbiertos] = useState<number[]>([]);
   const [ticket, setTicket] = useState({ asunto: "", descripcion: "" });
   const [enviando, setEnviando] = useState(false);
+  const [ticketTouched, setTicketTouched] = useState<Record<string, boolean>>({});
+
+  function getTicketFieldError(field: string, value: string): string | null {
+    if (!ticketTouched[field]) return null;
+    switch (field) {
+      case "asunto": return !value.trim() ? "Asunto es obligatorio" : null;
+      case "descripcion": return !value.trim() ? "Descripcion es obligatoria" : null;
+      default: return null;
+    }
+  }
   const [misTickets, setMisTickets] = useState<Ticket[]>([]);
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
@@ -127,6 +147,9 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
 
   async function enviarTicket(e: React.FormEvent) {
     e.preventDefault();
+    // Mark all fields as touched on submit
+    setTicketTouched({ asunto: true, descripcion: true });
+    if (!ticket.asunto.trim() || !ticket.descripcion.trim()) return;
     setEnviando(true);
     try {
       await api.tickets.create({
@@ -135,6 +158,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
         rutTrabajador: userRut,
       });
       setTicket({ asunto: "", descripcion: "" });
+      setTicketTouched({});
       Swal.fire({
         icon: "success",
         title: "Ticket enviado",
@@ -300,8 +324,17 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                     onChange={(e) =>
                       setTicket({ ...ticket, asunto: e.target.value })
                     }
+                    onBlur={() => setTicketTouched(prev => ({ ...prev, asunto: true }))}
                     required
+                    maxLength={200}
+                    style={{ borderColor: getTicketFieldError("asunto", ticket.asunto) ? "#ef4444" : undefined }}
                   />
+                  <CharCounter current={ticket.asunto.length} max={200} />
+                  {getTicketFieldError("asunto", ticket.asunto) && (
+                    <span style={{ fontSize: "0.65rem", color: "#ef4444", marginTop: "0.125rem", display: "block" }}>
+                      {getTicketFieldError("asunto", ticket.asunto)}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <label
@@ -316,15 +349,23 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                   </label>
                   <textarea
                     className="input-field"
-                    rows={5}
+                    rows={6}
                     placeholder="Explica con detalle tu problema o consulta..."
                     value={ticket.descripcion}
                     onChange={(e) =>
                       setTicket({ ...ticket, descripcion: e.target.value })
                     }
+                    onBlur={() => setTicketTouched(prev => ({ ...prev, descripcion: true }))}
                     required
-                    style={{ resize: "vertical" }}
+                    maxLength={500}
+                    style={{ resize: "vertical", borderColor: getTicketFieldError("descripcion", ticket.descripcion) ? "#ef4444" : undefined }}
                   />
+                  <CharCounter current={ticket.descripcion.length} max={500} />
+                  {getTicketFieldError("descripcion", ticket.descripcion) && (
+                    <span style={{ fontSize: "0.65rem", color: "#ef4444", marginTop: "0.125rem", display: "block" }}>
+                      {getTicketFieldError("descripcion", ticket.descripcion)}
+                    </span>
+                  )}
                 </div>
                 <button
                   className="btn-primary"
@@ -335,6 +376,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: "0.5rem",
+                    width: "100%",
                   }}
                 >
                   {enviando ? "Enviando..." : "Enviar ticket"}
@@ -368,16 +410,17 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
             </div>
             <div className="card">
               {loadingTickets && (
-                <p
-                  style={{
-                    color: "var(--color-text-secondary)",
-                    fontSize: "0.875rem",
-                    textAlign: "center",
-                    padding: "1.5rem 0",
-                  }}
-                >
-                  Cargando tickets...
-                </p>
+                <div style={{ padding: "0.75rem 0" }}>
+                  {[1,2,3].map(i => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.625rem 0.75rem", borderBottom: i < 3 ? "1px solid var(--color-border)" : "none" }}>
+                      <div style={{ flex: 1 }}>
+                        <div className="skeleton" style={{ height: 14, width: "70%", marginBottom: "0.375rem" }} />
+                        <div className="skeleton" style={{ height: 10, width: "40%" }} />
+                      </div>
+                      <div className="skeleton" style={{ height: 22, width: 70 }} />
+                    </div>
+                  ))}
+                </div>
               )}
 
               {!loadingTickets && (vistaAdmin ? allTickets : misTickets).length === 0 && (

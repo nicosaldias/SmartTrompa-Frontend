@@ -1,124 +1,426 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "@/api/client";
-import type { Trabajador, JornadaTrabajo } from "@/types";
+import type { Trabajador, JornadaTrabajo, AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
+import { Wind, Wrench, Activity, Battery, Wifi, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import Swal from "sweetalert2";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+const ALERTA_TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
+
+const TIPO_LABELS: Record<TipoAlerta, string> = {
+  RESPIRATORIA: "Respiratoria",
+  AJUSTE: "Ajuste",
+  FILTRO: "Filtro",
+  BATERIA: "Bateria",
+  DESCONEXION: "Desconexion",
+};
+
+const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
+  RESPIRATORIA: <Wind size={13} />,
+  AJUSTE: <Wrench size={13} />,
+  FILTRO: <Activity size={13} />,
+  BATERIA: <Battery size={13} />,
+  DESCONEXION: <Wifi size={13} />,
+};
+
+function alertColor(nivel: NivelAlerta): string {
+  if (nivel === "OK") return "#22c55e";
+  if (nivel === "ALERTA") return "#f59e0b";
+  return "#ef4444";
+}
+
+interface WorkerAlertSummary {
+  rut: string;
+  counts: Record<TipoAlerta, { ok: number; alerta: number; critico: number }>;
+  worstLevel: NivelAlerta;
+  totalAlertas: number;
+  jornadas: number;
+}
 
 interface Props {
-  supervisores: Trabajador[];
+  trabajadores: Trabajador[];
 }
 
-function formatFecha(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-CL", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
-
-function formatHora(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es-CL", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-export default function VisualizacionClient({ supervisores }: Props) {
-  const [selectedSupervisor, setSelectedSupervisor] = useState("");
+export default function VisualizacionClient({ trabajadores }: Props) {
+  const [loading, setLoading] = useState(false);
+  const [filterSupervisor, setFilterSupervisor] = useState("");
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
-  const [jornadas, setJornadas] = useState<JornadaTrabajo[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  async function buscar() {
-    if (!selectedSupervisor) return;
+  // Paginated jornada data
+  const [jornadaPage, setJornadaPage] = useState<PageResponse<JornadaTrabajo> | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  // All alerts for the period (fetched separately)
+  const [alertas, setAlertas] = useState<AlertaHistorial[]>([]);
+
+  const supervisores = trabajadores.filter(
+    (t) => t.cargo === "Supervisor" || t.cargo === "Administrador"
+  );
+
+  const findTrabajador = (rut: string): Trabajador | undefined =>
+    trabajadores.find((t) => t.rut === rut);
+
+  const fetchData = useCallback(async (page: number, sup?: string, desde?: string, hasta?: string) => {
     setLoading(true);
-    setSearched(true);
     try {
-      const params: { inicio?: string; fin?: string } = {};
-      if (fechaDesde) params.inicio = fechaDesde;
-      if (fechaHasta) params.fin = fechaHasta;
-      const data = await api.jornadas.bySupervisor(
-        selectedSupervisor,
-        Object.keys(params).length > 0 ? params : undefined
+      const jornadaParams: { supervisor?: string; inicio?: string; fin?: string } = {};
+      if (sup) jornadaParams.supervisor = sup;
+      if (desde) jornadaParams.inicio = desde;
+      if (hasta) jornadaParams.fin = hasta;
+
+      const jornadaData = await api.jornadas.historial(
+        page,
+        200,
+        Object.keys(jornadaParams).length > 0 ? jornadaParams : undefined
       );
-      setJornadas(data);
+
+      // Fetch alerts for each unique worker in the jornada results
+      const workerRuts = [...new Set((jornadaData.content || []).map((j) => j.rutUsuario))];
+      let allAlertas: AlertaHistorial[] = [];
+
+      if (workerRuts.length > 0) {
+        // Fetch alerts by worker, filtered by date range if provided
+        const alertPromises = workerRuts.map((rut) =>
+          api.alertas.byTrabajador(rut).catch(() => [] as AlertaHistorial[])
+        );
+        const alertResults = await Promise.all(alertPromises);
+        allAlertas = alertResults.flat();
+
+        // Filter alerts by date range if specified
+        if (desde) {
+          const desdeDate = new Date(desde);
+          allAlertas = allAlertas.filter((a) => new Date(a.timestamp) >= desdeDate);
+        }
+        if (hasta) {
+          const hastaDate = new Date(hasta + "T23:59:59");
+          allAlertas = allAlertas.filter((a) => new Date(a.timestamp) <= hastaDate);
+        }
+      }
+
+      setJornadaPage(jornadaData);
+      setAlertas(allAlertas);
+      setCurrentPage(page);
+      setHasSearched(true);
     } catch (err) {
-      console.error("Error buscando jornadas:", err);
-      setJornadas([]);
+      console.error("Error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo cargar el historico de cuadrilla",
+        background: "#1c2333",
+        color: "#e6edf3",
+      });
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Load initial data on mount
+  useEffect(() => {
+    fetchData(0);
+  }, [fetchData]);
+
+  function handleSearch() {
+    fetchData(0, filterSupervisor, fechaDesde, fechaHasta);
   }
+
+  function handleClear() {
+    setFilterSupervisor("");
+    setFechaDesde("");
+    setFechaHasta("");
+    fetchData(0);
+  }
+
+  // Build worker alert summaries from jornadas and alerts
+  const jornadas = jornadaPage?.content || [];
+
+  // Group jornadas by supervisor
+  const jornadasPorSupervisor: Record<string, JornadaTrabajo[]> = {};
+  for (const j of jornadas) {
+    const key = j.idSupervisor || "sin-supervisor";
+    if (!jornadasPorSupervisor[key]) jornadasPorSupervisor[key] = [];
+    jornadasPorSupervisor[key].push(j);
+  }
+
+  // Build worker summaries within each supervisor group
+  function buildWorkerSummaries(supJornadas: JornadaTrabajo[]): WorkerAlertSummary[] {
+    const workerMap: Record<string, WorkerAlertSummary> = {};
+
+    for (const j of supJornadas) {
+      if (!workerMap[j.rutUsuario]) {
+        const counts = {} as Record<TipoAlerta, { ok: number; alerta: number; critico: number }>;
+        for (const tipo of ALERTA_TIPOS) {
+          counts[tipo] = { ok: 0, alerta: 0, critico: 0 };
+        }
+        workerMap[j.rutUsuario] = {
+          rut: j.rutUsuario,
+          counts,
+          worstLevel: "OK",
+          totalAlertas: 0,
+          jornadas: 0,
+        };
+      }
+      workerMap[j.rutUsuario].jornadas++;
+    }
+
+    // Count alerts per worker per type
+    for (const alerta of alertas) {
+      const worker = workerMap[alerta.rutTrabajador];
+      if (!worker) continue;
+      const tipo = alerta.tipo;
+      if (!ALERTA_TIPOS.includes(tipo)) continue;
+
+      if (alerta.nivel === "CRITICO") {
+        worker.counts[tipo].critico++;
+        worker.totalAlertas++;
+      } else if (alerta.nivel === "ALERTA") {
+        worker.counts[tipo].alerta++;
+        worker.totalAlertas++;
+      } else {
+        worker.counts[tipo].ok++;
+      }
+    }
+
+    // Compute worst level per worker
+    for (const worker of Object.values(workerMap)) {
+      let worst: NivelAlerta = "OK";
+      for (const tipo of ALERTA_TIPOS) {
+        if (worker.counts[tipo].critico > 0) {
+          worst = "CRITICO";
+          break;
+        }
+        if (worker.counts[tipo].alerta > 0) {
+          worst = "ALERTA";
+        }
+      }
+      worker.worstLevel = worst;
+    }
+
+    // Sort: CRITICO first, then ALERTA, then OK; within same level by totalAlertas desc
+    const levelOrder: Record<NivelAlerta, number> = { CRITICO: 0, ALERTA: 1, OK: 2 };
+    return Object.values(workerMap).sort((a, b) => {
+      const levelDiff = levelOrder[a.worstLevel] - levelOrder[b.worstLevel];
+      if (levelDiff !== 0) return levelDiff;
+      return b.totalAlertas - a.totalAlertas;
+    });
+  }
+
+  function getTypeWorstLevel(counts: { ok: number; alerta: number; critico: number }): NivelAlerta {
+    if (counts.critico > 0) return "CRITICO";
+    if (counts.alerta > 0) return "ALERTA";
+    return "OK";
+  }
+
+  function getTypeAlertCount(counts: { ok: number; alerta: number; critico: number }): number {
+    return counts.alerta + counts.critico;
+  }
+
+  // Render
+  function renderWorkerCard(summary: WorkerAlertSummary) {
+    const t = findTrabajador(summary.rut);
+    const borderColor = alertColor(summary.worstLevel);
+
+    return (
+      <div
+        key={summary.rut}
+        className="card"
+        style={{ padding: "0.75rem", borderLeft: `3px solid ${borderColor}` }}
+      >
+        {/* Worker info */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.625rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+            {t?.tieneImagen ? (
+              <img
+                src={`${API_URL}/trabajador/${t.rut}/imagen/`}
+                alt=""
+                style={{
+                  width: 32, height: 32, borderRadius: "50%", objectFit: "cover",
+                  flexShrink: 0, border: "1px solid var(--color-border)",
+                }}
+              />
+            ) : (
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                background: "linear-gradient(135deg, #f97316, #ea580c)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "white", fontWeight: 700, fontSize: "0.75rem",
+              }}>
+                {t ? `${t.nombre.charAt(0)}${t.apellidoPaterno.charAt(0)}` : "?"}
+              </div>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <p style={{
+                fontWeight: 700, fontSize: "0.85rem",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              }}>
+                {t ? `${t.nombre} ${t.apellidoPaterno}` : summary.rut}
+              </p>
+              <p style={{ color: "var(--color-text-secondary)", fontSize: "0.65rem" }}>
+                {summary.rut} · {summary.jornadas} jornada{summary.jornadas !== 1 ? "s" : ""}
+              </p>
+            </div>
+          </div>
+          <span style={{
+            fontSize: "0.6rem", fontWeight: 700, color: alertColor(summary.worstLevel),
+            letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
+          }}>
+            {summary.worstLevel === "OK" ? "NORMAL" : summary.worstLevel}
+          </span>
+        </div>
+
+        {/* Alert type grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.25rem" }}>
+          {ALERTA_TIPOS.map((tipo) => {
+            const typeLevel = getTypeWorstLevel(summary.counts[tipo]);
+            const count = getTypeAlertCount(summary.counts[tipo]);
+            return (
+              <div
+                key={tipo}
+                style={{
+                  display: "flex", alignItems: "center", gap: "0.25rem",
+                  padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
+                  color: alertColor(typeLevel), fontSize: "0.65rem", fontWeight: 600,
+                }}
+                title={`${TIPO_LABELS[tipo]}: ${count} alerta${count !== 1 ? "s" : ""}`}
+              >
+                {TIPO_ICONS[tipo]}
+                <span>{TIPO_LABELS[tipo]}</span>
+                {count > 0 && (
+                  <span style={{
+                    marginLeft: "auto",
+                    fontSize: "0.6rem",
+                    fontWeight: 800,
+                    backgroundColor: `${alertColor(typeLevel)}15`,
+                    padding: "0.0625rem 0.25rem",
+                    borderRadius: "9999px",
+                    minWidth: "16px",
+                    textAlign: "center",
+                  }}>
+                    {count}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Total alerts footer */}
+        {summary.totalAlertas > 0 && (
+          <div style={{
+            borderTop: "1px solid var(--color-border)",
+            paddingTop: "0.5rem",
+            marginTop: "0.5rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: "0.7rem",
+            color: "var(--color-text-secondary)",
+          }}>
+            <span>Total alertas en el periodo</span>
+            <span style={{
+              fontWeight: 700,
+              color: alertColor(summary.worstLevel),
+            }}>
+              {summary.totalAlertas}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderSupervisorHeader(supRut: string, workerCount: number, totalGroupAlertas: number) {
+    const sup = findTrabajador(supRut);
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", gap: "0.625rem",
+        marginBottom: "0.75rem", marginTop: "0.5rem",
+      }}>
+        {sup?.tieneImagen ? (
+          <img
+            src={`${API_URL}/trabajador/${sup.rut}/imagen/`}
+            alt=""
+            style={{
+              width: 36, height: 36, borderRadius: "50%", objectFit: "cover",
+              border: "1px solid var(--color-accent)",
+            }}
+          />
+        ) : (
+          <div style={{
+            width: 36, height: 36, borderRadius: "50%",
+            background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "white", fontWeight: 700, fontSize: "0.8rem",
+          }}>
+            {sup ? `${sup.nombre.charAt(0)}${sup.apellidoPaterno.charAt(0)}` : "?"}
+          </div>
+        )}
+        <div>
+          <p style={{ fontWeight: 700, fontSize: "0.9rem" }}>
+            {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
+          </p>
+          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>
+            Supervisor · {workerCount} trabajador{workerCount !== 1 ? "es" : ""}
+            {totalGroupAlertas > 0 && (
+              <span style={{ color: "#f59e0b", marginLeft: "0.5rem" }}>
+                · {totalGroupAlertas} alerta{totalGroupAlertas !== 1 ? "s" : ""}
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const totalJornadas = jornadaPage?.totalElements || 0;
+  const totalPages = jornadaPage?.totalPages || 0;
+  const isFirst = jornadaPage?.first ?? true;
+  const isLast = jornadaPage?.last ?? true;
 
   return (
     <div>
       {/* Header */}
       <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>
-          Visualizacion de Cuadrilla
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
+          Historico de Cuadrilla
         </h1>
-        <p
-          style={{
-            color: "var(--color-text-secondary)",
-            fontSize: "0.875rem",
-            marginTop: "0.25rem",
-          }}
-        >
-          Consulta el historial de jornadas por supervisor y rango de fechas
+        <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+          Resumen historico de alertas por trabajador en un rango de fechas
         </p>
       </div>
 
-      {/* Filtros */}
-      <div
-        className="card"
-        style={{
-          marginBottom: "1.5rem",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "1rem",
-          alignItems: "flex-end",
-        }}
-      >
-        <div style={{ flex: "1 1 240px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.8rem",
-              color: "var(--color-text-secondary)",
-              marginBottom: "0.375rem",
-              fontWeight: 600,
-            }}
-          >
-            Supervisor
-          </label>
+      {/* Filters */}
+      <div className="card" style={{
+        marginBottom: "1.5rem", display: "flex", flexWrap: "wrap",
+        gap: "0.75rem", alignItems: "flex-end",
+      }}>
+        <div style={{ flex: "1 1 200px" }}>
+          <label style={{
+            display: "block", fontSize: "0.75rem",
+            color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
+          }}>Supervisor</label>
           <select
             className="input-field"
-            value={selectedSupervisor}
-            onChange={(e) => setSelectedSupervisor(e.target.value)}
+            value={filterSupervisor}
+            onChange={(e) => setFilterSupervisor(e.target.value)}
           >
-            <option value="">Seleccionar supervisor...</option>
+            <option value="">Todos</option>
             {supervisores.map((s) => (
               <option key={s.rut} value={s.rut}>
-                {s.nombre} {s.apellidoPaterno} — {s.rut}
+                {s.nombre} {s.apellidoPaterno}
               </option>
             ))}
           </select>
         </div>
-
-        <div style={{ flex: "0 1 180px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.8rem",
-              color: "var(--color-text-secondary)",
-              marginBottom: "0.375rem",
-              fontWeight: 600,
-            }}
-          >
-            Desde
-          </label>
+        <div style={{ flex: "0 1 160px" }}>
+          <label style={{
+            display: "block", fontSize: "0.75rem",
+            color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
+          }}>Desde</label>
           <input
             className="input-field"
             type="date"
@@ -126,19 +428,11 @@ export default function VisualizacionClient({ supervisores }: Props) {
             onChange={(e) => setFechaDesde(e.target.value)}
           />
         </div>
-
-        <div style={{ flex: "0 1 180px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.8rem",
-              color: "var(--color-text-secondary)",
-              marginBottom: "0.375rem",
-              fontWeight: 600,
-            }}
-          >
-            Hasta
-          </label>
+        <div style={{ flex: "0 1 160px" }}>
+          <label style={{
+            display: "block", fontSize: "0.75rem",
+            color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
+          }}>Hasta</label>
           <input
             className="input-field"
             type="date"
@@ -146,289 +440,145 @@ export default function VisualizacionClient({ supervisores }: Props) {
             onChange={(e) => setFechaHasta(e.target.value)}
           />
         </div>
-
-        <div style={{ flex: "0 0 auto" }}>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
             className="btn-primary"
-            onClick={buscar}
-            disabled={!selectedSupervisor || loading}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              whiteSpace: "nowrap",
-            }}
+            onClick={handleSearch}
+            disabled={loading}
+            style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}
           >
-            {loading ? "Buscando..." : "Buscar"}
+            <Search size={15} /> Buscar
           </button>
+          {(filterSupervisor || fechaDesde || fechaHasta) && (
+            <button className="btn-secondary" onClick={handleClear} style={{ fontSize: "0.8rem" }}>
+              Limpiar
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Resultados */}
-      {searched && (
+      {/* Results */}
+      {loading ? (
+        <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
+          Cargando historico...
+        </div>
+      ) : !hasSearched ? null : jornadas.length === 0 ? (
+        <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
+          <p style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>Sin resultados</p>
+          <p style={{ fontSize: "0.85rem" }}>
+            No se encontraron jornadas terminadas para los filtros seleccionados
+          </p>
+        </div>
+      ) : (
         <>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "1rem",
-            }}
-          >
-            <h2 style={{ fontWeight: 700, fontSize: "1.1rem" }}>
-              Historial de Jornadas
-            </h2>
-            <span
-              style={{
-                fontSize: "0.8rem",
-                color: "var(--color-text-secondary)",
-                fontWeight: 600,
-              }}
-            >
-              Total: {jornadas.length} registro{jornadas.length !== 1 ? "s" : ""}
-            </span>
+          {/* Summary stats */}
+          <div className="card" style={{ marginBottom: "1.5rem", padding: "1rem" }}>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+              gap: "0.75rem",
+              textAlign: "center",
+            }}>
+              <div style={{ padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(249,115,22,0.08)" }}>
+                <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f97316" }}>{totalJornadas}</p>
+                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>JORNADAS</p>
+              </div>
+              <div style={{ padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(59,130,246,0.08)" }}>
+                <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#3b82f6" }}>
+                  {new Set(jornadas.map((j) => j.rutUsuario)).size}
+                </p>
+                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>TRABAJADORES</p>
+              </div>
+              <div style={{ padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(59,130,246,0.08)" }}>
+                <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#3b82f6" }}>
+                  {Object.keys(jornadasPorSupervisor).length}
+                </p>
+                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>SUPERVISORES</p>
+              </div>
+              <div style={{
+                padding: "0.5rem", borderRadius: "0.5rem",
+                backgroundColor: alertas.length > 0 ? "rgba(245,158,11,0.08)" : "rgba(34,197,94,0.08)",
+              }}>
+                <p style={{
+                  fontSize: "1.5rem", fontWeight: 800,
+                  color: alertas.length > 0 ? "#f59e0b" : "#22c55e",
+                }}>
+                  {alertas.filter((a) => a.nivel !== "OK").length}
+                </p>
+                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>ALERTAS</p>
+              </div>
+              <div style={{
+                padding: "0.5rem", borderRadius: "0.5rem",
+                backgroundColor: alertas.some((a) => a.nivel === "CRITICO") ? "rgba(239,68,68,0.08)" : "rgba(34,197,94,0.08)",
+              }}>
+                <p style={{
+                  fontSize: "1.5rem", fontWeight: 800,
+                  color: alertas.some((a) => a.nivel === "CRITICO") ? "#ef4444" : "#22c55e",
+                }}>
+                  {alertas.filter((a) => a.nivel === "CRITICO").length}
+                </p>
+                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>CRITICAS</p>
+              </div>
+            </div>
           </div>
 
-          {loading && (
-            <p style={{ color: "var(--color-text-secondary)", padding: "2rem 0" }}>
-              Cargando jornadas...
-            </p>
-          )}
+          {/* Supervisor groups with worker cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            {Object.entries(jornadasPorSupervisor).map(([supRut, supJornadas]) => {
+              const summaries = buildWorkerSummaries(supJornadas);
+              const uniqueWorkers = summaries.length;
+              const groupTotalAlertas = summaries.reduce((sum, s) => sum + s.totalAlertas, 0);
 
-          {!loading && jornadas.length === 0 && (
-            <div
-              className="card"
-              style={{
-                textAlign: "center",
-                padding: "3rem 2rem",
-                color: "var(--color-text-secondary)",
-              }}
-            >
-              <p style={{ fontSize: "1.5rem", marginBottom: "0.75rem" }}>
-                &#128203;
-              </p>
-              <p style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
-                Sin resultados
-              </p>
-              <p style={{ fontSize: "0.875rem" }}>
-                No se encontraron jornadas para los filtros seleccionados
-              </p>
-            </div>
-          )}
-
-          {!loading && jornadas.length > 0 && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))",
-                gap: "1rem",
-              }}
-            >
-              {jornadas.map((j) => (
-                <div
-                  key={j.id}
-                  className="card"
-                  style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}
-                >
-                  {/* Top row: badge + ID */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span className={j.terminada ? "badge-gray" : "badge-green"}>
-                      {j.terminada ? "COMPLETADA" : "EN CURSO"}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--color-text-secondary)",
-                        fontWeight: 600,
-                      }}
-                    >
-                      ID: {j.id}
-                    </span>
-                  </div>
-
-                  {/* Fecha */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "0.5rem",
-                      fontSize: "0.85rem",
-                    }}
-                  >
-                    <div>
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: "0.7rem",
-                          color: "var(--color-text-secondary)",
-                          fontWeight: 600,
-                          marginBottom: "0.125rem",
-                        }}
-                      >
-                        FECHA
-                      </span>
-                      <span>{formatFecha(j.inicio)}</span>
-                    </div>
-                    <div>
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: "0.7rem",
-                          color: "var(--color-text-secondary)",
-                          fontWeight: 600,
-                          marginBottom: "0.125rem",
-                        }}
-                      >
-                        UBICACION
-                      </span>
-                      <span>{j.ubicacion?.nombre || "Sin asignar"}</span>
-                    </div>
-                  </div>
-
-                  {/* IN/OUT */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "0.5rem",
-                      fontSize: "0.85rem",
-                    }}
-                  >
-                    <div>
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: "0.7rem",
-                          color: "var(--color-text-secondary)",
-                          fontWeight: 600,
-                          marginBottom: "0.125rem",
-                        }}
-                      >
-                        ENTRADA
-                      </span>
-                      <span>{formatHora(j.inicio)}</span>
-                    </div>
-                    <div>
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: "0.7rem",
-                          color: "var(--color-text-secondary)",
-                          fontWeight: 600,
-                          marginBottom: "0.125rem",
-                        }}
-                      >
-                        SALIDA
-                      </span>
-                      <span>{j.fin ? formatHora(j.fin) : "—"}</span>
-                    </div>
-                  </div>
-
-                  {/* Trabajador */}
-                  <div style={{ fontSize: "0.85rem" }}>
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: "0.7rem",
-                        color: "var(--color-text-secondary)",
-                        fontWeight: 600,
-                        marginBottom: "0.125rem",
-                      }}
-                    >
-                      TRABAJADOR
-                    </span>
-                    <span>{j.rutUsuario}</span>
-                  </div>
-
-                  {/* Equipment tags */}
-                  {(j.tipoFiltro || j.tipoRespirador) && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
-                      {j.tipoFiltro && (
-                        <span
-                          className="badge-yellow"
-                          style={{ fontSize: "0.7rem" }}
-                        >
-                          Filtro: {j.tipoFiltro.nombre}
-                        </span>
-                      )}
-                      {j.tipoRespirador && (
-                        <span
-                          className="badge-yellow"
-                          style={{ fontSize: "0.7rem" }}
-                        >
-                          Respirador: {j.tipoRespirador.nombre}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Action */}
-                  <div
-                    style={{
-                      borderTop: "1px solid var(--color-border)",
-                      paddingTop: "0.75rem",
-                      marginTop: "auto",
-                    }}
-                  >
-                    {j.terminada ? (
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          fontWeight: 700,
-                          color: "var(--color-text-secondary)",
-                          cursor: "default",
-                        }}
-                      >
-                        REPORTE FINAL
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          fontWeight: 700,
-                          color: "var(--color-accent)",
-                          cursor: "pointer",
-                        }}
-                      >
-                        VER DETALLES
-                      </span>
-                    )}
+              return (
+                <div key={supRut}>
+                  {renderSupervisorHeader(supRut, uniqueWorkers, groupTotalAlertas)}
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                    gap: "0.75rem",
+                  }}>
+                    {summaries.map((summary) => renderWorkerCard(summary))}
                   </div>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{
+              display: "flex", justifyContent: "center", alignItems: "center",
+              gap: "0.75rem", marginTop: "1.5rem",
+            }}>
+              <button
+                className="btn-secondary"
+                disabled={isFirst}
+                onClick={() => fetchData(currentPage - 1, filterSupervisor, fechaDesde, fechaHasta)}
+                style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem" }}
+              >
+                <ChevronLeft size={16} /> Anterior
+              </button>
+              <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
+                Pagina {(jornadaPage?.number ?? 0) + 1} de {totalPages} ({totalJornadas} registros)
+              </span>
+              <button
+                className="btn-secondary"
+                disabled={isLast}
+                onClick={() => fetchData(currentPage + 1, filterSupervisor, fechaDesde, fechaHasta)}
+                style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem" }}
+              >
+                Siguiente <ChevronRight size={16} />
+              </button>
             </div>
           )}
         </>
       )}
 
-      {/* Initial state before search */}
-      {!searched && (
-        <div
-          className="card"
-          style={{
-            textAlign: "center",
-            padding: "3rem 2rem",
-            color: "var(--color-text-secondary)",
-          }}
-        >
-          <p style={{ fontSize: "1.5rem", marginBottom: "0.75rem" }}>
-            &#128269;
-          </p>
-          <p style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
-            Selecciona un supervisor
-          </p>
-          <p style={{ fontSize: "0.875rem" }}>
-            Elige un supervisor y opcionalmente un rango de fechas para ver el
-            historial de jornadas
-          </p>
-        </div>
-      )}
+      <style>{`
+        @media (max-width: 768px) {
+          .card { padding: 0.75rem !important; }
+        }
+      `}</style>
     </div>
   );
 }

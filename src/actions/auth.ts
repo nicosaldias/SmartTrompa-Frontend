@@ -5,11 +5,23 @@ import { redirect } from "next/navigation";
 import { trabajadorEndpoints } from "@/api/endpoints";
 
 export async function loginAction(rut: string, password: string) {
-  const res = await fetch(trabajadorEndpoints.login(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ rut, password }),
-  });
+  // Limpiar cookies residuales antes de intentar login
+  const cookieStorePre = await cookies();
+  cookieStorePre.delete("accessToken");
+  cookieStorePre.delete("refreshToken");
+  cookieStorePre.delete("st_user");
+
+  let res: Response;
+  try {
+    res = await fetch(trabajadorEndpoints.login(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rut, password }),
+    });
+  } catch (err) {
+    console.error("[LOGIN] Network error:", err);
+    return { error: "No se pudo conectar con el servidor. Verifica que el backend esté corriendo." };
+  }
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
@@ -18,13 +30,14 @@ export async function loginAction(rut: string, password: string) {
 
   // Backend returns Trabajador object and sets accessToken cookie via Set-Cookie header
   const data = await res.json();
-  const setCookieHeader = res.headers.get("set-cookie");
 
   const cookieStore = await cookies();
 
   // Extract accessToken and refreshToken from Set-Cookie headers
-  if (setCookieHeader) {
-    const accessMatch = setCookieHeader.match(/accessToken=([^;]+)/);
+  const allSetCookies = res.headers.getSetCookie?.() ?? [];
+
+  for (const cookieStr of allSetCookies) {
+    const accessMatch = cookieStr.match(/accessToken=([^;]+)/);
     if (accessMatch) {
       cookieStore.set("accessToken", accessMatch[1], {
         httpOnly: true,
@@ -34,10 +47,31 @@ export async function loginAction(rut: string, password: string) {
       });
     }
 
-    // Set-Cookie can have multiple values separated by comma (or be multiple headers)
-    const allCookies = res.headers.getSetCookie?.() ?? [setCookieHeader];
-    for (const cookieStr of allCookies) {
-      const refreshMatch = cookieStr.match(/refreshToken=([^;]+)/);
+    const refreshMatch = cookieStr.match(/refreshToken=([^;]+)/);
+    if (refreshMatch) {
+      cookieStore.set("refreshToken", refreshMatch[1], {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7,
+        path: "/",
+      });
+    }
+  }
+
+  // Fallback: if getSetCookie not available, try get("set-cookie")
+  if (allSetCookies.length === 0) {
+    const setCookieHeader = res.headers.get("set-cookie");
+    if (setCookieHeader) {
+      const accessMatch = setCookieHeader.match(/accessToken=([^;]+)/);
+      if (accessMatch) {
+        cookieStore.set("accessToken", accessMatch[1], {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 60 * 15,
+          path: "/",
+        });
+      }
+      const refreshMatch = setCookieHeader.match(/refreshToken=([^;]+)/);
       if (refreshMatch) {
         cookieStore.set("refreshToken", refreshMatch[1], {
           httpOnly: true,
@@ -45,7 +79,6 @@ export async function loginAction(rut: string, password: string) {
           maxAge: 60 * 60 * 24 * 7,
           path: "/",
         });
-        break;
       }
     }
   }

@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { api } from "@/api/client";
 import { TipoFiltro, TipoRespirador } from "@/types";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Image as ImageIcon, Upload } from "lucide-react";
 import Swal from "sweetalert2";
+
+function CharCounter({ current, max }: { current: number; max: number }) {
+  const pct = current / max;
+  const color = pct >= 1 ? "#ef4444" : pct >= 0.8 ? "#f59e0b" : "var(--color-text-secondary)";
+  return (
+    <span style={{ display: "block", textAlign: "right", fontSize: "0.65rem", color, marginTop: "0.25rem" }}>
+      {current}/{max}
+    </span>
+  );
+}
 
 interface Props {
   initialFiltros: TipoFiltro[];
@@ -14,7 +24,6 @@ interface Props {
 type ActiveTab = "filtros" | "respiradores";
 
 interface FormState {
-  nombre: string;
   marca: string;
   modelo: string;
   descripcion: string;
@@ -22,7 +31,6 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  nombre: "",
   marca: "",
   modelo: "",
   descripcion: "",
@@ -40,7 +48,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const currentItems = activeTab === "filtros" ? filtros : respiradores;
 
@@ -76,7 +84,6 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
     setEditingItem(item);
     setModalTab(activeTab);
     setForm({
-      nombre: item.nombre || "",
       marca: item.marca || "",
       modelo: item.modelo || "",
       descripcion: item.descripcion || "",
@@ -89,7 +96,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-  const FIELD_LIMITS = { nombre: 100, marca: 100, modelo: 100, descripcion: 500 };
+  const FIELD_LIMITS = { marca: 100, modelo: 100, descripcion: 255 };
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -110,11 +117,45 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    const confirmResult = await Swal.fire({
+      title: "Confirmar",
+      text: editingItem ? "Se actualizara el registro" : "Se creara el registro",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Si, guardar",
+      cancelButtonText: "Cancelar",
+      background: "#1c2333",
+      color: "#e6edf3",
+      confirmButtonColor: "#f97316",
+    });
+    if (!confirmResult.isConfirmed) return;
+
+    // Validate image is provided
+    if (!editingItem && !imageFile) {
+      Swal.fire({
+        icon: "warning",
+        title: "Imagen requerida",
+        text: "Debes subir una imagen del equipo antes de guardar",
+        background: "#1c2333",
+        color: "#e6edf3",
+      });
+      return;
+    }
+    if (editingItem && !editingItem.imagen && !imageFile) {
+      Swal.fire({
+        icon: "warning",
+        title: "Imagen requerida",
+        text: "Debes subir una imagen del equipo antes de guardar",
+        background: "#1c2333",
+        color: "#e6edf3",
+      });
+      return;
+    }
+
     try {
       const formData = new FormData();
       const jsonKey = modalTab === "filtros" ? "tipoFiltro" : "tipoRespirador";
-      const payload = {
-        nombre: form.nombre,
+      const payload: Record<string, unknown> = {
         marca: form.marca,
         modelo: form.modelo,
         descripcion: form.descripcion,
@@ -124,9 +165,6 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       formData.append(jsonKey, JSON.stringify(payload));
       if (imageFile) {
         formData.append("imagen", imageFile);
-      } else if (!editingItem) {
-        // Backend requires imagen field — send empty blob for create
-        formData.append("imagen", new Blob(), "empty.png");
       }
 
       if (editingItem) {
@@ -557,8 +595,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
           }}
         >
           <div
-            className="card"
-            style={{ width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" }}
+            className="card modal-content"
+            style={{ width: "100%", maxWidth: 960, maxHeight: "90vh", overflowY: "auto" }}
           >
             <h2 style={{ fontWeight: 700, fontSize: "1.125rem", marginBottom: "1.5rem" }}>
               {editingItem
@@ -569,163 +607,133 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
               onSubmit={handleSave}
               style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
             >
-              {/* Nombre */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.375rem" }}>
-                  <label style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>Nombre</label>
-                  <span style={{ fontSize: "0.7rem", color: form.nombre.length > FIELD_LIMITS.nombre ? "#ef4444" : "var(--color-text-secondary)" }}>
-                    {form.nombre.length}/{FIELD_LIMITS.nombre}
-                  </span>
-                </div>
-                <input
-                  className="input-field"
-                  type="text"
-                  value={form.nombre}
-                  onChange={(e) => setForm({ ...form, nombre: e.target.value.slice(0, FIELD_LIMITS.nombre) })}
-                  required
-                />
-              </div>
-
-              {/* Marca */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.375rem" }}>
-                  <label style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>Marca</label>
-                  <span style={{ fontSize: "0.7rem", color: form.marca.length > FIELD_LIMITS.marca ? "#ef4444" : "var(--color-text-secondary)" }}>
-                    {form.marca.length}/{FIELD_LIMITS.marca}
-                  </span>
-                </div>
-                <input
-                  className="input-field"
-                  type="text"
-                  value={form.marca}
-                  onChange={(e) => setForm({ ...form, marca: e.target.value.slice(0, FIELD_LIMITS.marca) })}
-                  required
-                />
-              </div>
-
-              {/* Modelo */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.375rem" }}>
-                  <label style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>Modelo</label>
-                  <span style={{ fontSize: "0.7rem", color: form.modelo.length > FIELD_LIMITS.modelo ? "#ef4444" : "var(--color-text-secondary)" }}>
-                    {form.modelo.length}/{FIELD_LIMITS.modelo}
-                  </span>
-                </div>
-                <input
-                  className="input-field"
-                  type="text"
-                  value={form.modelo}
-                  onChange={(e) => setForm({ ...form, modelo: e.target.value.slice(0, FIELD_LIMITS.modelo) })}
-                  required
-                />
-              </div>
-
-              {/* Descripcion */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.375rem" }}>
-                  <label style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>Descripción</label>
-                  <span style={{ fontSize: "0.7rem", color: form.descripcion.length > FIELD_LIMITS.descripcion ? "#ef4444" : "var(--color-text-secondary)" }}>
-                    {form.descripcion.length}/{FIELD_LIMITS.descripcion}
-                  </span>
-                </div>
-                <textarea
-                  className="input-field"
-                  rows={3}
-                  value={form.descripcion}
-                  onChange={(e) => setForm({ ...form, descripcion: e.target.value.slice(0, FIELD_LIMITS.descripcion) })}
-                  style={{ resize: "vertical" }}
-                />
-              </div>
-
-              {/* Fecha Homologacion */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Fecha de Homologacion
-                </label>
-                <input
-                  className="input-field"
-                  type="date"
-                  value={form.fechaHomologacion}
-                  onChange={(e) => setForm({ ...form, fechaHomologacion: e.target.value })}
-                />
-              </div>
-
-              {/* Imagen */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.8rem",
-                    color: "var(--color-text-secondary)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Imagen
-                </label>
+              {/* Image upload zone - centered at top */}
+              <div style={{ textAlign: "center", marginBottom: "0.5rem" }}>
                 <div
-                  onClick={() => fileInputRef.current?.click()}
                   style={{
+                    width: 160,
+                    height: 120,
+                    borderRadius: "0.75rem",
+                    margin: "0 auto 0.75rem",
+                    overflow: "hidden",
                     border: "2px dashed var(--color-border)",
-                    borderRadius: "0.5rem",
-                    padding: "1.5rem",
-                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "var(--color-bg-primary)",
                     cursor: "pointer",
-                    transition: "border-color 0.15s",
+                    position: "relative",
+                    transition: "border-color 0.2s",
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.borderColor = "var(--color-accent)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.borderColor = "var(--color-border)")
-                  }
+                  onClick={() => document.getElementById("filtro-imagen-input")?.click()}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = "#f97316"}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--color-border)"}
                 >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    style={{ display: "none" }}
-                    onChange={handleFileChange}
-                  />
                   {imagePreview ? (
-                    <div>
-                      <img
-                        src={imagePreview}
-                        alt="preview"
-                        style={{
-                          maxHeight: 120,
-                          maxWidth: "100%",
-                          borderRadius: "0.375rem",
-                          marginBottom: "0.5rem",
-                        }}
-                      />
-                      <p style={{ fontSize: "0.7rem", color: "var(--color-accent)" }}>
-                        Clic para cambiar imagen
-                      </p>
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        color: "var(--color-text-secondary)",
-                        fontSize: "0.8rem",
+                    <>
+                      <img src={imagePreview} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <div style={{
+                        position: "absolute", inset: 0,
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        opacity: 0, transition: "opacity 0.2s",
                       }}
-                    >
-                      <Upload
-                        size={24}
-                        style={{ margin: "0 auto 0.5rem", display: "block" }}
-                      />
-                      Haz clic para seleccionar una imagen
-                      <p style={{ fontSize: "0.65rem", marginTop: "0.5rem", color: "var(--color-text-secondary)", opacity: 0.7 }}>
-                        Formatos: JPG, PNG, WebP — Máximo: 5 MB
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = "0"}
+                      >
+                        <span style={{ color: "white", fontSize: "0.75rem", fontWeight: 600 }}>Cambiar</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "0.5rem" }}>
+                      <Upload size={24} color="var(--color-text-secondary)" style={{ margin: "0 auto 0.375rem" }} />
+                      <p style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>
+                        Subir imagen
                       </p>
                     </div>
                   )}
+                </div>
+                <input
+                  id="filtro-imagen-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                />
+                <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)" }}>
+                  JPG, PNG o WebP · Max. 5 MB
+                </p>
+              </div>
+
+              {/* Section: Informacion del equipo */}
+              <div>
+                <p style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  color: "var(--color-text-secondary)",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  marginBottom: "0.5rem",
+                  paddingBottom: "0.375rem",
+                  borderBottom: "1px solid var(--color-border)",
+                }}>
+                  Informacion del equipo
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {/* Marca | Modelo */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>Marca</label>
+                      <input
+                        className="input-field"
+                        type="text"
+                        value={form.marca}
+                        onChange={(e) => setForm({ ...form, marca: e.target.value })}
+                        required
+                        maxLength={FIELD_LIMITS.marca}
+                      />
+                      <CharCounter current={form.marca.length} max={FIELD_LIMITS.marca} />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>Modelo</label>
+                      <input
+                        className="input-field"
+                        type="text"
+                        value={form.modelo}
+                        onChange={(e) => setForm({ ...form, modelo: e.target.value })}
+                        required
+                        maxLength={FIELD_LIMITS.modelo}
+                      />
+                      <CharCounter current={form.modelo.length} max={FIELD_LIMITS.modelo} />
+                    </div>
+                  </div>
+
+                  {/* Fecha Homologacion */}
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
+                      Fecha de Homologacion
+                    </label>
+                    <input
+                      className="input-field"
+                      type="date"
+                      value={form.fechaHomologacion}
+                      onChange={(e) => setForm({ ...form, fechaHomologacion: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Descripcion - full width */}
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>Descripcion</label>
+                    <textarea
+                      className="input-field"
+                      rows={3}
+                      value={form.descripcion}
+                      onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                      maxLength={FIELD_LIMITS.descripcion}
+                      style={{ resize: "vertical" }}
+                    />
+                    <CharCounter current={form.descripcion.length} max={FIELD_LIMITS.descripcion} />
+                  </div>
                 </div>
               </div>
 

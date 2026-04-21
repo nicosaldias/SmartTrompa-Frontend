@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/api/client";
 import type { JornadaTrabajo, AlertaHistorial, TipoAlerta } from "@/types";
-import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock } from "lucide-react";
+import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock, RefreshCw } from "lucide-react";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
@@ -41,26 +41,26 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
   const [loading] = useState(false);
   const [pollFailures, setPollFailures] = useState(0);
 
+  async function poll() {
+    try {
+      const [newJornadas, newAlertas] = await Promise.all([
+        api.jornadas.activas(),
+        api.alertas.activas(),
+      ]);
+      setJornadas(newJornadas);
+      setAlertas(newAlertas);
+      setPollFailures(0);
+    } catch {
+      setPollFailures((prev) => prev + 1);
+    }
+  }
+
   // Polling cada 30 segundos
   useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const [newJornadas, newAlertas] = await Promise.all([
-          api.jornadas.activas(),
-          api.alertas.activas(),
-        ]);
-        setJornadas(newJornadas);
-        setAlertas(newAlertas);
-        setPollFailures(0);
-      } catch {
-        setPollFailures((prev) => prev + 1);
-      }
-    }, 30_000);
+    const interval = setInterval(poll, 30_000);
 
     return () => clearInterval(interval);
   }, []);
-
-  const trabajadoresActivos = jornadas.length;
 
   const countByTipo = (tipo: TipoAlerta) =>
     alertas.filter((a) => a.tipo === tipo).length;
@@ -105,6 +105,13 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
         >
           <Clock size={12} />
           ACTUALIZACIÓN CADA 30S
+          <button onClick={poll} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--color-text-secondary)", padding: "0.25rem",
+            display: "flex", alignItems: "center",
+          }} title="Actualizar ahora">
+            <RefreshCw size={14} />
+          </button>
         </span>
       </div>
 
@@ -138,55 +145,6 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
         </div>
       )}
 
-      {/* Trabajadores activos - KPI principal */}
-      <div
-        className="card"
-        style={{
-          marginBottom: "1.5rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "1rem",
-        }}
-      >
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: "0.75rem",
-            background: "rgba(249,115,22,0.15)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--color-accent)",
-            flexShrink: 0,
-          }}
-        >
-          <Activity size={26} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <p
-            style={{
-              color: "var(--color-text-secondary)",
-              fontSize: "0.7rem",
-              fontWeight: 600,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              marginBottom: "0.125rem",
-            }}
-          >
-            Trabajadores activos ahora
-          </p>
-          <p style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--color-accent)", lineHeight: 1 }}>
-            {loading ? "--" : trabajadoresActivos}
-          </p>
-        </div>
-        <div style={{ flexShrink: 0 }}>
-          <span className="badge-green" style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase" }}>
-            {loading ? "..." : `${jornadas.length} turno${jornadas.length !== 1 ? "s" : ""} activo${jornadas.length !== 1 ? "s" : ""}`}
-          </span>
-        </div>
-      </div>
-
       {/* Alertas activas - header */}
       <h2
         style={{
@@ -205,7 +163,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
         Alertas activas
       </h2>
 
-      {/* Alert cards - 5 equal columns */}
+      {/* Alert cards - full width */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1rem" }}>
         {alertCards.map(({ tipo, count }) => {
           const color = TIPO_COLORS[tipo];
@@ -219,7 +177,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
                 borderTop: `3px solid ${isActive ? color : "var(--color-border)"}`,
                 borderRadius: "0.75rem",
                 textAlign: "center",
-                padding: "1.25rem 1rem",
+                padding: "1.75rem 1.25rem",
                 transition: "transform 0.15s",
               }}
             >
@@ -227,7 +185,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
                 style={{
                   display: "flex",
                   justifyContent: "center",
-                  marginBottom: "0.625rem",
+                  marginBottom: "0.75rem",
                   color: isActive ? color : "var(--color-text-secondary)",
                 }}
               >
@@ -235,19 +193,19 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
               </div>
               <p
                 style={{
-                  fontSize: "0.65rem",
+                  fontSize: "0.75rem",
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
                   color: isActive ? color : "var(--color-text-secondary)",
-                  marginBottom: "0.375rem",
+                  marginBottom: "0.5rem",
                 }}
               >
                 {TIPO_LABELS[tipo]}
               </p>
               <p
                 style={{
-                  fontSize: "2rem",
+                  fontSize: "2.5rem",
                   fontWeight: 800,
                   color: isActive ? color : "var(--color-text-primary)",
                   lineHeight: 1,
@@ -265,9 +223,15 @@ export default function ResumenClient({ initialJornadas, initialAlertas }: Props
         <h3 style={{ fontWeight: 700, marginBottom: "1rem", fontSize: "0.9rem" }}>Últimas alertas</h3>
 
         {alertas.length === 0 ? (
-          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.85rem", textAlign: "center", padding: "1rem 0" }}>
-            Sin alertas activas
-          </p>
+          <div style={{ textAlign: "center", padding: "2rem 0" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
+            <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
+              Sin alertas activas
+            </p>
+            <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
+              No hay trabajadores activos en este momento
+            </p>
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>
             {alertas.slice(0, 5).map((a, idx) => {

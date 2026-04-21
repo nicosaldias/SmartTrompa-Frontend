@@ -50,9 +50,7 @@ export default function UmbralesClient() {
     const q = busqueda.toLowerCase();
     return umbrales.filter(
       (u) =>
-        u.rutTrabajador?.toLowerCase().includes(q) ||
-        u.trabajador?.nombre?.toLowerCase().includes(q) ||
-        u.trabajador?.apellidoPaterno?.toLowerCase().includes(q)
+        u.rutTrabajador?.toLowerCase().includes(q)
     );
   }, [umbrales, busqueda]);
 
@@ -90,6 +88,18 @@ export default function UmbralesClient() {
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
+    const confirmResult = await Swal.fire({
+      title: "Confirmar",
+      text: editando ? "Se actualizara el registro" : "Se creara el registro",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Si, guardar",
+      cancelButtonText: "Cancelar",
+      background: "#1c2333",
+      color: "#e6edf3",
+      confirmButtonColor: "#f97316",
+    });
+    if (!confirmResult.isConfirmed) return;
     const data: Partial<AlertasUmbrales> = {
       rutTrabajador: form.rutTrabajador,
       alrtRespAlto: form.alrtRespAlto ? Number(form.alrtRespAlto) : undefined,
@@ -202,9 +212,12 @@ export default function UmbralesClient() {
         </div>
       ) : umbralesFiltrados.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
-          <Sliders size={32} color="var(--color-text-secondary)" style={{ margin: "0 auto 1rem" }} />
-          <p style={{ color: "var(--color-text-secondary)" }}>
+          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
+          <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
             {busqueda ? "No se encontraron umbrales" : "No hay umbrales configurados"}
+          </p>
+          <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
+            {busqueda ? "Intenta con otro termino de busqueda" : "Agrega el primer umbral usando el boton superior"}
           </p>
         </div>
       ) : (
@@ -212,7 +225,7 @@ export default function UmbralesClient() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-                <th style={{ padding: "0.75rem 1rem", textAlign: "left", fontWeight: 600, color: "var(--color-text-secondary)", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <th style={{ padding: "0.75rem 0.5rem", textAlign: "left", fontWeight: 600, color: "var(--color-text-secondary)", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Trabajador
                 </th>
                 {CAMPOS_UMBRAL.map((c) => (
@@ -220,7 +233,7 @@ export default function UmbralesClient() {
                     {c.label}
                   </th>
                 ))}
-                <th style={{ padding: "0.75rem 1rem", textAlign: "right", fontWeight: 600, color: "var(--color-text-secondary)", fontSize: "0.7rem", textTransform: "uppercase" }}>
+                <th style={{ padding: "0.75rem 0.5rem", textAlign: "center", fontWeight: 600, color: "var(--color-text-secondary)", fontSize: "0.7rem", textTransform: "uppercase" }}>
                   Acciones
                 </th>
               </tr>
@@ -228,21 +241,21 @@ export default function UmbralesClient() {
             <tbody>
               {umbralesFiltrados.map((u) => (
                 <tr key={u.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                  <td style={{ padding: "0.75rem 1rem" }}>
+                  <td style={{ padding: "0.75rem 0.5rem" }}>
                     <p style={{ fontWeight: 600 }}>
-                      {u.trabajador ? `${u.trabajador.nombre} ${u.trabajador.apellidoPaterno || ""}` : u.rutTrabajador}
+                      {u.rutTrabajador || "—"}
                     </p>
                     <p style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)" }}>
                       {u.rutTrabajador}
                     </p>
                   </td>
                   {CAMPOS_UMBRAL.map((c) => (
-                    <td key={c.key} style={{ padding: "0.5rem", textAlign: "center" }}>
+                    <td key={c.key} style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
                       {u[c.key] != null ? String(u[c.key]) : "—"}
                     </td>
                   ))}
-                  <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+                  <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem" }}>
                       <button onClick={() => abrirEditar(u)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", padding: "0.25rem" }} title="Editar">
                         <Pencil size={14} />
                       </button>
@@ -261,16 +274,25 @@ export default function UmbralesClient() {
       {/* Modal form */}
       {showForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} onClick={() => setShowForm(false)}>
-          <div className="card" style={{ width: "100%", maxWidth: 520, padding: "2rem" }} onClick={(e) => e.stopPropagation()}>
+          <div className="card modal-content" style={{ width: "100%", maxWidth: 960, padding: "2rem" }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: "1.5rem" }}>
               {editando ? "Editar umbral" : "Nuevo umbral"}
             </h2>
             <form onSubmit={guardar} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              {/* Trabajador select */}
+              {/* Section: Trabajador */}
               <div>
-                <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
+                <p style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  color: "var(--color-text-secondary)",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  marginBottom: "0.5rem",
+                  paddingBottom: "0.375rem",
+                  borderBottom: "1px solid var(--color-border)",
+                }}>
                   Trabajador
-                </label>
+                </p>
                 <select
                   className="input-field"
                   value={form.rutTrabajador}
@@ -287,31 +309,186 @@ export default function UmbralesClient() {
                 </select>
               </div>
 
-              {/* Threshold fields in a 2-column grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                {CAMPOS_UMBRAL.map((c) => (
-                  <div key={c.key}>
+              {/* Section: Umbrales de respiracion */}
+              <div>
+                <p style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  color: "var(--color-text-secondary)",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  marginBottom: "0.5rem",
+                  paddingBottom: "0.375rem",
+                  borderBottom: "1px solid var(--color-border)",
+                }}>
+                  Umbrales de respiracion
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      {c.label}
+                      Resp. Alto
                     </label>
                     <input
                       className="input-field"
                       type="number"
                       step="any"
                       placeholder="0.0"
-                      value={form[c.key as keyof typeof form]}
-                      onChange={(e) => setForm({ ...form, [c.key]: e.target.value })}
+                      value={form.alrtRespAlto}
+                      onChange={(e) => setForm({ ...form, alrtRespAlto: e.target.value })}
                     />
                   </div>
-                ))}
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
+                      Resp. Bajo
+                    </label>
+                    <input
+                      className="input-field"
+                      type="number"
+                      step="any"
+                      placeholder="0.0"
+                      value={form.alrtRespBajo}
+                      onChange={(e) => setForm({ ...form, alrtRespBajo: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Umbrales de filtro */}
+              <div>
+                <p style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  color: "var(--color-text-secondary)",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  marginBottom: "0.5rem",
+                  paddingBottom: "0.375rem",
+                  borderBottom: "1px solid var(--color-border)",
+                }}>
+                  Umbrales de filtro
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
+                      Filtro Alto
+                    </label>
+                    <input
+                      className="input-field"
+                      type="number"
+                      step="any"
+                      placeholder="0.0"
+                      value={form.alrtFiltrAlto}
+                      onChange={(e) => setForm({ ...form, alrtFiltrAlto: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
+                      Filtro Bajo
+                    </label>
+                    <input
+                      className="input-field"
+                      type="number"
+                      step="any"
+                      placeholder="0.0"
+                      value={form.alrtFiltrBajo}
+                      onChange={(e) => setForm({ ...form, alrtFiltrBajo: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Umbrales de bateria */}
+              <div>
+                <p style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  color: "var(--color-text-secondary)",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  marginBottom: "0.5rem",
+                  paddingBottom: "0.375rem",
+                  borderBottom: "1px solid var(--color-border)",
+                }}>
+                  Umbrales de bateria
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
+                      Bat. Alto
+                    </label>
+                    <input
+                      className="input-field"
+                      type="number"
+                      step="any"
+                      placeholder="0.0"
+                      value={form.alrtBateAlto}
+                      onChange={(e) => setForm({ ...form, alrtBateAlto: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
+                      Bat. Medio
+                    </label>
+                    <input
+                      className="input-field"
+                      type="number"
+                      step="any"
+                      placeholder="0.0"
+                      value={form.alrtBateMedio}
+                      onChange={(e) => setForm({ ...form, alrtBateMedio: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
+                      Bat. Bajo
+                    </label>
+                    <input
+                      className="input-field"
+                      type="number"
+                      step="any"
+                      placeholder="0.0"
+                      value={form.alrtBateBajo}
+                      onChange={(e) => setForm({ ...form, alrtBateBajo: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Ajuste */}
+              <div>
+                <p style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  color: "var(--color-text-secondary)",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  marginBottom: "0.5rem",
+                  paddingBottom: "0.375rem",
+                  borderBottom: "1px solid var(--color-border)",
+                }}>
+                  Ajuste
+                </p>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
+                    Ajuste
+                  </label>
+                  <input
+                    className="input-field"
+                    type="number"
+                    step="any"
+                    placeholder="0.0"
+                    value={form.alrtAjus}
+                    onChange={(e) => setForm({ ...form, alrtAjus: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
+                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary" style={{ flex: 1 }}>
+                  Cancelar
+                </button>
                 <button className="btn-primary" type="submit" style={{ flex: 1 }}>
                   {editando ? "Actualizar" : "Crear"}
-                </button>
-                <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: "0.625rem", borderRadius: "0.5rem", border: "1px solid var(--color-border)", background: "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>
-                  Cancelar
                 </button>
               </div>
             </form>

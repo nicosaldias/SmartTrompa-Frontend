@@ -4,7 +4,7 @@ import api from "@/api/client";
 import type { JornadaTrabajo, MedicionesAmbientales } from "@/types";
 import CuadrillaClient from "./CuadrillaClient";
 
-export const metadata = { title: "Estado de Cuadrilla - Smart Trompa" };
+export const metadata = { title: "Estado de Cuadrilla - SIMOR" };
 
 export default async function CuadrillaPage() {
   const cookieHeader = await getCookieHeader();

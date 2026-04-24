@@ -4,7 +4,7 @@ import api from "@/api/client";
 import type { JornadaTrabajo, MedicionesAmbientales } from "@/types";
 import ResumenClient from "./ResumenClient";
 
-export const metadata = { title: "Resumen - Smart Trompa" };
+export const metadata = { title: "Resumen - SIMOR" };
 
 export default async function ResumenPage() {
   const cookieHeader = await getCookieHeader();

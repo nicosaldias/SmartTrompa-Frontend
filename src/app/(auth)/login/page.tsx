@@ -155,7 +155,7 @@ export default function LoginPage() {
               marginBottom: "0.75rem",
             }}
           >
-            Smart Trompa
+            SIMOR
           </h1>
           <p
             style={{
@@ -165,7 +165,7 @@ export default function LoginPage() {
               marginBottom: "3rem",
             }}
           >
-            Plataforma de Gesti&oacute;n Industrial
+            Sistema de Monitoreo para Respiradores
           </p>
 
           {/* Feature bullets */}

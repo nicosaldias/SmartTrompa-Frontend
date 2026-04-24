@@ -3,7 +3,7 @@ import { getCookieHeader } from "@/actions/auth";
 import api from "@/api/client";
 import VidaUtilFiltrosClient from "./VidaUtilFiltrosClient";
 
-export const metadata = { title: "Vida Útil de Filtros - Smart Trompa" };
+export const metadata = { title: "Vida Útil de Filtros - SIMOR" };
 
 export default async function VidaUtilFiltrosPage() {
   const cookieHeader = await getCookieHeader();

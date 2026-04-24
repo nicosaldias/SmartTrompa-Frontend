@@ -3,7 +3,7 @@ import { getCookieHeader } from "@/actions/auth";
 import api from "@/api/client";
 import ReportesClient from "./ReportesClient";
 
-export const metadata = { title: "Reportes de Seguridad - Smart Trompa" };
+export const metadata = { title: "Reportes de Seguridad - SIMOR" };
 
 export default async function ReportesPage() {
   const cookieHeader = await getCookieHeader();

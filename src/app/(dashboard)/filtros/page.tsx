@@ -3,7 +3,7 @@ import { getCookieHeader } from "@/actions/auth";
 import api from "@/api/client";
 import FiltrosClient from "./FiltrosClient";
 
-export const metadata = { title: "Filtros y Respiradores - Smart Trompa" };
+export const metadata = { title: "Filtros y Respiradores - SIMOR" };
 
 export default async function FiltrosPage() {
   const cookieHeader = await getCookieHeader();

@@ -1,11 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   // Exponer variables de entorno al middleware (Edge Runtime)
   env: {
     JWT_SECRET: process.env.JWT_SECRET ?? "",
   },
-  // Permitir imágenes del backend local
+  // Permitir imágenes del backend
   images: {
     remotePatterns: [
       {
@@ -13,6 +14,12 @@ const nextConfig: NextConfig = {
         hostname: "localhost",
         port: "8080",
         pathname: "/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: "udec.c4i-udec.cl",
+        port: "20055",
+        pathname: "/**",
       },
     ],
   },

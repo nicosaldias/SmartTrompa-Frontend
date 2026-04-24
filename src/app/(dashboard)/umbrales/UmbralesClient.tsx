@@ -5,7 +5,7 @@ import { api } from "@/api/client";
 import type { AlertasUmbrales, Trabajador } from "@/types";
 import { DEFAULT_THRESHOLDS } from "@/utils/sensorMappings";
 import Swal from "sweetalert2";
-import { Search, Plus, Pencil, Trash2, Sliders, RotateCcw } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, RotateCcw } from "lucide-react";
 
 export default function UmbralesClient() {
   const [umbrales, setUmbrales] = useState<AlertasUmbrales[]>([]);

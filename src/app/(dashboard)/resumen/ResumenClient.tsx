@@ -37,7 +37,7 @@ const TIPO_COLORS: Record<TipoAlerta, string> = {
 };
 
 export default function ResumenClient({ initialJornadas, initialAlertas, initialMediciones }: Props) {
-  const [jornadas, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
+  const [, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialAlertas);
   const [medicionesMap, setMedicionesMap] = useState<Record<string, MedicionesAmbientales | null>>(
     initialMediciones || {}

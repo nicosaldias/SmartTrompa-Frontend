@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/api/client";
 import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAlerta, MedicionesAmbientales } from "@/types";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BINARY_ALERT_TYPES } from "@/types";
 import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime } from "@/utils/sensorMappings";
 import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw } from "lucide-react";
@@ -123,6 +124,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
 
   // ── Render helpers ──
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function renderDot(nivel: NivelAlerta) {
     const color = nivelColor(nivel);
     return (

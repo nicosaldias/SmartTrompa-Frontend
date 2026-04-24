@@ -4,6 +4,7 @@ import { jwtVerify } from "jose";
 
 const PUBLIC_PATHS = ["/login", "/reset-password"];
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 
 async function verifyToken(token: string, secret: string): Promise<boolean> {
   try {
@@ -64,10 +65,20 @@ function clearSessionAndRedirectToLogin(request: NextRequest): NextResponse {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+
+  // En modo mock, solo verificar presencia de cookie (sin JWT)
+  if (MOCK_MODE) {
+    const hasToken = request.cookies.has("accessToken");
+    if (isPublicPath && hasToken) return NextResponse.redirect(new URL("/resumen", request.url));
+    if (isPublicPath) return NextResponse.next();
+    if (!hasToken) return clearSessionAndRedirectToLogin(request);
+    return NextResponse.next();
+  }
+
   const token = request.cookies.get("accessToken")?.value;
   const refreshToken = request.cookies.get("refreshToken")?.value;
   const jwtSecret = process.env.JWT_SECRET;
-  const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   // Si estamos en /login y hay sesion valida, redirigir al dashboard
   if (isPublicPath && token && jwtSecret) {

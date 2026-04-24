@@ -31,6 +31,9 @@ import type {
   FilterStatus,
   MedicionesAmbientales,
 } from '@/types';
+import { getMockResponse } from './mock-data';
+
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 
 interface RequestOptions extends RequestInit {
   cookieHeader?: string;
@@ -59,6 +62,11 @@ async function attemptRefresh(cookieHeader?: string): Promise<boolean> {
 }
 
 async function request<T>(url: string, options: RequestOptions = {}): Promise<T> {
+  if (MOCK_MODE) {
+    await new Promise(r => setTimeout(r, 100));
+    return getMockResponse(url, options.method || 'GET', options.body) as T;
+  }
+
   const { cookieHeader, headers, ...rest } = options;
   const isFormData = rest.body instanceof FormData;
 
@@ -476,6 +484,7 @@ export const api = {
 
   reportes: {
     descargarSemanal: async (desde: string, hasta: string, cookieHeader?: string) => {
+      if (MOCK_MODE) return new Blob(['Reporte semanal de demostración'], { type: 'application/pdf' });
       const url = reporteEndpoints.semanal(desde, hasta);
       const res = await fetch(url, {
         credentials: 'include',
@@ -487,6 +496,7 @@ export const api = {
       return res.blob();
     },
     descargarMensual: async (year: number, month: number, cookieHeader?: string) => {
+      if (MOCK_MODE) return new Blob(['Reporte mensual de demostración'], { type: 'application/pdf' });
       const url = reporteEndpoints.mensual(year, month);
       const res = await fetch(url, {
         credentials: 'include',
@@ -498,6 +508,7 @@ export const api = {
       return res.blob();
     },
     descargarPorJornada: async (desde: string, hasta: string, cookieHeader?: string) => {
+      if (MOCK_MODE) return new Blob(['Reporte por jornada de demostración'], { type: 'application/pdf' });
       const url = reporteEndpoints.porJornada(desde, hasta);
       const res = await fetch(url, {
         credentials: 'include',

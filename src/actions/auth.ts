@@ -3,8 +3,27 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { trabajadorEndpoints } from "@/api/endpoints";
+import { MOCK_TRABAJADORES } from "@/api/mock-data";
+
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 
 export async function loginAction(rut: string, password: string) {
+  if (MOCK_MODE) {
+    const mockUser = MOCK_TRABAJADORES.find(t => t.rut === rut) || MOCK_TRABAJADORES[0];
+    const cookieStore = await cookies();
+    cookieStore.set("accessToken", "mock-access-token", {
+      httpOnly: true, secure: false, maxAge: 60 * 60 * 24, path: "/",
+    });
+    cookieStore.set("refreshToken", "mock-refresh-token", {
+      httpOnly: true, secure: false, maxAge: 60 * 60 * 24 * 7, path: "/",
+    });
+    cookieStore.set("st_user", JSON.stringify({
+      rut: mockUser.rut, nombre: mockUser.nombre,
+      apellidoPaterno: mockUser.apellidoPaterno, cargo: mockUser.cargo,
+    }), { path: "/", maxAge: 60 * 60 * 24 * 7 });
+    return { success: true, cargo: mockUser.cargo };
+  }
+
   // Limpiar cookies residuales antes de intentar login
   const cookieStorePre = await cookies();
   cookieStorePre.delete("accessToken");
@@ -99,21 +118,23 @@ export async function loginAction(rut: string, password: string) {
 }
 
 export async function logoutAction() {
-  // Call backend logout to invalidate cookies and revoke refresh token
-  try {
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get("accessToken")?.value;
-    const refreshToken = cookieStore.get("refreshToken")?.value;
-    const cookieParts = [
-      accessToken ? `accessToken=${accessToken}` : "",
-      refreshToken ? `refreshToken=${refreshToken}` : "",
-    ].filter(Boolean).join("; ");
+  if (!MOCK_MODE) {
+    // Call backend logout to invalidate cookies and revoke refresh token
+    try {
+      const cookieStore = await cookies();
+      const accessToken = cookieStore.get("accessToken")?.value;
+      const refreshToken = cookieStore.get("refreshToken")?.value;
+      const cookieParts = [
+        accessToken ? `accessToken=${accessToken}` : "",
+        refreshToken ? `refreshToken=${refreshToken}` : "",
+      ].filter(Boolean).join("; ");
 
-    await fetch(trabajadorEndpoints.logout(), {
-      headers: cookieParts ? { Cookie: cookieParts } : {},
-    });
-  } catch {
-    // Ignore network errors on logout
+      await fetch(trabajadorEndpoints.logout(), {
+        headers: cookieParts ? { Cookie: cookieParts } : {},
+      });
+    } catch {
+      // Ignore network errors on logout
+    }
   }
 
   const cookieStore = await cookies();
@@ -124,6 +145,8 @@ export async function logoutAction() {
 }
 
 export async function forgotPasswordAction(correo: string) {
+  if (MOCK_MODE) return { success: true };
+
   const res = await fetch(trabajadorEndpoints.forgotPassword(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -139,6 +162,8 @@ export async function forgotPasswordAction(correo: string) {
 }
 
 export async function resetPasswordAction(token: string, nuevaPassword: string) {
+  if (MOCK_MODE) return { success: true };
+
   const res = await fetch(trabajadorEndpoints.resetPassword(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -177,6 +202,8 @@ export async function getCookieHeader() {
 }
 
 export async function refreshTokensAction() {
+  if (MOCK_MODE) return { success: true };
+
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refreshToken")?.value;
   if (!refreshToken) return { error: "No hay refresh token" };

@@ -65,6 +65,7 @@ export const alertaHistorialEndpoints = {
 
 export const medicionesEndpoints = {
   byJornada: (id: number) => `${API_BASE_URL}/mediciones-ambientales/jornada/${id}/`,
+  ajustesByJornada: (id: number) => `${API_BASE_URL}/mediciones-ambientales/jornada/${id}/ajustes/`,
 };
 
 export const alertasUmbralesEndpoints = {
@@ -72,6 +73,7 @@ export const alertasUmbralesEndpoints = {
   byId: (id: number) => `${API_BASE_URL}/alertas-umbrales/${id}/`,
   byTrabajador: (rut: string) => `${API_BASE_URL}/alertas-umbrales/trabajador/${rut}/`,
   lastByTrabajador: (rut: string) => `${API_BASE_URL}/alertas-umbrales/trabajador/last/${rut}/`,
+  bulk: () => `${API_BASE_URL}/alertas-umbrales/bulk/`,
 };
 
 export const trabajadorRolEndpoints = {
@@ -102,6 +104,9 @@ export const reporteEndpoints = {
     `${API_BASE_URL}/reportes/semanal/?desde=${desde}&hasta=${hasta}`,
   mensual: (year: number, month: number) =>
     `${API_BASE_URL}/reportes/mensual/?year=${year}&month=${month}`,
-  porJornada: (desde: string, hasta: string) =>
-    `${API_BASE_URL}/reportes/jornada/?desde=${desde}&hasta=${hasta}`,
+  porJornada: (desde: string, hasta: string, supervisor?: string) => {
+    let url = `${API_BASE_URL}/reportes/jornada/?desde=${desde}&hasta=${hasta}`;
+    if (supervisor) url += `&supervisor=${encodeURIComponent(supervisor)}`;
+    return url;
+  },
 };

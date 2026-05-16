@@ -173,6 +173,11 @@ export interface Ticket {
   trabajador?: Trabajador;
 }
 
+export interface Ajustes {
+  ajustado: number;
+  desajustado: number;
+}
+
 export interface AlertasUmbrales {
   id: number;
   alrtRespAlto?: number;

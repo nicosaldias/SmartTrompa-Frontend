@@ -2,25 +2,32 @@
 
 import { useState } from "react";
 import { api } from "@/api/client";
-import { FileText, Download, Calendar, AlertTriangle, Filter } from "lucide-react";
+import type { Trabajador } from "@/types";
+import { FileText, Download, Calendar, AlertTriangle, Filter, User } from "lucide-react";
 import Swal from "sweetalert2";
 
 interface Props {
   alertasActivasCount: number;
   filtrosProximosCount: number;
+  supervisores: Trabajador[];
 }
 
-export default function ReportesClient({ alertasActivasCount, filtrosProximosCount }: Props) {
+export default function ReportesClient({ alertasActivasCount, filtrosProximosCount, supervisores }: Props) {
   const [loading, setLoading] = useState(false);
+  const [supervisor, setSupervisor] = useState("");
 
+  // Default: last 7 days, start at 00:00 and end at 23:59
   const today = new Date();
   const lastWeekStart = new Date(today);
   lastWeekStart.setDate(today.getDate() - 7);
-  const [desde, setDesde] = useState(formatDateForInput(lastWeekStart));
-  const [hasta, setHasta] = useState(formatDateForInput(today));
+  const [desde, setDesde] = useState(formatDateTimeForInput(lastWeekStart, "00:00"));
+  const [hasta, setHasta] = useState(formatDateTimeForInput(today, "23:59"));
 
-  function formatDateForInput(d: Date): string {
-    return d.toISOString().split("T")[0];
+  function formatDateTimeForInput(d: Date, time: string): string {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}T${time}`;
   }
 
   async function handleDescargarReporte() {
@@ -28,7 +35,7 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
       Swal.fire({
         icon: "warning",
         title: "Fechas requeridas",
-        text: "Seleccione fecha desde y hasta",
+        text: "Seleccione fecha/hora desde y hasta",
         background: "#1c2333",
         color: "#e6edf3",
       });
@@ -46,8 +53,10 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
     }
     setLoading(true);
     try {
-      const blob = await api.reportes.descargarPorJornada(desde, hasta);
-      downloadBlob(blob, `reporte_jornadas_${desde}_${hasta}.pdf`);
+      const blob = await api.reportes.descargarPorJornada(desde, hasta, supervisor || undefined);
+      const desdeDate = desde.split("T")[0];
+      const hastaDate = hasta.split("T")[0];
+      downloadBlob(blob, `reporte_jornadas_${desdeDate}_${hastaDate}.pdf`);
       Swal.fire({
         icon: "success",
         title: "Reporte generado",
@@ -93,7 +102,7 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
             marginTop: "0.25rem",
           }}
         >
-          Genera reportes PDF por jornada de trabajo para gerencia
+          Genera reportes PDF por jornada de trabajo con detalle de alertas
         </p>
       </div>
 
@@ -187,12 +196,44 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
             lineHeight: 1.5,
           }}
         >
-          Selecciona el rango de fechas para generar el reporte por jornada de trabajo.
-          Incluye el detalle de cada jornada con trabajador, supervisor, duracion y
-          alertas registradas durante la sesion.
+          Selecciona el supervisor, rango de fechas y hora para generar el reporte.
+          Incluye detalle de cada alerta con timestamp, valores medidos, umbrales de referencia
+          y tiempo de resolucion.
         </p>
+
+        {/* Supervisor selector */}
+        <div style={{ marginBottom: "1rem" }}>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.375rem",
+              fontSize: "0.8rem",
+              color: "var(--color-text-secondary)",
+              marginBottom: "0.375rem",
+            }}
+          >
+            <User size={14} />
+            Supervisor
+          </label>
+          <select
+            className="input-field"
+            value={supervisor}
+            onChange={(e) => setSupervisor(e.target.value)}
+            style={{ width: "100%" }}
+          >
+            <option value="">Todos los supervisores</option>
+            {supervisores.map((s) => (
+              <option key={s.rut} value={s.rut}>
+                {s.nombre} {s.apellidoPaterno} — {s.rut}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Date range with datetime-local */}
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
             <label
               style={{
                 display: "flex",
@@ -208,13 +249,13 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
             </label>
             <input
               className="input-field"
-              type="date"
+              type="datetime-local"
               value={desde}
               onChange={(e) => setDesde(e.target.value)}
               style={{ width: "100%" }}
             />
           </div>
-          <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
             <label
               style={{
                 display: "flex",
@@ -230,7 +271,7 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
             </label>
             <input
               className="input-field"
-              type="date"
+              type="datetime-local"
               value={hasta}
               onChange={(e) => setHasta(e.target.value)}
               style={{ width: "100%" }}
@@ -276,11 +317,12 @@ export default function ReportesClient({ alertasActivasCount, filtrosProximosCou
             margin: 0,
           }}
         >
-          <li>Resumen de jornadas y tandas en el periodo seleccionado</li>
-          <li>Estado de cada trabajador por jornada (supervisor, duracion, ubicacion)</li>
-          <li>Alertas por tipo durante las jornadas (respiratoria, ajuste, filtro, bateria, desconexion)</li>
-          <li>Desglose de alertas individuales por cada jornada de trabajo</li>
-          <li>Observaciones y recomendaciones automaticas basadas en los datos</li>
+          <li>Supervisor responsable y periodo con precision de hora/minuto</li>
+          <li>Resumen de jornadas y alertas por tipo en el periodo</li>
+          <li>Detalle de cada alerta ordenada por timestamp</li>
+          <li>Valores medidos vs umbrales de referencia configurados</li>
+          <li>Estado de cada alerta (activa/resuelta) y tiempo de resolucion</li>
+          <li>Observaciones y recomendaciones automaticas</li>
         </ul>
       </div>
     </div>

@@ -10,15 +10,22 @@ export default async function ReportesPage() {
   if (!cookieHeader) redirect("/login");
 
   try {
-    // Pre-fetch summary stats for preview
-    const [alertasActivas, filtrosProximos] = await Promise.all([
+    const [alertasActivas, filtrosProximos, trabajadores] = await Promise.all([
       api.alertas.activas(cookieHeader),
       api.filterLifecycle.proximosVencer(cookieHeader),
+      api.trabajadores.list(cookieHeader),
     ]);
+
+    // Filtrar supervisores (cargo Supervisor o Administrador)
+    const supervisores = trabajadores.filter(
+      (t) => t.cargo === "Supervisor" || t.cargo === "Administrador"
+    );
+
     return (
       <ReportesClient
         alertasActivasCount={alertasActivas.length}
         filtrosProximosCount={filtrosProximos.length}
+        supervisores={supervisores}
       />
     );
   } catch {

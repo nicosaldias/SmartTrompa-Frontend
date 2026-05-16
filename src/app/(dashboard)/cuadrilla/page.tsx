@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCookieHeader } from "@/actions/auth";
 import api from "@/api/client";
-import type { JornadaTrabajo, MedicionesAmbientales } from "@/types";
+import type { JornadaTrabajo, MedicionesAmbientales, Ajustes } from "@/types";
 import CuadrillaClient from "./CuadrillaClient";
 
 export const metadata = { title: "Estado de Cuadrilla - SIMOR" };
@@ -18,9 +18,15 @@ export default async function CuadrillaPage() {
     const trabajadores = trabajadoresPage.content || [];
 
     const medMap: Record<string, MedicionesAmbientales | null> = {};
+    const ajMap: Record<string, Ajustes | null> = {};
     await Promise.all(
       jornadas.map(async (j: JornadaTrabajo) => {
-        medMap[String(j.id)] = await api.mediciones.latestByJornada(j.id, cookieHeader);
+        const [med, aj] = await Promise.all([
+          api.mediciones.latestByJornada(j.id, cookieHeader),
+          api.mediciones.ajustesByJornada(j.id, cookieHeader).catch(() => null),
+        ]);
+        medMap[String(j.id)] = med;
+        ajMap[String(j.id)] = aj;
       })
     );
 
@@ -30,6 +36,7 @@ export default async function CuadrillaPage() {
         initialAlertas={alertas}
         trabajadores={trabajadores}
         initialMediciones={medMap}
+        initialAjustes={ajMap}
       />
     );
   } catch {

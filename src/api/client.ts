@@ -30,6 +30,7 @@ import type {
   PageResponse,
   FilterStatus,
   MedicionesAmbientales,
+  Ajustes,
 } from '@/types';
 import { getMockResponse } from './mock-data';
 
@@ -433,6 +434,12 @@ export const api = {
       }),
     delete: (id: number, cookieHeader?: string) =>
       request<void>(alertasUmbralesEndpoints.byId(id), { method: 'DELETE', cookieHeader }),
+    bulk: (ruts: string[], umbrales: Partial<AlertasUmbrales>, cookieHeader?: string) =>
+      request<AlertasUmbrales[]>(alertasUmbralesEndpoints.bulk(), {
+        method: 'POST',
+        body: JSON.stringify({ ruts, umbrales }),
+        cookieHeader,
+      }),
   },
 
   trabajadorRoles: {
@@ -480,6 +487,8 @@ export const api = {
         return null;
       }
     },
+    ajustesByJornada: (id: number, cookieHeader?: string) =>
+      request<Ajustes>(medicionesEndpoints.ajustesByJornada(id), { cookieHeader }),
   },
 
   reportes: {
@@ -507,9 +516,9 @@ export const api = {
       if (!res.ok) throw new Error('Error al generar el reporte mensual');
       return res.blob();
     },
-    descargarPorJornada: async (desde: string, hasta: string, cookieHeader?: string) => {
+    descargarPorJornada: async (desde: string, hasta: string, supervisor?: string, cookieHeader?: string) => {
       if (MOCK_MODE) return new Blob(['Reporte por jornada de demostración'], { type: 'application/pdf' });
-      const url = reporteEndpoints.porJornada(desde, hasta);
+      const url = reporteEndpoints.porJornada(desde, hasta, supervisor || undefined);
       const res = await fetch(url, {
         credentials: 'include',
         headers: {

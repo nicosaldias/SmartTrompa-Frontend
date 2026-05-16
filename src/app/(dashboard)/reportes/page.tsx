@@ -26,6 +26,7 @@ export default async function ReportesPage() {
         alertasActivasCount={alertasActivas.length}
         filtrosProximosCount={filtrosProximos.length}
         supervisores={supervisores}
+        trabajadores={trabajadores}
       />
     );
   } catch {

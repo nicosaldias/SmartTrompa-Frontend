@@ -100,13 +100,8 @@ export const filterLifecycleEndpoints = {
 };
 
 export const reporteEndpoints = {
-  semanal: (desde: string, hasta: string) =>
-    `${API_BASE_URL}/reportes/semanal/?desde=${desde}&hasta=${hasta}`,
-  mensual: (year: number, month: number) =>
-    `${API_BASE_URL}/reportes/mensual/?year=${year}&month=${month}`,
-  porJornada: (desde: string, hasta: string, supervisor?: string) => {
-    let url = `${API_BASE_URL}/reportes/jornada/?desde=${desde}&hasta=${hasta}`;
-    if (supervisor) url += `&supervisor=${encodeURIComponent(supervisor)}`;
-    return url;
-  },
+  jornada: () => `${API_BASE_URL}/reportes/jornada/`,
+  cuadrilla: () => `${API_BASE_URL}/reportes/cuadrilla/`,
+  trabajador: () => `${API_BASE_URL}/reportes/trabajador/`,
+  general: () => `${API_BASE_URL}/reportes/general/`,
 };

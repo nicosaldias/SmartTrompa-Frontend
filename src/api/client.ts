@@ -62,6 +62,18 @@ async function attemptRefresh(cookieHeader?: string): Promise<boolean> {
   }
 }
 
+async function mensajeError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.clone().json();
+    if (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string') {
+      return data.message;
+    }
+  } catch {
+    // body no es JSON
+  }
+  return fallback;
+}
+
 async function request<T>(url: string, options: RequestOptions = {}): Promise<T> {
   if (MOCK_MODE) {
     await new Promise(r => setTimeout(r, 100));
@@ -492,40 +504,48 @@ export const api = {
   },
 
   reportes: {
-    descargarSemanal: async (desde: string, hasta: string, cookieHeader?: string) => {
-      if (MOCK_MODE) return new Blob(['Reporte semanal de demostración'], { type: 'application/pdf' });
-      const url = reporteEndpoints.semanal(desde, hasta);
-      const res = await fetch(url, {
+    jornada: async (idJornada: number) => {
+      if (MOCK_MODE) return new Blob(['Reporte de jornada (demo)'], { type: 'application/pdf' });
+      const res = await fetch(reporteEndpoints.jornada(), {
+        method: 'POST',
         credentials: 'include',
-        headers: {
-          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idJornada }),
       });
-      if (!res.ok) throw new Error('Error al generar el reporte semanal');
+      if (!res.ok) throw new Error(await mensajeError(res, 'Error al generar el reporte de jornada'));
       return res.blob();
     },
-    descargarMensual: async (year: number, month: number, cookieHeader?: string) => {
-      if (MOCK_MODE) return new Blob(['Reporte mensual de demostración'], { type: 'application/pdf' });
-      const url = reporteEndpoints.mensual(year, month);
-      const res = await fetch(url, {
+    cuadrilla: async (rutSupervisor: string, desde: string, hasta: string) => {
+      if (MOCK_MODE) return new Blob(['Reporte de cuadrilla (demo)'], { type: 'application/pdf' });
+      const res = await fetch(reporteEndpoints.cuadrilla(), {
+        method: 'POST',
         credentials: 'include',
-        headers: {
-          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rutSupervisor, desde, hasta }),
       });
-      if (!res.ok) throw new Error('Error al generar el reporte mensual');
+      if (!res.ok) throw new Error(await mensajeError(res, 'Error al generar el reporte de cuadrilla'));
       return res.blob();
     },
-    descargarPorJornada: async (desde: string, hasta: string, supervisor?: string, cookieHeader?: string) => {
-      if (MOCK_MODE) return new Blob(['Reporte por jornada de demostración'], { type: 'application/pdf' });
-      const url = reporteEndpoints.porJornada(desde, hasta, supervisor || undefined);
-      const res = await fetch(url, {
+    trabajador: async (rutTrabajador: string, desde: string, hasta: string) => {
+      if (MOCK_MODE) return new Blob(['Reporte de trabajador (demo)'], { type: 'application/pdf' });
+      const res = await fetch(reporteEndpoints.trabajador(), {
+        method: 'POST',
         credentials: 'include',
-        headers: {
-          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rutTrabajador, desde, hasta }),
       });
-      if (!res.ok) throw new Error('Error al generar el reporte por jornada');
+      if (!res.ok) throw new Error(await mensajeError(res, 'Error al generar el reporte de trabajador'));
+      return res.blob();
+    },
+    general: async (desde: string, hasta: string) => {
+      if (MOCK_MODE) return new Blob(['Reporte general (demo)'], { type: 'application/pdf' });
+      const res = await fetch(reporteEndpoints.general(), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ desde, hasta }),
+      });
+      if (!res.ok) throw new Error(await mensajeError(res, 'Error al generar el reporte general'));
       return res.blob();
     },
   },

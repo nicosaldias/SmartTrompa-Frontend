@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <Menu size={24} />
           </button>
-          <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>SmartTrompa</span>
+          <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>SIMOR</span>
           <div style={{ width: 40 }} />
         </div>
 

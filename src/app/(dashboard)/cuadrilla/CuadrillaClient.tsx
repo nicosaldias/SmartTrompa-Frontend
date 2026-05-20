@@ -2,14 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import api from "@/api/client";
-import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAlerta } from "@/types";
+import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAlerta, MedicionesAmbientales, Ajustes } from "@/types";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BINARY_ALERT_TYPES } from "@/types";
+import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime } from "@/utils/sensorMappings";
 import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw } from "lucide-react";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
   initialAlertas: AlertaHistorial[];
   trabajadores: Trabajador[];
+  initialMediciones?: Record<string, MedicionesAmbientales | null>;
+  initialAjustes?: Record<string, Ajustes | null>;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
@@ -42,9 +46,15 @@ function getAlertNivel(alertas: AlertaHistorial[], rut: string, tipo: TipoAlerta
   return match ? match.nivel : "OK";
 }
 
-export default function CuadrillaClient({ initialJornadas, initialAlertas, trabajadores }: Props) {
+export default function CuadrillaClient({ initialJornadas, initialAlertas, trabajadores, initialMediciones, initialAjustes }: Props) {
   const [jornadas, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialAlertas);
+  const [medicionesMap, setMedicionesMap] = useState<Record<string, MedicionesAmbientales | null>>(
+    initialMediciones || {}
+  );
+  const [ajustesMap, setAjustesMap] = useState<Record<string, Ajustes | null>>(
+    initialAjustes || {}
+  );
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [pollFailures, setPollFailures] = useState(0);
 
@@ -56,6 +66,22 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
       ]);
       setJornadas(newJornadas);
       setAlertas(newAlertas);
+
+      const medMap: Record<string, MedicionesAmbientales | null> = {};
+      const ajMap: Record<string, Ajustes | null> = {};
+      await Promise.all(
+        newJornadas.map(async (j) => {
+          const [med, aj] = await Promise.all([
+            api.mediciones.latestByJornada(j.id),
+            api.mediciones.ajustesByJornada(j.id).catch(() => null),
+          ]);
+          medMap[String(j.id)] = med;
+          ajMap[String(j.id)] = aj;
+        })
+      );
+      setMedicionesMap(medMap);
+      setAjustesMap(ajMap);
+
       setPollFailures(0);
     } catch {
       setPollFailures((prev) => prev + 1);
@@ -109,6 +135,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
 
   // ── Render helpers ──
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function renderDot(nivel: NivelAlerta) {
     const color = nivelColor(nivel);
     return (
@@ -137,11 +164,53 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     return "#ef4444";
   }
 
+  function renderPieChart(ajustes: Ajustes | null | undefined, size: number = 48) {
+    if (!ajustes || (ajustes.ajustado === 0 && ajustes.desajustado === 0)) {
+      return (
+        <div style={{ width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width={size} height={size} viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--color-border)" strokeWidth="3" />
+            <text x="18" y="20" textAnchor="middle" fontSize="7" fill="var(--color-text-secondary)">--</text>
+          </svg>
+        </div>
+      );
+    }
+    const total = ajustes.ajustado + ajustes.desajustado;
+    const pctAjustado = Math.round((ajustes.ajustado / total) * 100);
+    const pctDesajustado = 100 - pctAjustado;
+    // SVG donut chart using stroke-dasharray
+    const circumference = 2 * Math.PI * 15.9;
+    const ajustadoLen = (pctAjustado / 100) * circumference;
+    const desajustadoLen = circumference - ajustadoLen;
+
+    return (
+      <div style={{ width: size, height: size, position: "relative" }} title={`Ajustado: ${pctAjustado}% | Desajustado: ${pctDesajustado}%`}>
+        <svg width={size} height={size} viewBox="0 0 36 36" style={{ transform: "rotate(-90deg)" }}>
+          {/* Desajustado (rojo) - fondo */}
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#ef4444" strokeWidth="3.5"
+            strokeDasharray={`${circumference} ${circumference}`} />
+          {/* Ajustado (verde) - encima */}
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22c55e" strokeWidth="3.5"
+            strokeDasharray={`${ajustadoLen} ${desajustadoLen}`} />
+        </svg>
+        <div style={{
+          position: "absolute", inset: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: size < 40 ? "0.5rem" : "0.6rem", fontWeight: 700,
+          color: pctAjustado >= 70 ? "#22c55e" : pctAjustado >= 40 ? "#f59e0b" : "#ef4444",
+        }}>
+          {pctAjustado}%
+        </div>
+      </div>
+    );
+  }
+
   function renderWorkerCard(jornada: JornadaTrabajo) {
     const t = findTrabajador(jornada.rutUsuario);
     const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "CRITICO");
     const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "ALERTA");
     const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
+    const medicion = medicionesMap[String(jornada.id)];
 
     return (
       <div
@@ -195,6 +264,37 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             );
           })}
         </div>
+        <div style={{
+          marginTop: "0.5rem",
+          paddingTop: "0.5rem",
+          borderTop: "1px solid var(--color-border)",
+          display: "flex",
+          gap: "0.75rem",
+          alignItems: "center",
+        }}>
+          <div style={{ flexShrink: 0 }}>
+            {renderPieChart(ajustesMap[String(jornada.id)], 48)}
+            <p style={{ fontSize: "0.5rem", color: "var(--color-text-secondary)", textAlign: "center", marginTop: "0.125rem" }}>Ajuste</p>
+          </div>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "0.25rem 0.75rem",
+            fontSize: "0.65rem",
+            color: "var(--color-text-secondary)",
+            flex: 1,
+          }}>
+            <span>Frec. Resp: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.frecuenciaRespiratoria ?? '--'} bpm</b></span>
+            <span>Ajuste: <b style={{ color: nivelAjusteColor(medicion?.nivelAjuste) }}>{interpretNivelAjuste(medicion?.nivelAjuste)}</b></span>
+            <span>Atollo: <b style={{ color: nivelAtolloColor(medicion?.nivelAtollo) }}>{interpretNivelAtollo(medicion?.nivelAtollo)}</b></span>
+            <span>Bateria: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.bateria != null ? `${medicion.bateria}%` : '--'}</b></span>
+          </div>
+        </div>
+        {medicion?.timestamp && (
+          <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem", textAlign: "right" }}>
+            {formatRelativeTime(medicion.timestamp)}
+          </p>
+        )}
       </div>
     );
   }
@@ -213,6 +313,8 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
       const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, supRut, tipo) === "CRITICO");
       const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, supRut, tipo) === "ALERTA");
       const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
+      const supJornada = jornadas.find(j => j.rutUsuario === supRut);
+      const medicion = supJornada ? medicionesMap[String(supJornada.id)] : null;
 
       return (
         <div
@@ -265,6 +367,37 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
               );
             })}
           </div>
+          <div style={{
+            marginTop: "0.5rem",
+            paddingTop: "0.5rem",
+            borderTop: "1px solid var(--color-border)",
+            display: "flex",
+            gap: "0.75rem",
+            alignItems: "center",
+          }}>
+            <div style={{ flexShrink: 0 }}>
+              {renderPieChart(supJornada ? ajustesMap[String(supJornada.id)] : null, 48)}
+              <p style={{ fontSize: "0.5rem", color: "var(--color-text-secondary)", textAlign: "center", marginTop: "0.125rem" }}>Ajuste</p>
+            </div>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "0.25rem 0.75rem",
+              fontSize: "0.65rem",
+              color: "var(--color-text-secondary)",
+              flex: 1,
+            }}>
+              <span>Frec. Resp: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.frecuenciaRespiratoria ?? '--'} bpm</b></span>
+              <span>Ajuste: <b style={{ color: nivelAjusteColor(medicion?.nivelAjuste) }}>{interpretNivelAjuste(medicion?.nivelAjuste)}</b></span>
+              <span>Atollo: <b style={{ color: nivelAtolloColor(medicion?.nivelAtollo) }}>{interpretNivelAtollo(medicion?.nivelAtollo)}</b></span>
+              <span>Bateria: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.bateria != null ? `${medicion.bateria}%` : '--'}</b></span>
+            </div>
+          </div>
+          {medicion?.timestamp && (
+            <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem", textAlign: "right" }}>
+              {formatRelativeTime(medicion.timestamp)}
+            </p>
+          )}
         </div>
       );
     }
@@ -409,6 +542,8 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           {ALERTA_TIPOS.map((tipo) => (
             <td key={tipo} style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>—</td>
           ))}
+          <td style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>—</td>
+          <td style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>—</td>
           <td style={{ padding: "0.75rem", textAlign: "center" }}>
             <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em" }}>
               INACTIVO
@@ -421,6 +556,8 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, supRut, tipo) === "CRITICO");
     const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, supRut, tipo) === "ALERTA");
     const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
+    const supJornada = jornadas.find(j => j.rutUsuario === supRut);
+    const medicion = supJornada ? medicionesMap[String(supJornada.id)] : null;
 
     return (
       <tr key={`sup-${supRut}`} style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "rgba(59,130,246,0.03)" }}>
@@ -464,6 +601,12 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             </td>
           );
         })}
+        <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
+          {medicion?.frecuenciaRespiratoria ?? '--'} <span style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>bpm</span>
+        </td>
+        <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
+          {medicion?.bateria != null ? `${medicion.bateria}%` : '--'}
+        </td>
         <td style={{ padding: "0.75rem", textAlign: "center" }}>
           <span className={alertAnimClass(estadoGeneral)} style={{
             fontSize: "0.65rem", fontWeight: 700,
@@ -525,6 +668,12 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                           </div>
                         </th>
                       ))}
+                      <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                        Frec. Resp
+                      </th>
+                      <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                        Bateria
+                      </th>
                       <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem" }}>
                         Estado
                       </th>
@@ -537,6 +686,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                       const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "CRITICO");
                       const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "ALERTA");
                       const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
+                      const medicion = medicionesMap[String(jornada.id)];
                       return (
                         <tr key={jornada.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
                           <td style={{ padding: "0.75rem" }}>
@@ -576,6 +726,12 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                               </td>
                             );
                           })}
+                          <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
+                            {medicion?.frecuenciaRespiratoria ?? '--'} <span style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>bpm</span>
+                          </td>
+                          <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
+                            {medicion?.bateria != null ? `${medicion.bateria}%` : '--'}
+                          </td>
                           <td style={{ padding: "0.75rem", textAlign: "center" }}>
                             <span className={alertAnimClass(estadoGeneral)} style={{
                               fontSize: "0.65rem", fontWeight: 700,

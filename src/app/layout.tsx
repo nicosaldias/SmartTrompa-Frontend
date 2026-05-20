@@ -11,7 +11,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Smart Trompa | Plataforma de Gestión",
+  title: "SIMOR | Sistema de Monitoreo para Respiradores",
   description: "Plataforma de monitoreo de seguridad industrial para trabajadores con equipos de proteccion respiratoria",
 };
 

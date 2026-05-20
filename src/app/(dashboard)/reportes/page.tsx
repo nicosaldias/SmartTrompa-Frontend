@@ -3,22 +3,30 @@ import { getCookieHeader } from "@/actions/auth";
 import api from "@/api/client";
 import ReportesClient from "./ReportesClient";
 
-export const metadata = { title: "Reportes de Seguridad - Smart Trompa" };
+export const metadata = { title: "Reportes de Seguridad - SIMOR" };
 
 export default async function ReportesPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
 
   try {
-    // Pre-fetch summary stats for preview
-    const [alertasActivas, filtrosProximos] = await Promise.all([
+    const [alertasActivas, filtrosProximos, trabajadores] = await Promise.all([
       api.alertas.activas(cookieHeader),
       api.filterLifecycle.proximosVencer(cookieHeader),
+      api.trabajadores.list(cookieHeader),
     ]);
+
+    // Filtrar supervisores (cargo Supervisor o Administrador)
+    const supervisores = trabajadores.filter(
+      (t) => t.cargo === "Supervisor" || t.cargo === "Administrador"
+    );
+
     return (
       <ReportesClient
         alertasActivasCount={alertasActivas.length}
         filtrosProximosCount={filtrosProximos.length}
+        supervisores={supervisores}
+        trabajadores={trabajadores}
       />
     );
   } catch {

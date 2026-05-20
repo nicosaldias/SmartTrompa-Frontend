@@ -3,7 +3,7 @@ import { getCookieHeader } from "@/actions/auth";
 import api from "@/api/client";
 import HistorialAlertasClient from "./HistorialAlertasClient";
 
-export const metadata = { title: "Historial de Alertas - Smart Trompa" };
+export const metadata = { title: "Historial de Alertas - SIMOR" };
 
 export default async function HistorialAlertasPage() {
   const cookieHeader = await getCookieHeader();

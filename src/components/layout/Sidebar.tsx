@@ -98,10 +98,10 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
           {!isCollapsed && (
             <div>
               <p style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--color-text-primary)" }}>
-                SmartTrompa
+                SIMOR
               </p>
               <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                Industrial Intelligence
+                Monitoreo para Respiradores
               </p>
             </div>
           )}

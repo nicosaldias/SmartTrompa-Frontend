@@ -3,7 +3,7 @@ import { getCookieHeader } from "@/actions/auth";
 import UmbralesClient from "./UmbralesClient";
 
 export const metadata = {
-  title: "Gestión de Umbrales - SmartTrompa",
+  title: "Gestión de Umbrales - SIMOR",
 };
 
 export default async function UmbralesPage() {

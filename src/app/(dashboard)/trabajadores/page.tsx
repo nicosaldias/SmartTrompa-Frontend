@@ -3,7 +3,7 @@ import { getCookieHeader } from "@/actions/auth";
 import api from "@/api/client";
 import TrabajadoresClient from "./TrabajadoresClient";
 
-export const metadata = { title: "Trabajadores - Smart Trompa" };
+export const metadata = { title: "Trabajadores - SIMOR" };
 
 export default async function TrabajadoresPage() {
   const cookieHeader = await getCookieHeader();

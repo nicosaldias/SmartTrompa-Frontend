@@ -88,6 +88,17 @@ export interface AlertaHistorial {
   resueltaPor?: string;
 }
 
+/**
+ * Datos de sensores BLE leidos por la app movil.
+ * - temperatura: °C (sensor BLE bytes 0-3)
+ * - presion: Pa (sensor BLE bytes 4-7, base 26700)
+ * - humedad: % (sensor BLE bytes 8-11)
+ * - bateria: % (sensor BLE caracteristica 1)
+ * - frecuenciaRespiratoria: bpm (calculado por peak detection en presion)
+ * - nivelAjuste: 0=Ajustado, 1=Desajustado (presion vs thFit 101740 Pa)
+ * - nivelAtollo: 0=Bajo, 1=Medio, 2=Alto (presion vs thClogLow/thClogHigh)
+ * - counter: acumulador de desajuste (contDisj de la app movil)
+ */
 export interface MedicionesAmbientales {
   id: number;
   timestamp: string;
@@ -160,6 +171,11 @@ export interface Ticket {
   creadoEn: string;
   rutTrabajador?: string;
   trabajador?: Trabajador;
+}
+
+export interface Ajustes {
+  ajustado: number;
+  desajustado: number;
 }
 
 export interface AlertasUmbrales {

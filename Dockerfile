@@ -4,7 +4,14 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+
+# NEXT_PUBLIC_* se bake en build time — debe pasarse como build arg
+ARG NEXT_PUBLIC_API_URL=http://localhost:8080/api
+ARG NEXT_PUBLIC_MOCK_MODE=false
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_MOCK_MODE=$NEXT_PUBLIC_MOCK_MODE
 ENV NEXT_TELEMETRY_DISABLED=1
+
 RUN npm run build
 
 # Run stage

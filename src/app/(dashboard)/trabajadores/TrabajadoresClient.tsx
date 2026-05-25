@@ -2,9 +2,12 @@
 
 import { useState, useMemo } from "react";
 import { api } from "@/api/client";
+import { API_BASE_URL } from "@/api/endpoints";
 import { Trabajador, TrabajadorRequest, Cargo, PageResponse } from "@/types";
 import { Plus, Pencil, Trash2, Search, Eye, EyeOff, Upload } from "lucide-react";
 import Swal from "sweetalert2";
+import { useT } from "@/i18n/LanguageProvider";
+import type { TranslationKey } from "@/i18n/types";
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const pct = current / max;
@@ -28,6 +31,12 @@ const CARGO_BADGE: Record<Cargo, string> = {
   Trabajador: "badge-gray",
 };
 
+const CARGO_I18N_KEY = {
+  Administrador: "roles.administrator",
+  Supervisor: "roles.supervisor",
+  Trabajador: "roles.worker",
+} as const satisfies Record<Cargo, TranslationKey>;
+
 function formatRut(value: string): string {
   const clean = value.replace(/[^0-9kK]/g, "").toLowerCase();
   if (clean.length <= 1) return clean;
@@ -47,6 +56,7 @@ function getInitials(nombre: string, apellido: string): string {
 const PAGE_SIZE = 20;
 
 export default function TrabajadoresClient({ initialPage }: Props) {
+  const t = useT();
   const [trabajadores, setTrabajadores] = useState<Trabajador[]>(initialPage.content);
   const [totalElements, setTotalElements] = useState(initialPage.totalElements);
   const [totalPages, setTotalPages] = useState(initialPage.totalPages);
@@ -74,11 +84,11 @@ export default function TrabajadoresClient({ initialPage }: Props) {
   function getFieldError(field: string, value: string): string | null {
     if (!touched[field]) return null;
     switch (field) {
-      case "rut": return value.length < 3 ? "RUT invalido" : null;
-      case "nombre": return !value.trim() ? "Nombre es obligatorio" : null;
-      case "apellidoPaterno": return !value.trim() ? "Apellido es obligatorio" : null;
-      case "correo": return value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "Correo invalido" : null;
-      case "password": return value && value.length < 6 ? "Minimo 6 caracteres" : null;
+      case "rut": return value.length < 3 ? t("trabajadores.validation.rutInvalid") : null;
+      case "nombre": return !value.trim() ? t("trabajadores.validation.nombreRequired") : null;
+      case "apellidoPaterno": return !value.trim() ? t("trabajadores.validation.apellidoRequired") : null;
+      case "correo": return value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? t("trabajadores.validation.correoInvalid") : null;
+      case "password": return value && value.length < 6 ? t("trabajadores.validation.passwordMin") : null;
       default: return null;
     }
   }
@@ -125,7 +135,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      Swal.fire({ icon: "error", title: "Error", text: "La imagen no puede superar los 5 MB", background: "#1c2333", color: "#e6edf3" });
+      Swal.fire({ icon: "error", title: t("common.error"), text: t("trabajadores.imageTooLarge"), background: "#1c2333", color: "#e6edf3" });
       return;
     }
     setFormImageFile(file);
@@ -161,7 +171,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     setFormPassword("");
     setFormConfirmPassword("");
     if (t.tieneImagen) {
-      setFormImagePreview(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/trabajador/${t.rut}/imagen/`);
+      setFormImagePreview(`${API_BASE_URL}/trabajador/${t.rut}/imagen/`);
     } else {
       setFormImagePreview(null);
     }
@@ -176,8 +186,8 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     if (formPassword && formPassword !== formConfirmPassword) {
       Swal.fire({
         icon: "error",
-        title: "Error",
-        text: "Las contrasenas no coinciden",
+        title: t("common.error"),
+        text: t("trabajadores.passwordsDoNotMatch"),
         background: "#1c2333",
         color: "#e6edf3",
       });
@@ -185,12 +195,12 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     }
 
     const confirmResult = await Swal.fire({
-      title: "Confirmar",
-      text: editingTrabajador ? "Se actualizara el registro" : "Se creara el registro",
+      title: t("common.confirm"),
+      text: editingTrabajador ? t("trabajadores.recordWillBeUpdated") : t("trabajadores.recordWillBeCreated"),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Si, guardar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("trabajadores.yesSave"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#f97316",
@@ -224,7 +234,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
       await refreshList();
       Swal.fire({
         icon: "success",
-        title: editingTrabajador ? "Trabajador actualizado" : "Trabajador creado",
+        title: editingTrabajador ? t("trabajadores.workerUpdated") : t("trabajadores.workerCreated"),
         timer: 1500,
         showConfirmButton: false,
         background: "#1c2333",
@@ -233,7 +243,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -241,28 +251,28 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     }
   }
 
-  async function handleToggleActivo(t: Trabajador) {
+  async function handleToggleActivo(trab: Trabajador) {
     const result = await Swal.fire({
-      title: t.activo ? "Desactivar trabajador?" : "Activar trabajador?",
-      text: t.activo
-        ? "El trabajador no podra iniciar sesion"
-        : "El trabajador podra iniciar sesion nuevamente",
+      title: trab.activo ? t("trabajadores.deactivateTitle") : t("trabajadores.activateTitle"),
+      text: trab.activo
+        ? t("trabajadores.deactivateText")
+        : t("trabajadores.activateText"),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: t.activo ? "Si, desactivar" : "Si, activar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: trab.activo ? t("trabajadores.yesDeactivate") : t("trabajadores.yesActivate"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
-      confirmButtonColor: t.activo ? "#ef4444" : "#22c55e",
+      confirmButtonColor: trab.activo ? "#ef4444" : "#22c55e",
     });
     if (result.isConfirmed) {
       try {
-        await api.trabajadores.toggleActivo(t.rut);
+        await api.trabajadores.toggleActivo(trab.rut);
         await refreshList();
       } catch (err: unknown) {
         Swal.fire({
           icon: "error",
-          title: "Error",
+          title: t("common.error"),
           text: (err as Error).message,
           background: "#1c2333",
           color: "#e6edf3",
@@ -271,25 +281,25 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     }
   }
 
-  async function handleDelete(t: Trabajador) {
+  async function handleDelete(trab: Trabajador) {
     const result = await Swal.fire({
-      title: "Eliminar trabajador?",
-      text: `Se eliminara permanentemente a ${t.nombre} ${t.apellidoPaterno}`,
+      title: t("trabajadores.deleteTitle"),
+      text: t("trabajadores.deleteText", { name: `${trab.nombre} ${trab.apellidoPaterno}` }),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Si, eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("trabajadores.yesDelete"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#ef4444",
     });
     if (result.isConfirmed) {
       try {
-        await api.trabajadores.delete(t.rut);
+        await api.trabajadores.delete(trab.rut);
         await refreshList();
         Swal.fire({
           icon: "success",
-          title: "Eliminado",
+          title: t("trabajadores.deleted"),
           timer: 1500,
           showConfirmButton: false,
           background: "#1c2333",
@@ -298,7 +308,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
       } catch (err: unknown) {
         Swal.fire({
           icon: "error",
-          title: "Error",
+          title: t("common.error"),
           text: (err as Error).message,
           background: "#1c2333",
           color: "#e6edf3",
@@ -311,6 +321,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     <div>
       {/* Header */}
       <div
+        className="trabajadores-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -319,7 +330,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
         }}
       >
         <div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>Gestion de Trabajadores</h1>
+          <h1 className="trabajadores-title" style={{ fontSize: "1.5rem", fontWeight: 800 }}>{t("trabajadores.title")}</h1>
           <p
             style={{
               color: "var(--color-text-secondary)",
@@ -327,7 +338,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
               marginTop: "0.25rem",
             }}
           >
-            Administra los trabajadores del sistema
+            {t("trabajadores.subtitle")}
           </p>
         </div>
         <button
@@ -335,12 +346,13 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           onClick={openCreate}
           style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
         >
-          <Plus size={16} /> Nuevo trabajador
+          <Plus size={16} /> {t("trabajadores.newWorker")}
         </button>
       </div>
 
       {/* Filters row */}
       <div
+        className="trabajadores-filters"
         style={{
           display: "flex",
           gap: "1rem",
@@ -364,7 +376,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           <input
             className="input-field"
             style={{ paddingLeft: "2.25rem" }}
-            placeholder="Buscar por nombre, RUT o correo..."
+            placeholder={t("trabajadores.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -377,10 +389,10 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           value={cargoFilter}
           onChange={(e) => setCargoFilter(e.target.value as Cargo | "")}
         >
-          <option value="">Todos los cargos</option>
+          <option value="">{t("trabajadores.allPositions")}</option>
           {CARGOS.map((c) => (
             <option key={c} value={c}>
-              {c}
+              {t(CARGO_I18N_KEY[c])}
             </option>
           ))}
         </select>
@@ -422,22 +434,28 @@ export default function TrabajadoresClient({ initialPage }: Props) {
               }}
             />
           </div>
-          Solo activos
+          {t("trabajadores.onlyActive")}
         </label>
       </div>
 
       {/* Table */}
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
+        <div className="trabajadores-table-wrap" style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-                {["TRABAJADOR", "CARGO", "CONTACTO", "ESTADO", "ACCIONES"].map((h) => (
+                {[
+                  { key: "worker", label: t("trabajadores.tableWorker") },
+                  { key: "position", label: t("trabajadores.tablePosition") },
+                  { key: "contact", label: t("trabajadores.tableContact") },
+                  { key: "status", label: t("trabajadores.tableStatus") },
+                  { key: "actions", label: t("trabajadores.tableActions") },
+                ].map((h) => (
                   <th
-                    key={h}
+                    key={h.key}
                     style={{
                       padding: "0.75rem 0.5rem",
-                      textAlign: h === "TRABAJADOR" ? "left" : "center",
+                      textAlign: h.key === "worker" ? "left" : "center",
                       color: "var(--color-text-secondary)",
                       fontWeight: 600,
                       fontSize: "0.75rem",
@@ -445,7 +463,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                       textTransform: "uppercase",
                     }}
                   >
-                    {h}
+                    {h.label}
                   </th>
                 ))}
               </tr>
@@ -461,13 +479,13 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                       color: "var(--color-text-secondary)",
                     }}
                   >
-                    No se encontraron trabajadores
+                    {t("trabajadores.noResults")}
                   </td>
                 </tr>
               ) : (
-                paginated.map((t) => (
+                paginated.map((trab) => (
                   <tr
-                    key={t.rut}
+                    key={trab.rut}
                     style={{
                       borderBottom: "1px solid var(--color-border)",
                       transition: "background-color 0.1s",
@@ -480,9 +498,9 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                     {/* TRABAJADOR column: avatar + name + rut */}
                     <td style={{ padding: "0.75rem 0.5rem" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                        {t.tieneImagen ? (
+                        {trab.tieneImagen ? (
                           <img
-                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/trabajador/${t.rut}/imagen/`}
+                            src={`${API_BASE_URL}/trabajador/${trab.rut}/imagen/`}
                             alt=""
                             style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
                           />
@@ -502,12 +520,12 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                               flexShrink: 0,
                             }}
                           >
-                            {getInitials(t.nombre, t.apellidoPaterno)}
+                            {getInitials(trab.nombre, trab.apellidoPaterno)}
                           </div>
                         )}
                         <div>
                           <div style={{ fontWeight: 600 }}>
-                            {t.nombre} {t.apellidoPaterno} {t.apellidoMaterno}
+                            {trab.nombre} {trab.apellidoPaterno} {trab.apellidoMaterno}
                           </div>
                           <div
                             style={{
@@ -516,7 +534,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                               marginTop: "0.125rem",
                             }}
                           >
-                            {formatRut(t.rut)}
+                            {formatRut(trab.rut)}
                           </div>
                         </div>
                       </div>
@@ -524,7 +542,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
 
                     {/* CARGO */}
                     <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
-                      <span className={CARGO_BADGE[t.cargo]}>{t.cargo}</span>
+                      <span className={CARGO_BADGE[trab.cargo]}>{t(CARGO_I18N_KEY[trab.cargo])}</span>
                     </td>
 
                     {/* CONTACTO */}
@@ -535,13 +553,13 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                         color: "var(--color-text-secondary)",
                       }}
                     >
-                      {t.correo}
+                      {trab.correo}
                     </td>
 
                     {/* ESTADO */}
                     <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
-                      <span className={t.activo ? "badge-green" : "badge-red"}>
-                        {t.activo ? "Activo" : "Inactivo"}
+                      <span className={trab.activo ? "badge-green" : "badge-red"}>
+                        {trab.activo ? t("trabajadores.active") : t("trabajadores.inactive")}
                       </span>
                     </td>
 
@@ -549,36 +567,36 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                     <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem" }}>
                         <button
-                          onClick={() => openEdit(t)}
+                          onClick={() => openEdit(trab)}
                           className="btn-secondary"
                           style={{ padding: "0.375rem" }}
-                          title="Editar"
+                          title={t("common.edit")}
                         >
                           <Pencil size={14} />
                         </button>
                         <button
-                          onClick={() => handleToggleActivo(t)}
+                          onClick={() => handleToggleActivo(trab)}
                           className="btn-secondary"
                           style={{
                             padding: "0.375rem",
-                            borderColor: t.activo
+                            borderColor: trab.activo
                               ? "rgba(239,68,68,0.3)"
                               : "rgba(34,197,94,0.3)",
-                            color: t.activo ? "#ef4444" : "#22c55e",
+                            color: trab.activo ? "#ef4444" : "#22c55e",
                           }}
-                          title={t.activo ? "Desactivar" : "Activar"}
+                          title={trab.activo ? t("trabajadores.deactivate") : t("trabajadores.activate")}
                         >
-                          {t.activo ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {trab.activo ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
                         <button
-                          onClick={() => handleDelete(t)}
+                          onClick={() => handleDelete(trab)}
                           className="btn-secondary"
                           style={{
                             padding: "0.375rem",
                             borderColor: "rgba(239,68,68,0.3)",
                             color: "#ef4444",
                           }}
-                          title="Eliminar"
+                          title={t("common.delete")}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -605,8 +623,11 @@ export default function TrabajadoresClient({ initialPage }: Props) {
             }}
           >
             <span>
-              Mostrando {currentPage * PAGE_SIZE + 1} -{" "}
-              {Math.min((currentPage + 1) * PAGE_SIZE, totalElements)} de {totalElements}
+              {t("trabajadores.paginationShowing", {
+                from: currentPage * PAGE_SIZE + 1,
+                to: Math.min((currentPage + 1) * PAGE_SIZE, totalElements),
+                total: totalElements,
+              })}
             </span>
             <div style={{ display: "flex", gap: "0.375rem" }}>
               <button
@@ -615,7 +636,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 0}
               >
-                Anterior
+                {t("common.previous")}
               </button>
               {Array.from({ length: totalPages }, (_, i) => i).map((page) => (
                 <button
@@ -648,7 +669,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages - 1}
               >
-                Siguiente
+                {t("common.next")}
               </button>
             </div>
           </div>
@@ -672,11 +693,11 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           }}
         >
           <div
-            className="card modal-content"
+            className="card modal-content modal-trabajadores"
             style={{ width: "100%", maxWidth: 960, maxHeight: "90vh", overflowY: "auto" }}
           >
             <h2 style={{ fontWeight: 700, fontSize: "1.125rem", marginBottom: "1.5rem" }}>
-              {editingTrabajador ? "Editar Trabajador" : "Nuevo Trabajador"}
+              {editingTrabajador ? t("trabajadores.editWorker") : t("trabajadores.newWorker")}
             </h2>
             <form
               onSubmit={handleSave}
@@ -716,14 +737,14 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                       onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
                       onMouseLeave={(e) => e.currentTarget.style.opacity = "0"}
                       >
-                        <span style={{ color: "white", fontSize: "0.75rem", fontWeight: 600 }}>Cambiar</span>
+                        <span style={{ color: "white", fontSize: "0.75rem", fontWeight: 600 }}>{t("trabajadores.change")}</span>
                       </div>
                     </>
                   ) : (
                     <div style={{ textAlign: "center", padding: "0.5rem" }}>
                       <Upload size={24} color="var(--color-text-secondary)" style={{ margin: "0 auto 0.375rem" }} />
                       <p style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>
-                        Subir imagen
+                        {t("trabajadores.uploadImage")}
                       </p>
                     </div>
                   )}
@@ -736,7 +757,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                   onChange={handleImageChange}
                 />
                 <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)" }}>
-                  JPG, PNG o WebP · Max. 5 MB
+                  {t("trabajadores.imageFormats")}
                 </p>
               </div>
 
@@ -752,7 +773,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                   paddingBottom: "0.375rem",
                   borderBottom: "1px solid var(--color-border)",
                 }}>
-                  Datos personales
+                  {t("trabajadores.sectionPersonalData")}
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                   {/* RUT - full width */}
@@ -765,7 +786,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                         marginBottom: "0.375rem",
                       }}
                     >
-                      RUT
+                      {t("common.rut")}
                     </label>
                     <input
                       className="input-field"
@@ -788,7 +809,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                   </div>
 
                   {/* Nombre | Apellido Paterno */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <div className="trabajadores-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                     <div>
                       <label
                         style={{
@@ -798,7 +819,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                           marginBottom: "0.375rem",
                         }}
                       >
-                        Nombre
+                        {t("trabajadores.firstName")}
                       </label>
                       <input
                         className="input-field"
@@ -826,7 +847,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                           marginBottom: "0.375rem",
                         }}
                       >
-                        Apellido Paterno
+                        {t("trabajadores.lastNamePaternal")}
                       </label>
                       <input
                         className="input-field"
@@ -848,7 +869,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                   </div>
 
                   {/* Apellido Materno | Correo */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <div className="trabajadores-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                     <div>
                       <label
                         style={{
@@ -858,7 +879,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                           marginBottom: "0.375rem",
                         }}
                       >
-                        Apellido Materno
+                        {t("trabajadores.lastNameMaternal")}
                       </label>
                       <input
                         className="input-field"
@@ -879,7 +900,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                           marginBottom: "0.375rem",
                         }}
                       >
-                        Correo
+                        {t("trabajadores.email")}
                       </label>
                       <input
                         className="input-field"
@@ -914,7 +935,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                   paddingBottom: "0.375rem",
                   borderBottom: "1px solid var(--color-border)",
                 }}>
-                  Acceso
+                  {t("trabajadores.sectionAccess")}
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                   {/* Cargo - full width */}
@@ -927,7 +948,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                         marginBottom: "0.375rem",
                       }}
                     >
-                      Cargo
+                      {t("trabajadores.position")}
                     </label>
                     <select
                       className="input-field"
@@ -936,14 +957,14 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                     >
                       {CARGOS.map((c) => (
                         <option key={c} value={c}>
-                          {c}
+                          {t(CARGO_I18N_KEY[c])}
                         </option>
                       ))}
                     </select>
                   </div>
 
                   {/* Contrasena | Confirmar contrasena */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <div className="trabajadores-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                     <div>
                       <label
                         style={{
@@ -953,12 +974,12 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                           marginBottom: "0.375rem",
                         }}
                       >
-                        Contrasena
+                        {t("trabajadores.password")}
                       </label>
                       <input
                         className="input-field"
                         type="password"
-                        placeholder={editingTrabajador ? "Dejar en blanco para no cambiar" : ""}
+                        placeholder={editingTrabajador ? t("trabajadores.passwordKeepBlank") : ""}
                         value={formPassword}
                         onChange={(e) => setFormPassword(e.target.value)}
                         onBlur={() => setTouched(prev => ({ ...prev, password: true }))}
@@ -980,12 +1001,12 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                           marginBottom: "0.375rem",
                         }}
                       >
-                        Confirmar contrasena
+                        {t("trabajadores.confirmPassword")}
                       </label>
                       <input
                         className="input-field"
                         type="password"
-                        placeholder={editingTrabajador ? "Dejar en blanco para no cambiar" : ""}
+                        placeholder={editingTrabajador ? t("trabajadores.passwordKeepBlank") : ""}
                         value={formConfirmPassword}
                         onChange={(e) => setFormConfirmPassword(e.target.value)}
                         required={!editingTrabajador}
@@ -1003,16 +1024,49 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                   onClick={() => setShowModal(false)}
                   style={{ flex: 1 }}
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button className="btn-primary" type="submit" style={{ flex: 1 }}>
-                  Guardar
+                  {t("common.save")}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 1024px) {
+          .trabajadores-table-wrap {
+            overflow-x: auto !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .trabajadores-header {
+            flex-wrap: wrap !important;
+            gap: 0.75rem !important;
+            margin-bottom: 1rem !important;
+          }
+          .trabajadores-title {
+            font-size: 1.25rem !important;
+          }
+          .trabajadores-filters {
+            gap: 0.5rem !important;
+          }
+          .trabajadores-form-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+          .modal-trabajadores {
+            max-width: 95vw !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+            padding: 1rem !important;
+          }
+          .trabajadores-table-wrap {
+            overflow-x: auto !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

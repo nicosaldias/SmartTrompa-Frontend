@@ -5,6 +5,7 @@ import { api } from "@/api/client";
 import { TipoFiltro, TipoRespirador } from "@/types";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Image as ImageIcon, Upload } from "lucide-react";
 import Swal from "sweetalert2";
+import { useT } from "@/i18n/LanguageProvider";
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const pct = current / max;
@@ -38,6 +39,7 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function FiltrosClient({ initialFiltros, initialRespiradores }: Props) {
+  const t = useT();
   const [filtros, setFiltros] = useState<TipoFiltro[]>(initialFiltros);
   const [respiradores, setRespiradores] = useState<TipoRespirador[]>(initialRespiradores);
   const [activeTab, setActiveTab] = useState<ActiveTab>("filtros");
@@ -102,12 +104,12 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
     const file = e.target.files?.[0];
     if (!file) return;
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      Swal.fire({ icon: "warning", title: "Formato no soportado", text: "Solo se aceptan JPG, PNG y WebP", background: "#1c2333", color: "#e6edf3" });
+      Swal.fire({ icon: "warning", title: t("filtros.unsupportedFormat"), text: t("filtros.acceptedFormats"), background: "#1c2333", color: "#e6edf3" });
       e.target.value = "";
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      Swal.fire({ icon: "warning", title: "Archivo muy grande", text: "El tamaño máximo es 5 MB", background: "#1c2333", color: "#e6edf3" });
+      Swal.fire({ icon: "warning", title: t("filtros.fileTooLarge"), text: t("filtros.maxFileSize"), background: "#1c2333", color: "#e6edf3" });
       e.target.value = "";
       return;
     }
@@ -118,12 +120,12 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     const confirmResult = await Swal.fire({
-      title: "Confirmar",
-      text: editingItem ? "Se actualizara el registro" : "Se creara el registro",
+      title: t("common.confirm"),
+      text: editingItem ? t("filtros.recordWillBeUpdated") : t("filtros.recordWillBeCreated"),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Si, guardar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("filtros.yesSave"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#f97316",
@@ -134,8 +136,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
     if (!editingItem && !imageFile) {
       Swal.fire({
         icon: "warning",
-        title: "Imagen requerida",
-        text: "Debes subir una imagen del equipo antes de guardar",
+        title: t("filtros.imageRequired"),
+        text: t("filtros.imageRequiredText"),
         background: "#1c2333",
         color: "#e6edf3",
       });
@@ -144,8 +146,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
     if (editingItem && !editingItem.imagen && !imageFile) {
       Swal.fire({
         icon: "warning",
-        title: "Imagen requerida",
-        text: "Debes subir una imagen del equipo antes de guardar",
+        title: t("filtros.imageRequired"),
+        text: t("filtros.imageRequiredText"),
         background: "#1c2333",
         color: "#e6edf3",
       });
@@ -185,7 +187,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       await refreshLists();
       Swal.fire({
         icon: "success",
-        title: editingItem ? "Actualizado" : "Creado",
+        title: editingItem ? t("filtros.updated") : t("filtros.created"),
         timer: 1500,
         showConfirmButton: false,
         background: "#1c2333",
@@ -194,7 +196,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -204,14 +206,14 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
 
   async function handleToggleHabilitado(item: TipoFiltro | TipoRespirador) {
     const result = await Swal.fire({
-      title: item.habilitado ? "Deshabilitar?" : "Habilitar?",
+      title: item.habilitado ? t("filtros.disableTitle") : t("filtros.enableTitle"),
       text: item.habilitado
-        ? "El elemento sera deshabilitado"
-        : "El elemento sera habilitado nuevamente",
+        ? t("filtros.disableText")
+        : t("filtros.enableText"),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: item.habilitado ? "Si, deshabilitar" : "Si, habilitar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: item.habilitado ? t("filtros.yesDisable") : t("filtros.yesEnable"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: item.habilitado ? "#ef4444" : "#22c55e",
@@ -227,7 +229,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       } catch (err: unknown) {
         Swal.fire({
           icon: "error",
-          title: "Error",
+          title: t("common.error"),
           text: (err as Error).message,
           background: "#1c2333",
           color: "#e6edf3",
@@ -237,14 +239,13 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
   }
 
   async function handleDelete(item: TipoFiltro | TipoRespirador) {
-    const label = activeTab === "filtros" ? "filtro" : "respirador";
     const result = await Swal.fire({
-      title: `Eliminar ${label}?`,
-      text: `Se eliminara permanentemente "${item.nombre || item.marca + " " + item.modelo}"`,
+      title: activeTab === "filtros" ? t("filtros.deleteFilterTitle") : t("filtros.deleteRespiratorTitle"),
+      text: t("filtros.deleteText", { name: item.nombre || `${item.marca} ${item.modelo}` }),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Si, eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("filtros.yesDelete"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#ef4444",
@@ -259,7 +260,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
         await refreshLists();
         Swal.fire({
           icon: "success",
-          title: "Eliminado",
+          title: t("filtros.deleted"),
           timer: 1500,
           showConfirmButton: false,
           background: "#1c2333",
@@ -268,7 +269,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       } catch (err: unknown) {
         Swal.fire({
           icon: "error",
-          title: "Error",
+          title: t("common.error"),
           text: (err as Error).message,
           background: "#1c2333",
           color: "#e6edf3",
@@ -283,7 +284,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
   }
 
   function formatDate(dateStr?: string): string {
-    if (!dateStr) return "Sin fecha";
+    if (!dateStr) return t("filtros.noDate");
     try {
       return new Date(dateStr).toLocaleDateString("es-CL", {
         year: "numeric",
@@ -296,9 +297,10 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
   }
 
   return (
-    <div>
+    <div className="filtros-root">
       {/* Header */}
       <div
+        className="filtros-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -309,7 +311,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
         }}
       >
         <div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>Filtros y Respiradores</h1>
+          <h1 className="filtros-title" style={{ fontSize: "1.5rem", fontWeight: 800 }}>{t("filtros.title")}</h1>
           <p
             style={{
               color: "var(--color-text-secondary)",
@@ -317,19 +319,19 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
               marginTop: "0.25rem",
             }}
           >
-            Gestiona los equipos de proteccion respiratoria
+            {t("filtros.subtitle")}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "0.75rem" }}>
+        <div className="filtros-header-actions" style={{ display: "flex", gap: "0.75rem" }}>
           <button
-            className="btn-primary"
+            className="btn-primary filtros-header-btn"
             onClick={() => openCreate("filtros")}
             style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
           >
-            <Plus size={16} /> Agregar filtro
+            <Plus size={16} /> {t("filtros.addFilter")}
           </button>
           <button
-            className="btn-secondary"
+            className="btn-secondary filtros-header-btn"
             onClick={() => openCreate("respiradores")}
             style={{
               display: "flex",
@@ -339,7 +341,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
               color: "var(--color-accent)",
             }}
           >
-            <Plus size={16} /> Agregar respirador
+            <Plus size={16} /> {t("filtros.addRespirator")}
           </button>
         </div>
       </div>
@@ -375,13 +377,13 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
               letterSpacing: "0.025em",
             }}
           >
-            {tab === "filtros" ? "Filtros" : "Respiradores"}
+            {tab === "filtros" ? t("filtros.tabFilters") : t("filtros.tabRespirators")}
           </button>
         ))}
       </div>
 
       {/* Stats */}
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div className="filtros-stats" style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
         <div
           className="card"
           style={{
@@ -400,7 +402,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
             }}
           />
           <span style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
-            Activos:
+            {t("filtros.statsActive")}
           </span>
           <span style={{ fontWeight: 700, fontSize: "1.125rem" }}>{stats.activos}</span>
         </div>
@@ -422,7 +424,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
             }}
           />
           <span style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
-            Inactivos:
+            {t("filtros.statsInactive")}
           </span>
           <span style={{ fontWeight: 700, fontSize: "1.125rem" }}>{stats.inactivos}</span>
         </div>
@@ -438,10 +440,11 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
             color: "var(--color-text-secondary)",
           }}
         >
-          No hay {activeTab === "filtros" ? "filtros" : "respiradores"} registrados
+          {activeTab === "filtros" ? t("filtros.noFilters") : t("filtros.noRespirators")}
         </div>
       ) : (
         <div
+          className="filtros-grid-tipos"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
@@ -479,7 +482,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                 {/* Status badge overlay */}
                 <div style={{ position: "absolute", top: "0.75rem", right: "0.75rem" }}>
                   <span className={item.habilitado ? "badge-green" : "badge-red"}>
-                    {item.habilitado ? "ACTIVO" : "INACTIVO"}
+                    {item.habilitado ? t("filtros.badgeActive") : t("filtros.badgeInactive")}
                   </span>
                 </div>
               </div>
@@ -507,7 +510,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                     marginBottom: "0.5rem",
                   }}
                 >
-                  Homologacion: {formatDate(item.fechaHomologacion)}
+                  {t("filtros.homologation")}: {formatDate(item.fechaHomologacion)}
                 </p>
                 {item.descripcion && (
                   <p
@@ -540,7 +543,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                       gap: "0.375rem",
                     }}
                   >
-                    <Pencil size={13} /> Editar
+                    <Pencil size={13} /> {t("common.edit")}
                   </button>
                   <button
                     onClick={() => handleToggleHabilitado(item)}
@@ -555,7 +558,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                       alignItems: "center",
                       gap: "0.25rem",
                     }}
-                    title={item.habilitado ? "Deshabilitar" : "Habilitar"}
+                    title={item.habilitado ? t("filtros.disable") : t("filtros.enable")}
                   >
                     {item.habilitado ? <EyeOff size={13} /> : <Eye size={13} />}
                   </button>
@@ -567,7 +570,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                       borderColor: "rgba(239,68,68,0.3)",
                       color: "#ef4444",
                     }}
-                    title="Eliminar"
+                    title={t("common.delete")}
                   >
                     <Trash2 size={13} />
                   </button>
@@ -581,6 +584,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       {/* Modal */}
       {showModal && (
         <div
+          className="filtros-modal-overlay"
           style={{
             position: "fixed",
             inset: 0,
@@ -595,13 +599,13 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
           }}
         >
           <div
-            className="card modal-content"
+            className="card modal-content filtros-modal"
             style={{ width: "100%", maxWidth: 960, maxHeight: "90vh", overflowY: "auto" }}
           >
             <h2 style={{ fontWeight: 700, fontSize: "1.125rem", marginBottom: "1.5rem" }}>
               {editingItem
-                ? `Editar ${modalTab === "filtros" ? "Filtro" : "Respirador"}`
-                : `Nuevo ${modalTab === "filtros" ? "Filtro" : "Respirador"}`}
+                ? (modalTab === "filtros" ? t("filtros.editFilter") : t("filtros.editRespirator"))
+                : (modalTab === "filtros" ? t("filtros.newFilter") : t("filtros.newRespirator"))}
             </h2>
             <form
               onSubmit={handleSave}
@@ -641,14 +645,14 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                       onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
                       onMouseLeave={(e) => e.currentTarget.style.opacity = "0"}
                       >
-                        <span style={{ color: "white", fontSize: "0.75rem", fontWeight: 600 }}>Cambiar</span>
+                        <span style={{ color: "white", fontSize: "0.75rem", fontWeight: 600 }}>{t("filtros.change")}</span>
                       </div>
                     </>
                   ) : (
                     <div style={{ textAlign: "center", padding: "0.5rem" }}>
                       <Upload size={24} color="var(--color-text-secondary)" style={{ margin: "0 auto 0.375rem" }} />
                       <p style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>
-                        Subir imagen
+                        {t("filtros.uploadImage")}
                       </p>
                     </div>
                   )}
@@ -661,7 +665,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                   onChange={handleFileChange}
                 />
                 <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)" }}>
-                  JPG, PNG o WebP · Max. 5 MB
+                  {t("filtros.imageFormats")}
                 </p>
               </div>
 
@@ -677,13 +681,13 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                   paddingBottom: "0.375rem",
                   borderBottom: "1px solid var(--color-border)",
                 }}>
-                  Informacion del equipo
+                  {t("filtros.sectionEquipmentInfo")}
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                   {/* Marca | Modelo */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <div className="filtros-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                     <div>
-                      <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>Marca</label>
+                      <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>{t("filtros.brand")}</label>
                       <input
                         className="input-field"
                         type="text"
@@ -695,7 +699,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                       <CharCounter current={form.marca.length} max={FIELD_LIMITS.marca} />
                     </div>
                     <div>
-                      <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>Modelo</label>
+                      <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>{t("filtros.model")}</label>
                       <input
                         className="input-field"
                         type="text"
@@ -711,7 +715,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                   {/* Fecha Homologacion */}
                   <div>
                     <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
-                      Fecha de Homologacion
+                      {t("filtros.homologationDate")}
                     </label>
                     <input
                       className="input-field"
@@ -723,7 +727,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
 
                   {/* Descripcion - full width */}
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>Descripcion</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>{t("filtros.description")}</label>
                     <textarea
                       className="input-field"
                       rows={3}
@@ -745,16 +749,63 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                   onClick={() => setShowModal(false)}
                   style={{ flex: 1 }}
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button className="btn-primary" type="submit" style={{ flex: 1 }}>
-                  Guardar
+                  {t("common.save")}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .filtros-grid-tipos {
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+          }
+          .filtros-modal {
+            max-width: 90vw !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .filtros-header {
+            margin-bottom: 1.25rem !important;
+          }
+          .filtros-title {
+            font-size: 1.25rem !important;
+          }
+          .filtros-header-actions {
+            width: 100% !important;
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+          }
+          .filtros-header-btn {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          .filtros-stats {
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+          }
+          .filtros-grid-tipos {
+            grid-template-columns: 1fr !important;
+          }
+          .filtros-modal-overlay {
+            padding: 0.5rem !important;
+          }
+          .filtros-modal {
+            max-width: 95vw !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+            padding: 1rem !important;
+          }
+          .filtros-form-row {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

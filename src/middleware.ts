@@ -3,7 +3,10 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 const PUBLIC_PATHS = ["/login", "/reset-password"];
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+if (!API_BASE_URL && process.env.NEXT_PUBLIC_MOCK_MODE !== 'true') {
+  throw new Error("NEXT_PUBLIC_API_URL no está definida (requerida fuera de MOCK_MODE)");
+}
 const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 
 async function verifyToken(token: string, secret: string): Promise<boolean> {
@@ -125,5 +128,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|login|reset-password).*)"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|login|reset-password|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf|otf|css|js|map)$).*)",
+  ],
 };

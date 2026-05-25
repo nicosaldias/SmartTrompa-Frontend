@@ -22,12 +22,15 @@ import {
 import { logoutAction } from "@/actions/auth";
 import { getUserFromCookie } from "@/utils/cookies";
 import Swal from "sweetalert2";
+import { useT } from "@/i18n/LanguageProvider";
+import type { TranslationKey } from "@/i18n/types";
+import LanguageSelector from "@/components/i18n/LanguageSelector";
 
 type Cargo = "Administrador" | "Supervisor" | "Trabajador";
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: TranslationKey;
   icon: typeof LayoutDashboard;
   roles: Cargo[];
 }
@@ -36,17 +39,17 @@ const ALL_ROLES: Cargo[] = ["Administrador", "Supervisor"];
 const ADMIN_ONLY: Cargo[] = ["Administrador"];
 
 const navItems: NavItem[] = [
-  { href: "/resumen", label: "Resumen", icon: LayoutDashboard, roles: ALL_ROLES },
-  { href: "/cuadrilla", label: "Estado de Cuadrilla", icon: Users, roles: ALL_ROLES },
-  { href: "/historial-alertas", label: "Historial de Alertas", icon: ClipboardList, roles: ALL_ROLES },
-  { href: "/visualizacion", label: "Historico de Cuadrilla", icon: Eye, roles: ALL_ROLES },
-  { href: "/trabajadores", label: "Gestion de Trabajadores", icon: UserCog, roles: ADMIN_ONLY },
-  { href: "/umbrales", label: "Gestion de Umbrales", icon: Sliders, roles: ADMIN_ONLY },
-  { href: "/filtros", label: "Filtros y Respiradores", icon: Wind, roles: ALL_ROLES },
-  { href: "/vida-util-filtros", label: "Vida Util de Filtros", icon: Timer, roles: ALL_ROLES },
-  { href: "/reportes", label: "Reportes", icon: FileBarChart, roles: ALL_ROLES },
-  { href: "/roles-ubicaciones", label: "Roles y Ubicaciones", icon: MapPin, roles: ADMIN_ONLY },
-  { href: "/ayuda", label: "Ayuda", icon: HelpCircle, roles: ALL_ROLES },
+  { href: "/resumen", labelKey: "sidebar.resumen", icon: LayoutDashboard, roles: ALL_ROLES },
+  { href: "/cuadrilla", labelKey: "sidebar.cuadrilla", icon: Users, roles: ALL_ROLES },
+  { href: "/historial-alertas", labelKey: "sidebar.historialAlertas", icon: ClipboardList, roles: ALL_ROLES },
+  { href: "/visualizacion", labelKey: "sidebar.visualizacion", icon: Eye, roles: ALL_ROLES },
+  { href: "/trabajadores", labelKey: "sidebar.trabajadores", icon: UserCog, roles: ADMIN_ONLY },
+  { href: "/umbrales", labelKey: "sidebar.umbrales", icon: Sliders, roles: ADMIN_ONLY },
+  { href: "/filtros", labelKey: "sidebar.filtros", icon: Wind, roles: ALL_ROLES },
+  { href: "/vida-util-filtros", labelKey: "sidebar.vidaUtilFiltros", icon: Timer, roles: ALL_ROLES },
+  { href: "/reportes", labelKey: "sidebar.reportes", icon: FileBarChart, roles: ALL_ROLES },
+  { href: "/roles-ubicaciones", labelKey: "sidebar.rolesUbicaciones", icon: MapPin, roles: ADMIN_ONLY },
+  { href: "/ayuda", labelKey: "sidebar.ayuda", icon: HelpCircle, roles: ALL_ROLES },
 ];
 
 interface SidebarProps {
@@ -58,6 +61,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const t = useT();
   const [userCargo, setUserCargo] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -98,10 +102,10 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
           {!isCollapsed && (
             <div>
               <p style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--color-text-primary)" }}>
-                SIMOR
+                {t("branding.appName")}
               </p>
               <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                Monitoreo para Respiradores
+                {t("sidebar.appSubtitle")}
               </p>
             </div>
           )}
@@ -109,8 +113,9 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: "0.75rem 0.5rem", overflowY: "auto" }}>
-          {visibleItems.map(({ href, label, icon: Icon }) => {
+          {visibleItems.map(({ href, labelKey, icon: Icon }) => {
             const isActive = pathname === href || pathname.startsWith(href + "/");
+            const label = t(labelKey);
             return (
               <Link
                 key={href}
@@ -130,8 +135,14 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
           })}
         </nav>
 
-        {/* Bottom: collapse toggle + logout */}
+        {/* Bottom: language + collapse toggle + logout */}
         <div style={{ padding: "0.5rem", borderTop: "1px solid var(--color-border)" }}>
+          {/* Language selector */}
+          {!isCollapsed && (
+            <div style={{ display: "flex", justifyContent: "center", padding: "0.25rem 0 0.5rem" }}>
+              <LanguageSelector variant="compact" />
+            </div>
+          )}
           {/* Collapse toggle (hidden on mobile) */}
           <button
             onClick={onToggleCollapse}
@@ -143,20 +154,20 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
               justifyContent: isCollapsed ? "center" : undefined,
               marginBottom: "0.25rem",
             }}
-            title={isCollapsed ? "Expandir menu" : "Colapsar menu"}
+            title={isCollapsed ? t("sidebar.expandMenu") : t("sidebar.collapseMenu")}
           >
             {isCollapsed ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}
-            {!isCollapsed && <span>Colapsar</span>}
+            {!isCollapsed && <span>{t("sidebar.collapse")}</span>}
           </button>
           <button
             onClick={async () => {
               const result = await Swal.fire({
-                title: "Cerrar sesion",
-                text: "Estas seguro que deseas cerrar sesion?",
+                title: t("sidebar.logoutConfirmTitle"),
+                text: t("sidebar.logoutConfirmText"),
                 icon: "question",
                 showCancelButton: true,
-                confirmButtonText: "Si, cerrar sesion",
-                cancelButtonText: "Cancelar",
+                confirmButtonText: t("sidebar.logoutConfirmYes"),
+                cancelButtonText: t("common.cancel"),
                 background: "#1c2333",
                 color: "#e6edf3",
                 confirmButtonColor: "#f97316",
@@ -172,10 +183,10 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
               border: "none",
               justifyContent: isCollapsed ? "center" : undefined,
             }}
-            title={isCollapsed ? "Cerrar sesion" : undefined}
+            title={isCollapsed ? t("sidebar.logout") : undefined}
           >
             <LogOut size={18} />
-            {!isCollapsed && <span>Cerrar sesion</span>}
+            {!isCollapsed && <span>{t("sidebar.logout")}</span>}
           </button>
         </div>
       </aside>

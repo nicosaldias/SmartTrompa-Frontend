@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginAction, forgotPasswordAction } from "@/actions/auth";
 import { Wind, Eye, EyeOff, ArrowLeft, Shield, Users, Clock } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageProvider";
+import LanguageSelector from "@/components/i18n/LanguageSelector";
 
 function formatRut(value: string) {
   const clean = value.replace(/[^0-9kK]/g, "").toLowerCase();
@@ -26,6 +28,7 @@ const labelStyle: React.CSSProperties = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { lang, t } = useLanguage();
   const [rut, setRut] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -36,6 +39,8 @@ export default function LoginPage() {
   const [showReset, setShowReset] = useState(false);
   const [correo, setCorreo] = useState("");
   const [resetMsg, setResetMsg] = useState("");
+  const resetIsSuccess = resetMsg === t("login.resetSuccess");
+  const bgImage = lang === "en" ? "/fondo-login-en.png" : "/fondo-login-es.png";
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -50,7 +55,7 @@ export default function LoginPage() {
         router.push("/resumen");
       }
     } catch {
-      setError("Error inesperado al iniciar sesion. Intenta nuevamente.");
+      setError(t("login.unexpectedError"));
       setLoading(false);
     }
   }
@@ -61,9 +66,9 @@ export default function LoginPage() {
     const result = await forgotPasswordAction(correo);
     setLoading(false);
     if (result?.error) {
-      setResetMsg("Error: " + result.error);
+      setResetMsg(t("login.resetError") + result.error);
     } else {
-      setResetMsg("Revisa tu correo para restablecer tu contraseña");
+      setResetMsg(t("login.resetSuccess"));
     }
   }
 
@@ -79,18 +84,41 @@ export default function LoginPage() {
       <div
         className="login-left-panel"
         style={{
-          width: "55%",
+          width: "68%",
           position: "relative",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          alignItems: "center",
-          padding: "3rem 4rem",
-          background: "linear-gradient(to bottom, rgba(13, 17, 23, 0.8), rgba(22, 27, 34, 0.9)), #0d1117",
+          alignItems: "flex-end",
+          padding: "3rem 5rem 3rem 3rem",
+          background: "#0d1117",
         }}
       >
-        {/* Subtle orange glow */}
+        {/* Imagen de fondo */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url('${bgImage}')`,
+            backgroundSize: "cover",
+            backgroundPosition: "left center",
+            backgroundRepeat: "no-repeat",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Overlay oscuro para legibilidad */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(180deg, rgba(13,17,23,0.55) 0%, rgba(13,17,23,0.75) 100%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Glow naranja sutil */}
         <div
           style={{
             position: "absolute",
@@ -99,7 +127,7 @@ export default function LoginPage() {
             width: "80%",
             height: "80%",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 65%)",
+            background: "radial-gradient(circle, rgba(249,115,22,0.10) 0%, transparent 65%)",
             pointerEvents: "none",
           }}
         />
@@ -111,52 +139,67 @@ export default function LoginPage() {
             width: "50%",
             height: "50%",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(249,115,22,0.04) 0%, transparent 65%)",
+            background: "radial-gradient(circle, rgba(249,115,22,0.06) 0%, transparent 65%)",
             pointerEvents: "none",
           }}
         />
 
-        {/* Dark overlay simulating industrial image */}
+        {/* Content wrapper (mirror del wrapper derecho) */}
+        <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 420 }}>
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            background: "linear-gradient(180deg, rgba(13,17,23,0.3) 0%, rgba(13,17,23,0.6) 100%)",
-            pointerEvents: "none",
+            textAlign: "center",
+            width: "100%",
+            minHeight: 408,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            background: "rgba(13, 17, 23, 0.36)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            border: "1px solid rgba(255,255,255,0.06)",
+            borderRadius: "1.25rem",
+            padding: "2.5rem",
+            boxShadow: "0 24px 48px rgba(0,0,0,0.4)",
           }}
-        />
-
-        {/* Content */}
-        <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 400 }}>
-          {/* Logo */}
+        >
+          {/* Logo + Title alineados */}
           <div
             style={{
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 56,
-              height: 56,
-              borderRadius: "0.875rem",
-              background: "linear-gradient(135deg, #f97316, #ea580c)",
-              marginBottom: "2.5rem",
-              boxShadow: "0 8px 32px rgba(249,115,22,0.35)",
-            }}
-          >
-            <Wind size={28} color="white" />
-          </div>
-
-          {/* Title */}
-          <h1
-            style={{
-              fontSize: "3rem",
-              fontWeight: 800,
-              color: "#ffffff",
-              lineHeight: 1.1,
+              gap: "1rem",
               marginBottom: "0.75rem",
             }}
           >
-            SIMOR
-          </h1>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 56,
+                height: 56,
+                borderRadius: "0.875rem",
+                background: "linear-gradient(135deg, #f97316, #ea580c)",
+                boxShadow: "0 8px 32px rgba(249,115,22,0.35)",
+                flexShrink: 0,
+              }}
+            >
+              <Wind size={28} color="white" />
+            </div>
+            <h1
+              style={{
+                fontSize: "3rem",
+                fontWeight: 800,
+                color: "#ffffff",
+                lineHeight: 1,
+                margin: 0,
+              }}
+            >
+              {t("branding.appName")}
+            </h1>
+          </div>
           <p
             style={{
               fontSize: "1.1rem",
@@ -165,15 +208,15 @@ export default function LoginPage() {
               marginBottom: "3rem",
             }}
           >
-            Sistema de Monitoreo para Respiradores
+            {t("branding.appTagline")}
           </p>
 
           {/* Feature bullets */}
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             {[
-              { icon: <Shield size={20} />, text: "MONITOREO EN TIEMPO REAL" },
-              { icon: <Users size={20} />, text: "GESTI\u00D3N DE CUADRILLAS" },
-              { icon: <Clock size={20} />, text: "HISTORIAL DE ALERTAS" },
+              { icon: <Shield size={20} />, text: t("branding.feature1") },
+              { icon: <Users size={20} />, text: t("branding.feature2") },
+              { icon: <Clock size={20} />, text: t("branding.feature3") },
             ].map((item) => (
               <div
                 key={item.text}
@@ -212,13 +255,28 @@ export default function LoginPage() {
             ))}
           </div>
         </div>
+        {/* Spacer invisible que iguala el footer "Solo supervisores..." del lado derecho */}
+        <p
+          aria-hidden="true"
+          style={{
+            visibility: "hidden",
+            fontSize: "0.75rem",
+            marginTop: "1.5rem",
+            lineHeight: 1.5,
+            margin: "1.5rem 0 0 0",
+          }}
+        >
+          {t("login.footerNote")}
+        </p>
+        </div>
       </div>
 
       {/* ==================== RIGHT PANEL ==================== */}
       <div
         style={{
-          width: "45%",
-          minWidth: 0,
+          width: "32%",
+          minWidth: 360,
+          position: "relative",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -227,6 +285,10 @@ export default function LoginPage() {
         }}
         className="login-right-panel"
       >
+        {/* Language selector: esquina superior derecha */}
+        <div style={{ position: "absolute", top: "1.25rem", right: "1.25rem", zIndex: 2 }}>
+          <LanguageSelector variant="compact" />
+        </div>
         <div style={{ width: "100%", maxWidth: 420 }}>
           {/* Card */}
           <div
@@ -246,7 +308,7 @@ export default function LoginPage() {
                     marginBottom: "0.5rem",
                   }}
                 >
-                  Iniciar sesi&oacute;n
+                  {t("login.title")}
                 </h2>
                 <p
                   style={{
@@ -255,7 +317,7 @@ export default function LoginPage() {
                     marginBottom: "2rem",
                   }}
                 >
-                  Ingrese con tu RUT y contrase&ntilde;a
+                  {t("login.subtitle")}
                 </p>
 
                 {error && (
@@ -280,11 +342,11 @@ export default function LoginPage() {
                 >
                   {/* RUT */}
                   <div>
-                    <label style={labelStyle}>RUT</label>
+                    <label style={labelStyle}>{t("login.rut")}</label>
                     <input
                       className="input-field"
                       type="text"
-                      placeholder="12.345.678-9"
+                      placeholder={t("login.rutPlaceholder")}
                       value={rut}
                       onChange={(e) => setRut(formatRut(e.target.value))}
                       maxLength={12}
@@ -308,7 +370,7 @@ export default function LoginPage() {
                           marginBottom: 0,
                         }}
                       >
-                        CONTRASE&Ntilde;A
+                        {t("login.password")}
                       </label>
                       <button
                         type="button"
@@ -323,14 +385,14 @@ export default function LoginPage() {
                           padding: 0,
                         }}
                       >
-                        &iquest;Olvidaste tu contrase&ntilde;a?
+                        {t("login.forgotPassword")}
                       </button>
                     </div>
                     <div style={{ position: "relative" }}>
                       <input
                         className="input-field"
                         type={showPass ? "text" : "password"}
-                        placeholder="Tu contraseña"
+                        placeholder={t("login.passwordPlaceholder")}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         style={{ paddingRight: "2.5rem" }}
@@ -339,7 +401,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={() => setShowPass(!showPass)}
-                        aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        aria-label={showPass ? t("login.hidePassword") : t("login.showPassword")}
                         style={{
                           position: "absolute",
                           right: "0.75rem",
@@ -373,7 +435,7 @@ export default function LoginPage() {
                       textTransform: "uppercase",
                     }}
                   >
-                    {loading ? "Iniciando sesi\u00F3n..." : "INGRESAR"}
+                    {loading ? t("login.submitting") : t("login.submit")}
                   </button>
                 </form>
               </>
@@ -398,7 +460,7 @@ export default function LoginPage() {
                     padding: 0,
                   }}
                 >
-                  <ArrowLeft size={14} /> Volver al login
+                  <ArrowLeft size={14} /> {t("login.backToLogin")}
                 </button>
 
                 <h2
@@ -409,7 +471,7 @@ export default function LoginPage() {
                     marginBottom: "0.5rem",
                   }}
                 >
-                  Restablecer contrase&ntilde;a
+                  {t("login.resetTitle")}
                 </h2>
                 <p
                   style={{
@@ -418,18 +480,17 @@ export default function LoginPage() {
                     marginBottom: "2rem",
                   }}
                 >
-                  Ingresa tu correo y te enviaremos un enlace para crear una nueva
-                  contrase&ntilde;a.
+                  {t("login.resetSubtitle")}
                 </p>
 
                 {resetMsg && (
                   <div
                     style={{
-                      background: resetMsg.startsWith("Revisa")
+                      background: resetIsSuccess
                         ? "rgba(34,197,94,0.1)"
                         : "rgba(239,68,68,0.1)",
                       border: `1px solid ${
-                        resetMsg.startsWith("Revisa")
+                        resetIsSuccess
                           ? "rgba(34,197,94,0.3)"
                           : "rgba(239,68,68,0.3)"
                       }`,
@@ -437,7 +498,7 @@ export default function LoginPage() {
                       padding: "0.75rem",
                       fontSize: "0.875rem",
                       marginBottom: "1rem",
-                      color: resetMsg.startsWith("Revisa") ? "#4ade80" : "#f87171",
+                      color: resetIsSuccess ? "#4ade80" : "#f87171",
                     }}
                   >
                     {resetMsg}
@@ -449,11 +510,11 @@ export default function LoginPage() {
                   style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
                 >
                   <div>
-                    <label style={labelStyle}>Correo electr&oacute;nico</label>
+                    <label style={labelStyle}>{t("login.resetEmail")}</label>
                     <input
                       className="input-field"
                       type="email"
-                      placeholder="tu@correo.com"
+                      placeholder={t("login.resetEmailPlaceholder")}
                       value={correo}
                       onChange={(e) => setCorreo(e.target.value)}
                       required
@@ -472,7 +533,7 @@ export default function LoginPage() {
                       textTransform: "uppercase",
                     }}
                   >
-                    {loading ? "Enviando..." : "ENVIAR ENLACE"}
+                    {loading ? t("login.resetSubmitting") : t("login.resetSubmit")}
                   </button>
                 </form>
               </>
@@ -489,7 +550,7 @@ export default function LoginPage() {
               lineHeight: 1.5,
             }}
           >
-            Solo supervisores y administradores tienen acceso a esta plataforma
+            {t("login.footerNote")}
           </p>
         </div>
       </div>

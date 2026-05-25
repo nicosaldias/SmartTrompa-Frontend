@@ -4,12 +4,14 @@ import { useState, useEffect, useMemo } from "react";
 import { api } from "@/api/client";
 import { FilterStatus } from "@/types";
 import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
+import { useT } from "@/i18n/LanguageProvider";
 
 interface Props {
   initialData: FilterStatus[];
 }
 
 export default function VidaUtilFiltrosClient({ initialData }: Props) {
+  const t = useT();
   const [data, setData] = useState<FilterStatus[]>(initialData);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,13 +78,13 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
   function getBadge(nivel: string): { text: string; color: string; bgColor: string } {
     switch (nivel) {
       case "OK":
-        return { text: "OK", color: "#22c55e", bgColor: "rgba(34,197,94,0.15)" };
+        return { text: t("vidaUtilFiltros.badgeOk"), color: "#22c55e", bgColor: "rgba(34,197,94,0.15)" };
       case "ADVERTENCIA":
-        return { text: "Cambio pronto", color: "#f59e0b", bgColor: "rgba(245,158,11,0.15)" };
+        return { text: t("vidaUtilFiltros.badgeChangeSoon"), color: "#f59e0b", bgColor: "rgba(245,158,11,0.15)" };
       case "CRITICO":
-        return { text: "Cambio urgente", color: "#ef4444", bgColor: "rgba(239,68,68,0.15)" };
+        return { text: t("vidaUtilFiltros.badgeChangeUrgent"), color: "#ef4444", bgColor: "rgba(239,68,68,0.15)" };
       case "VENCIDO":
-        return { text: "VENCIDO", color: "#ef4444", bgColor: "rgba(239,68,68,0.25)" };
+        return { text: t("vidaUtilFiltros.badgeExpired"), color: "#ef4444", bgColor: "rgba(239,68,68,0.25)" };
       default:
         return { text: nivel, color: "#6b7280", bgColor: "rgba(107,114,128,0.15)" };
     }
@@ -104,9 +106,10 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
   }
 
   return (
-    <div>
+    <div className="vida-util-root">
       {/* Header */}
       <div
+        className="vida-util-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -117,7 +120,7 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
         }}
       >
         <div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>Vida Útil de Filtros</h1>
+          <h1 className="vida-util-title" style={{ fontSize: "1.5rem", fontWeight: 800 }}>{t("vidaUtilFiltros.title")}</h1>
           <p
             style={{
               color: "var(--color-text-secondary)",
@@ -125,7 +128,7 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
               marginTop: "0.25rem",
             }}
           >
-            Monitoreo del desgaste y vida útil de filtros por trabajador
+            {t("vidaUtilFiltros.subtitle")}
           </p>
         </div>
         <button
@@ -135,63 +138,63 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
           style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
         >
           <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Actualizar
+          {t("common.update")}
         </button>
       </div>
 
       {/* Stats Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div className="vida-util-stats" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         <div className="card" style={{ padding: "1rem 1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#6b7280" }} />
-            <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>Total</span>
+            <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>{t("vidaUtilFiltros.statTotal")}</span>
           </div>
           <span style={{ fontWeight: 700, fontSize: "1.5rem" }}>{stats.total}</span>
         </div>
         <div className="card" style={{ padding: "1rem 1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#22c55e" }} />
-            <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>OK</span>
+            <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>{t("vidaUtilFiltros.statOk")}</span>
           </div>
           <span style={{ fontWeight: 700, fontSize: "1.5rem", color: "#22c55e" }}>{stats.ok}</span>
         </div>
         <div className="card" style={{ padding: "1rem 1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#f59e0b" }} />
-            <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>Advertencia</span>
+            <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>{t("vidaUtilFiltros.statWarning")}</span>
           </div>
           <span style={{ fontWeight: 700, fontSize: "1.5rem", color: "#f59e0b" }}>{stats.advertencia}</span>
         </div>
         <div className="card" style={{ padding: "1rem 1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#ef4444" }} />
-            <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>Crítico / Vencido</span>
+            <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>{t("vidaUtilFiltros.statCriticalExpired")}</span>
           </div>
           <span style={{ fontWeight: 700, fontSize: "1.5rem", color: "#ef4444" }}>{stats.critico + stats.vencido}</span>
         </div>
       </div>
 
       {/* Filters row */}
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+      <div className="vida-util-filters" style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <input
-          className="input-field"
+          className="input-field vida-util-search"
           type="text"
-          placeholder="Buscar por nombre, RUT o filtro..."
+          placeholder={t("vidaUtilFiltros.searchPlaceholder")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{ flex: 1, minWidth: 200 }}
         />
         <select
-          className="input-field"
+          className="input-field vida-util-select"
           value={filterLevel}
           onChange={(e) => setFilterLevel(e.target.value)}
           style={{ width: 200 }}
         >
-          <option value="TODOS">Todos los estados</option>
-          <option value="VENCIDO">Vencido</option>
-          <option value="CRITICO">Crítico</option>
-          <option value="ADVERTENCIA">Advertencia</option>
-          <option value="OK">OK</option>
+          <option value="TODOS">{t("vidaUtilFiltros.filterAllStatuses")}</option>
+          <option value="VENCIDO">{t("vidaUtilFiltros.filterExpired")}</option>
+          <option value="CRITICO">{t("vidaUtilFiltros.filterCritical")}</option>
+          <option value="ADVERTENCIA">{t("vidaUtilFiltros.filterWarning")}</option>
+          <option value="OK">{t("vidaUtilFiltros.filterOk")}</option>
         </select>
       </div>
 
@@ -206,17 +209,17 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
         >
           <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
           <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
-            {data.length === 0 ? "No hay datos de filtros disponibles" : "Sin resultados"}
+            {data.length === 0 ? t("vidaUtilFiltros.noDataTitle") : t("vidaUtilFiltros.noResultsTitle")}
           </p>
           <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
             {data.length === 0
-              ? "Asegurese de que existan trabajadores con jornadas y filtros asignados"
-              : "No se encontraron resultados con los filtros aplicados"}
+              ? t("vidaUtilFiltros.noDataHint")
+              : t("vidaUtilFiltros.noResultsHint")}
           </p>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
+        <div className="card vida-util-table-card" style={{ padding: 0, overflow: "hidden" }}>
+          <div className="vida-util-table-wrap" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr
@@ -225,12 +228,12 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
                     borderBottom: "1px solid var(--color-border)",
                   }}
                 >
-                  <th style={thStyleLeft}>Trabajador</th>
-                  <th style={thStyle}>RUT</th>
-                  <th style={thStyle}>Filtro</th>
-                  <th style={thStyle}>Uso</th>
-                  <th style={thStyle}>Horas</th>
-                  <th style={thStyle}>Estado</th>
+                  <th style={thStyleLeft}>{t("roles.worker")}</th>
+                  <th style={thStyle}>{t("common.rut")}</th>
+                  <th style={thStyle}>{t("vidaUtilFiltros.colFilter")}</th>
+                  <th style={thStyle}>{t("vidaUtilFiltros.colUsage")}</th>
+                  <th style={thStyle}>{t("vidaUtilFiltros.colHours")}</th>
+                  <th style={thStyle}>{t("common.status")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -298,7 +301,7 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
                       </td>
                       <td style={tdStyle}>
                         <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
-                          {item.horasUsadas.toFixed(1)} / {item.horasMaximas.toFixed(0)} hrs
+                          {item.horasUsadas.toFixed(1)} / {item.horasMaximas.toFixed(0)} {t("vidaUtilFiltros.hoursUnit")}
                         </span>
                       </td>
                       <td style={tdStyle}>
@@ -328,6 +331,20 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 768px) {
+          .vida-util-title { font-size: 1.2rem !important; }
+          .vida-util-header { margin-bottom: 1.25rem !important; }
+          .vida-util-stats { grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem !important; }
+          .vida-util-select { width: 100% !important; }
+          .vida-util-table-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+          .vida-util-table-wrap table { min-width: 720px !important; }
+        }
+        @media (max-width: 480px) {
+          .vida-util-stats { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

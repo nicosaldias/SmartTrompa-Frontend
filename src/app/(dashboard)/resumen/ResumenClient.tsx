@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/api/client";
 import type { JornadaTrabajo, AlertaHistorial, TipoAlerta, MedicionesAmbientales } from "@/types";
 import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock, RefreshCw } from "lucide-react";
+import { useT } from "@/i18n/LanguageProvider";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
@@ -20,14 +21,6 @@ const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
   DESCONEXION: <Wifi size={20} />,
 };
 
-const TIPO_LABELS: Record<TipoAlerta, string> = {
-  RESPIRATORIA: "Respiratorias",
-  AJUSTE: "Ajuste",
-  FILTRO: "Filtro",
-  BATERIA: "Batería",
-  DESCONEXION: "Desconexión",
-};
-
 const TIPO_COLORS: Record<TipoAlerta, string> = {
   RESPIRATORIA: "#ef4444",
   AJUSTE: "#f97316",
@@ -37,6 +30,14 @@ const TIPO_COLORS: Record<TipoAlerta, string> = {
 };
 
 export default function ResumenClient({ initialJornadas, initialAlertas, initialMediciones }: Props) {
+  const t = useT();
+  const TIPO_LABELS: Record<TipoAlerta, string> = {
+    RESPIRATORIA: t("resumen.tipoRespiratoria"),
+    AJUSTE: t("resumen.tipoAjuste"),
+    FILTRO: t("resumen.tipoFiltro"),
+    BATERIA: t("resumen.tipoBateria"),
+    DESCONEXION: t("resumen.tipoDesconexion"),
+  };
   const [, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialAlertas);
   const [medicionesMap, setMedicionesMap] = useState<Record<string, MedicionesAmbientales | null>>(
@@ -115,11 +116,11 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
   return (
     <div>
       {/* Header with title and refresh badge */}
-      <div style={{ marginBottom: "2rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="resumen-header" style={{ marginBottom: "2rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>Resumen</h1>
+          <h1 className="resumen-title" style={{ fontSize: "1.5rem", fontWeight: 800 }}>{t("resumen.title")}</h1>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-            Indicadores clave del sistema en tiempo real
+            {t("resumen.subtitle")}
           </p>
         </div>
         <span
@@ -138,12 +139,12 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
           }}
         >
           <Clock size={12} />
-          ACTUALIZACIÓN CADA 30S
+          {t("resumen.updatesEvery30s")}
           <button onClick={poll} style={{
             background: "none", border: "none", cursor: "pointer",
             color: "var(--color-text-secondary)", padding: "0.25rem",
             display: "flex", alignItems: "center",
-          }} title="Actualizar ahora">
+          }} title={t("resumen.refreshNow")}>
             <RefreshCw size={14} />
           </button>
         </span>
@@ -175,7 +176,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
               flexShrink: 0,
             }}
           />
-          Error al actualizar datos — los valores mostrados pueden estar desactualizados
+          {t("resumen.pollFailureWarning")}
         </div>
       )}
 
@@ -194,11 +195,11 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
         }}
       >
         <AlertTriangle size={14} />
-        Alertas activas
+        {t("resumen.activeAlerts")}
       </h2>
 
       {/* Alert cards - full width */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1rem" }}>
+      <div className="resumen-alert-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1rem" }}>
         {alertCards.map(({ tipo, count }) => {
           const color = TIPO_COLORS[tipo];
           const isActive = count > 0;
@@ -206,7 +207,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
           return (
             <div
               key={tipo}
-              className="card"
+              className="card resumen-alert-card"
               style={{
                 borderTop: `3px solid ${isActive ? color : "var(--color-border)"}`,
                 borderRadius: "0.75rem",
@@ -238,6 +239,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
                 {TIPO_LABELS[tipo]}
               </p>
               <p
+                className="resumen-alert-count"
                 style={{
                   fontSize: "2.5rem",
                   fontWeight: 800,
@@ -254,16 +256,16 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
 
       {/* Últimas alertas */}
       <div className="card" style={{ marginTop: "1.5rem" }}>
-        <h3 style={{ fontWeight: 700, marginBottom: "1rem", fontSize: "0.9rem" }}>Últimas alertas</h3>
+        <h3 style={{ fontWeight: 700, marginBottom: "1rem", fontSize: "0.9rem" }}>{t("resumen.latestAlerts")}</h3>
 
         {alertas.length === 0 ? (
           <div style={{ textAlign: "center", padding: "2rem 0" }}>
             <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
             <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
-              Sin alertas activas
+              {t("resumen.noActiveAlerts")}
             </p>
             <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
-              No hay trabajadores activos en este momento
+              {t("resumen.noActiveWorkers")}
             </p>
           </div>
         ) : (
@@ -320,7 +322,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
               textDecoration: "none",
             }}
           >
-            Ver todo el historial
+            {t("resumen.viewFullHistory")}
           </Link>
         </div>
       </div>
@@ -339,56 +341,103 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
         textTransform: "uppercase",
       }}>
         <Activity size={14} />
-        Indicadores de sensor
+        {t("resumen.sensorIndicators")}
       </h2>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+      <div className="resumen-sensor-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
         {/* Promedio frec. respiratoria */}
-        <div className="card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
+        <div className="card resumen-sensor-card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
           <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
-            Frec. Respiratoria
+            {t("resumen.respiratoryRate")}
           </p>
-          <p style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
+          <p className="resumen-sensor-value" style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
             {avgFrec != null ? `${avgFrec}` : '--'}
           </p>
-          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>bpm promedio</p>
+          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("resumen.bpmAverage")}</p>
         </div>
 
         {/* Desajustes */}
-        <div className="card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
+        <div className="card resumen-sensor-card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
           <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
-            Desajustes
+            {t("resumen.misfits")}
           </p>
-          <p style={{ fontSize: "2rem", fontWeight: 800, color: desajusteCount > 0 ? "#ef4444" : "#22c55e" }}>
+          <p className="resumen-sensor-value" style={{ fontSize: "2rem", fontWeight: 800, color: desajusteCount > 0 ? "#ef4444" : "#22c55e" }}>
             {desajusteCount}
           </p>
-          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>trabajadores</p>
+          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("resumen.workers")}</p>
         </div>
 
         {/* Atollo */}
-        <div className="card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
+        <div className="card resumen-sensor-card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
           <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
-            Saturacion Filtro
+            {t("resumen.filterSaturation")}
           </p>
           <div style={{ display: "flex", justifyContent: "center", gap: "0.75rem", fontSize: "0.75rem", fontWeight: 700 }}>
             <span style={{ color: "#22c55e" }}>{atolloCounts.bajo}</span>
             <span style={{ color: "#f59e0b" }}>{atolloCounts.medio}</span>
             <span style={{ color: "#ef4444" }}>{atolloCounts.alto}</span>
           </div>
-          <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>bajo / medio / alto</p>
+          <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("resumen.saturationLevels")}</p>
         </div>
 
         {/* Bateria promedio */}
-        <div className="card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
+        <div className="card resumen-sensor-card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
           <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
-            Bateria Sensores
+            {t("resumen.sensorBattery")}
           </p>
-          <p style={{ fontSize: "2rem", fontWeight: 800, color: avgBateria != null && avgBateria < 20 ? "#ef4444" : "var(--color-text-primary)" }}>
+          <p className="resumen-sensor-value" style={{ fontSize: "2rem", fontWeight: 800, color: avgBateria != null && avgBateria < 20 ? "#ef4444" : "var(--color-text-primary)" }}>
             {avgBateria != null ? `${avgBateria}%` : '--'}
           </p>
-          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>promedio</p>
+          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("resumen.average")}</p>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .resumen-alert-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+          .resumen-sensor-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+          .resumen-alert-card {
+            padding: 1.25rem 0.75rem !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .resumen-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+            margin-bottom: 1.25rem !important;
+          }
+          .resumen-title {
+            font-size: 1.25rem !important;
+          }
+          .resumen-alert-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.5rem !important;
+          }
+          .resumen-alert-card {
+            padding: 1rem 0.5rem !important;
+          }
+          .resumen-alert-count {
+            font-size: 1.75rem !important;
+          }
+          .resumen-sensor-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.5rem !important;
+          }
+          .resumen-sensor-card {
+            padding: 1rem 0.75rem !important;
+          }
+          .resumen-sensor-value {
+            font-size: 1.5rem !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "@/api/client";
 import type { Rol, Ubicacion } from "@/types";
 import Swal from "sweetalert2";
+import { useT } from "@/i18n/LanguageProvider";
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const pct = current / max;
@@ -36,6 +37,7 @@ export default function RolesUbicacionesClient({
   initialRoles,
   initialUbicaciones,
 }: Props) {
+  const t = useT();
   const [roles, setRoles] = useState<Rol[]>(initialRoles);
   const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>(initialUbicaciones);
 
@@ -81,12 +83,12 @@ export default function RolesUbicacionesClient({
   async function guardarRol(e: React.FormEvent) {
     e.preventDefault();
     const confirmResult = await Swal.fire({
-      title: "Confirmar",
-      text: editandoRol ? "Se actualizara el registro" : "Se creara el registro",
+      title: t("common.confirm"),
+      text: editandoRol ? t("rolesUbicaciones.confirm.update") : t("rolesUbicaciones.confirm.create"),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Si, guardar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("rolesUbicaciones.confirm.saveBtn"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#f97316",
@@ -108,7 +110,7 @@ export default function RolesUbicacionesClient({
       cargarRoles();
       Swal.fire({
         icon: "success",
-        title: "Guardado",
+        title: t("rolesUbicaciones.toast.saved"),
         timer: 1200,
         showConfirmButton: false,
         background: "#1c2333",
@@ -117,7 +119,7 @@ export default function RolesUbicacionesClient({
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -132,7 +134,7 @@ export default function RolesUbicacionesClient({
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -142,12 +144,12 @@ export default function RolesUbicacionesClient({
 
   async function eliminarRol(id: number) {
     const result = await Swal.fire({
-      title: "Eliminar rol?",
-      text: "Esta accion no se puede deshacer",
+      title: t("rolesUbicaciones.deleteRol.title"),
+      text: t("rolesUbicaciones.delete.text"),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Si, eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("rolesUbicaciones.delete.confirmBtn"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#ef4444",
@@ -159,7 +161,7 @@ export default function RolesUbicacionesClient({
       } catch (err: unknown) {
         Swal.fire({
           icon: "error",
-          title: "Error",
+          title: t("common.error"),
           text: (err as Error).message,
           background: "#1c2333",
           color: "#e6edf3",
@@ -192,12 +194,12 @@ export default function RolesUbicacionesClient({
   async function guardarUbicacion(e: React.FormEvent) {
     e.preventDefault();
     const confirmResult = await Swal.fire({
-      title: "Confirmar",
-      text: editandoUbicacion ? "Se actualizara el registro" : "Se creara el registro",
+      title: t("common.confirm"),
+      text: editandoUbicacion ? t("rolesUbicaciones.confirm.update") : t("rolesUbicaciones.confirm.create"),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Si, guardar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("rolesUbicaciones.confirm.saveBtn"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#f97316",
@@ -219,7 +221,7 @@ export default function RolesUbicacionesClient({
       cargarUbicaciones();
       Swal.fire({
         icon: "success",
-        title: "Guardado",
+        title: t("rolesUbicaciones.toast.saved"),
         timer: 1200,
         showConfirmButton: false,
         background: "#1c2333",
@@ -228,7 +230,7 @@ export default function RolesUbicacionesClient({
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -243,7 +245,7 @@ export default function RolesUbicacionesClient({
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -253,12 +255,12 @@ export default function RolesUbicacionesClient({
 
   async function eliminarUbicacion(id: number) {
     const result = await Swal.fire({
-      title: "Eliminar ubicacion?",
-      text: "Esta accion no se puede deshacer",
+      title: t("rolesUbicaciones.deleteUbicacion.title"),
+      text: t("rolesUbicaciones.delete.text"),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Si, eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("rolesUbicaciones.delete.confirmBtn"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#ef4444",
@@ -270,7 +272,7 @@ export default function RolesUbicacionesClient({
       } catch (err: unknown) {
         Swal.fire({
           icon: "error",
-          title: "Error",
+          title: t("common.error"),
           text: (err as Error).message,
           background: "#1c2333",
           color: "#e6edf3",
@@ -280,11 +282,11 @@ export default function RolesUbicacionesClient({
   }
 
   return (
-    <div>
+    <div className="roles-ubic-root">
       {/* Header */}
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>
-          Roles y Ubicaciones
+      <div className="roles-ubic-header" style={{ marginBottom: "2rem" }}>
+        <h1 className="roles-ubic-title" style={{ fontSize: "1.5rem", fontWeight: 800 }}>
+          {t("rolesUbicaciones.title")}
         </h1>
         <p
           style={{
@@ -293,12 +295,13 @@ export default function RolesUbicacionesClient({
             marginTop: "0.25rem",
           }}
         >
-          Administra los roles de trabajo y las ubicaciones de los turnos
+          {t("rolesUbicaciones.subtitle")}
         </p>
       </div>
 
       {/* Two-column layout */}
       <div
+        className="roles-ubic-split"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
@@ -306,7 +309,7 @@ export default function RolesUbicacionesClient({
         }}
       >
         {/* LEFT: Roles */}
-        <div className="card">
+        <div className="card roles-ubic-panel">
           <div
             style={{
               display: "flex",
@@ -316,7 +319,7 @@ export default function RolesUbicacionesClient({
             }}
           >
             <h2 style={{ fontWeight: 700, fontSize: "1rem" }}>
-              Roles de trabajo
+              {t("rolesUbicaciones.rolesSection")}
             </h2>
             <button
               className="btn-primary"
@@ -326,7 +329,7 @@ export default function RolesUbicacionesClient({
                 padding: "0.375rem 0.75rem",
               }}
             >
-              AGREGAR ROL
+              {t("rolesUbicaciones.addRolBtn")}
             </button>
           </div>
 
@@ -339,7 +342,7 @@ export default function RolesUbicacionesClient({
                 padding: "2rem 0",
               }}
             >
-              No hay roles registrados
+              {t("rolesUbicaciones.empty.roles")}
             </p>
           )}
 
@@ -347,6 +350,7 @@ export default function RolesUbicacionesClient({
             {roles.map((rol) => (
               <div
                 key={rol.id}
+                className="roles-ubic-item"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -384,25 +388,25 @@ export default function RolesUbicacionesClient({
                     )}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "0.375rem" }}>
+                <div className="roles-ubic-item-actions" style={{ display: "flex", gap: "0.375rem" }}>
                   <button
                     className="btn-secondary"
                     onClick={() => toggleRol(rol)}
-                    title={rol.habilitado ? "Deshabilitar" : "Habilitar"}
+                    title={rol.habilitado ? t("rolesUbicaciones.disable") : t("rolesUbicaciones.enable")}
                     style={{
                       padding: "0.25rem 0.5rem",
                       fontSize: "0.7rem",
                       fontWeight: 600,
                     }}
                   >
-                    {rol.habilitado ? "Desactivar" : "Activar"}
+                    {rol.habilitado ? t("rolesUbicaciones.deactivate") : t("rolesUbicaciones.activate")}
                   </button>
                   <button
                     className="btn-secondary"
                     onClick={() => abrirRolModal(rol)}
                     style={{ padding: "0.25rem 0.5rem", fontSize: "0.7rem" }}
                   >
-                    Editar
+                    {t("common.edit")}
                   </button>
                   <button
                     className="btn-secondary"
@@ -414,7 +418,7 @@ export default function RolesUbicacionesClient({
                       color: "#ef4444",
                     }}
                   >
-                    Eliminar
+                    {t("common.delete")}
                   </button>
                 </div>
               </div>
@@ -423,7 +427,7 @@ export default function RolesUbicacionesClient({
         </div>
 
         {/* RIGHT: Ubicaciones */}
-        <div className="card">
+        <div className="card roles-ubic-panel">
           <div
             style={{
               display: "flex",
@@ -432,7 +436,7 @@ export default function RolesUbicacionesClient({
               marginBottom: "1rem",
             }}
           >
-            <h2 style={{ fontWeight: 700, fontSize: "1rem" }}>Ubicaciones</h2>
+            <h2 style={{ fontWeight: 700, fontSize: "1rem" }}>{t("rolesUbicaciones.ubicacionesSection")}</h2>
             <button
               className="btn-primary"
               onClick={() => abrirUbicacionModal()}
@@ -441,7 +445,7 @@ export default function RolesUbicacionesClient({
                 padding: "0.375rem 0.75rem",
               }}
             >
-              AGREGAR UBICACION
+              {t("rolesUbicaciones.addUbicacionBtn")}
             </button>
           </div>
 
@@ -454,7 +458,7 @@ export default function RolesUbicacionesClient({
                 padding: "2rem 0",
               }}
             >
-              No hay ubicaciones registradas
+              {t("rolesUbicaciones.empty.ubicaciones")}
             </p>
           )}
 
@@ -462,6 +466,7 @@ export default function RolesUbicacionesClient({
             {ubicaciones.map((ubi) => (
               <div
                 key={ubi.id}
+                className="roles-ubic-item"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -493,31 +498,31 @@ export default function RolesUbicacionesClient({
                         marginTop: "0.125rem",
                       }}
                     >
-                      {[ubi.edificio, ubi.piso != null ? `Piso ${ubi.piso}` : null]
+                      {[ubi.edificio, ubi.piso != null ? t("rolesUbicaciones.floorLabel", { piso: ubi.piso }) : null]
                         .filter(Boolean)
-                        .join(" - ") || "Sin detalle"}
+                        .join(" - ") || t("rolesUbicaciones.noDetail")}
                     </p>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "0.375rem" }}>
+                <div className="roles-ubic-item-actions" style={{ display: "flex", gap: "0.375rem" }}>
                   <button
                     className="btn-secondary"
                     onClick={() => toggleUbicacion(ubi)}
-                    title={ubi.habilitado ? "Deshabilitar" : "Habilitar"}
+                    title={ubi.habilitado ? t("rolesUbicaciones.disable") : t("rolesUbicaciones.enable")}
                     style={{
                       padding: "0.25rem 0.5rem",
                       fontSize: "0.7rem",
                       fontWeight: 600,
                     }}
                   >
-                    {ubi.habilitado ? "Desactivar" : "Activar"}
+                    {ubi.habilitado ? t("rolesUbicaciones.deactivate") : t("rolesUbicaciones.activate")}
                   </button>
                   <button
                     className="btn-secondary"
                     onClick={() => abrirUbicacionModal(ubi)}
                     style={{ padding: "0.25rem 0.5rem", fontSize: "0.7rem" }}
                   >
-                    Editar
+                    {t("common.edit")}
                   </button>
                   <button
                     className="btn-secondary"
@@ -529,7 +534,7 @@ export default function RolesUbicacionesClient({
                       color: "#ef4444",
                     }}
                   >
-                    Eliminar
+                    {t("common.delete")}
                   </button>
                 </div>
               </div>
@@ -541,6 +546,7 @@ export default function RolesUbicacionesClient({
       {/* Rol Modal */}
       {rolModalOpen && (
         <div
+          className="roles-ubic-modal-overlay"
           style={{
             position: "fixed",
             inset: 0,
@@ -554,9 +560,9 @@ export default function RolesUbicacionesClient({
             if (e.target === e.currentTarget) setRolModalOpen(false);
           }}
         >
-          <div className="card modal-content" style={{ width: "100%", maxWidth: 780 }}>
+          <div className="card modal-content roles-ubic-modal" style={{ width: "100%", maxWidth: 780 }}>
             <h2 style={{ fontWeight: 700, marginBottom: "1.25rem" }}>
-              {editandoRol ? "Editar rol" : "Nuevo rol"}
+              {editandoRol ? t("rolesUbicaciones.rolModal.editTitle") : t("rolesUbicaciones.rolModal.newTitle")}
             </h2>
             <form
               onSubmit={guardarRol}
@@ -575,7 +581,7 @@ export default function RolesUbicacionesClient({
                     marginBottom: "0.375rem",
                   }}
                 >
-                  Nombre del rol
+                  {t("rolesUbicaciones.rolModal.nameLabel")}
                 </label>
                 <input
                   className="input-field"
@@ -585,7 +591,7 @@ export default function RolesUbicacionesClient({
                   }
                   required
                   maxLength={100}
-                  placeholder="Ej: Operador de maquinaria"
+                  placeholder={t("rolesUbicaciones.rolModal.namePlaceholder")}
                 />
                 <CharCounter current={rolForm.nombreRol.length} max={100} />
               </div>
@@ -598,7 +604,7 @@ export default function RolesUbicacionesClient({
                     marginBottom: "0.375rem",
                   }}
                 >
-                  Descripcion (opcional)
+                  {t("rolesUbicaciones.rolModal.descriptionLabel")}
                 </label>
                 <textarea
                   className="input-field"
@@ -608,7 +614,7 @@ export default function RolesUbicacionesClient({
                     setRolForm({ ...rolForm, descripcion: e.target.value })
                   }
                   maxLength={255}
-                  placeholder="Descripcion breve del rol"
+                  placeholder={t("rolesUbicaciones.rolModal.descriptionPlaceholder")}
                   style={{ resize: "vertical" }}
                 />
                 <CharCounter current={rolForm.descripcion.length} max={255} />
@@ -620,14 +626,14 @@ export default function RolesUbicacionesClient({
                   onClick={() => setRolModalOpen(false)}
                   style={{ flex: 1 }}
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button
                   className="btn-primary"
                   type="submit"
                   style={{ flex: 1 }}
                 >
-                  Guardar
+                  {t("common.save")}
                 </button>
               </div>
             </form>
@@ -638,6 +644,7 @@ export default function RolesUbicacionesClient({
       {/* Ubicacion Modal */}
       {ubicacionModalOpen && (
         <div
+          className="roles-ubic-modal-overlay"
           style={{
             position: "fixed",
             inset: 0,
@@ -651,9 +658,9 @@ export default function RolesUbicacionesClient({
             if (e.target === e.currentTarget) setUbicacionModalOpen(false);
           }}
         >
-          <div className="card modal-content" style={{ width: "100%", maxWidth: 780 }}>
+          <div className="card modal-content roles-ubic-modal" style={{ width: "100%", maxWidth: 780 }}>
             <h2 style={{ fontWeight: 700, marginBottom: "1.25rem" }}>
-              {editandoUbicacion ? "Editar ubicacion" : "Nueva ubicacion"}
+              {editandoUbicacion ? t("rolesUbicaciones.ubicacionModal.editTitle") : t("rolesUbicaciones.ubicacionModal.newTitle")}
             </h2>
             <form
               onSubmit={guardarUbicacion}
@@ -664,7 +671,7 @@ export default function RolesUbicacionesClient({
               }}
             >
               {/* Nombre | Edificio */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+              <div className="roles-ubic-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                 <div>
                   <label
                     style={{
@@ -674,7 +681,7 @@ export default function RolesUbicacionesClient({
                       marginBottom: "0.375rem",
                     }}
                   >
-                    Nombre
+                    {t("rolesUbicaciones.ubicacionModal.nameLabel")}
                   </label>
                   <input
                     className="input-field"
@@ -684,7 +691,7 @@ export default function RolesUbicacionesClient({
                     }
                     required
                     maxLength={100}
-                    placeholder="Ej: Sala de calderas"
+                    placeholder={t("rolesUbicaciones.ubicacionModal.namePlaceholder")}
                   />
                   <CharCounter current={ubicacionForm.nombre.length} max={100} />
                 </div>
@@ -697,7 +704,7 @@ export default function RolesUbicacionesClient({
                       marginBottom: "0.375rem",
                     }}
                   >
-                    Edificio
+                    {t("rolesUbicaciones.ubicacionModal.buildingLabel")}
                   </label>
                   <input
                     className="input-field"
@@ -709,14 +716,14 @@ export default function RolesUbicacionesClient({
                       })
                     }
                     maxLength={100}
-                    placeholder="Ej: Edificio A"
+                    placeholder={t("rolesUbicaciones.ubicacionModal.buildingPlaceholder")}
                   />
                   <CharCounter current={ubicacionForm.edificio.length} max={100} />
                 </div>
               </div>
 
               {/* Piso (half width) */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+              <div className="roles-ubic-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                 <div>
                   <label
                     style={{
@@ -726,7 +733,7 @@ export default function RolesUbicacionesClient({
                       marginBottom: "0.375rem",
                     }}
                   >
-                    Piso
+                    {t("rolesUbicaciones.ubicacionModal.floorLabel")}
                   </label>
                   <input
                     className="input-field"
@@ -735,7 +742,7 @@ export default function RolesUbicacionesClient({
                     onChange={(e) =>
                       setUbicacionForm({ ...ubicacionForm, piso: e.target.value })
                     }
-                    placeholder="Ej: 2"
+                    placeholder={t("rolesUbicaciones.ubicacionModal.floorPlaceholder")}
                   />
                 </div>
                 <div />
@@ -751,7 +758,7 @@ export default function RolesUbicacionesClient({
                     marginBottom: "0.375rem",
                   }}
                 >
-                  Descripcion (opcional)
+                  {t("rolesUbicaciones.ubicacionModal.descriptionLabel")}
                 </label>
                 <textarea
                   className="input-field"
@@ -764,7 +771,7 @@ export default function RolesUbicacionesClient({
                     })
                   }
                   maxLength={255}
-                  placeholder="Descripcion adicional"
+                  placeholder={t("rolesUbicaciones.ubicacionModal.descriptionPlaceholder")}
                   style={{ resize: "vertical" }}
                 />
                 <CharCounter current={ubicacionForm.descripcion.length} max={255} />
@@ -776,20 +783,64 @@ export default function RolesUbicacionesClient({
                   onClick={() => setUbicacionModalOpen(false)}
                   style={{ flex: 1 }}
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button
                   className="btn-primary"
                   type="submit"
                   style={{ flex: 1 }}
                 >
-                  Guardar
+                  {t("common.save")}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .roles-ubic-split {
+            grid-template-columns: 1fr !important;
+          }
+          .roles-ubic-modal {
+            max-width: 90vw !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .roles-ubic-header {
+            margin-bottom: 1.25rem !important;
+          }
+          .roles-ubic-title {
+            font-size: 1.25rem !important;
+          }
+          .roles-ubic-split {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .roles-ubic-item {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.625rem !important;
+          }
+          .roles-ubic-item-actions {
+            justify-content: flex-end !important;
+            flex-wrap: wrap !important;
+          }
+          .roles-ubic-modal-overlay {
+            padding: 0.5rem !important;
+          }
+          .roles-ubic-modal {
+            max-width: 95vw !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+            padding: 1rem !important;
+          }
+          .roles-ubic-form-row {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

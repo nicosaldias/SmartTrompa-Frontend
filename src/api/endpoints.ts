@@ -1,4 +1,6 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+// Sin default: el build falla si NEXT_PUBLIC_API_URL no se pasa como build arg.
+// Único caso donde puede estar vacío: NEXT_PUBLIC_MOCK_MODE=true (el cliente nunca hace fetch real).
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export const trabajadorEndpoints = {
   all: () => `${API_BASE_URL}/trabajador/`,

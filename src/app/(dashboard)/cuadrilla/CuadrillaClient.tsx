@@ -7,6 +7,8 @@ import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAler
 import { BINARY_ALERT_TYPES } from "@/types";
 import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime } from "@/utils/sensorMappings";
 import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw } from "lucide-react";
+import { useT } from "@/i18n/LanguageProvider";
+import { API_BASE_URL as API_URL } from "@/api/endpoints";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
@@ -16,16 +18,7 @@ interface Props {
   initialAjustes?: Record<string, Ajustes | null>;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 const ALERTA_TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
-
-const TIPO_LABELS: Record<TipoAlerta, string> = {
-  RESPIRATORIA: "Respiratoria",
-  AJUSTE: "Ajuste",
-  FILTRO: "Filtro",
-  BATERIA: "Batería",
-  DESCONEXION: "Desconexión",
-};
 
 const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
   RESPIRATORIA: <Wind size={13} />,
@@ -47,6 +40,7 @@ function getAlertNivel(alertas: AlertaHistorial[], rut: string, tipo: TipoAlerta
 }
 
 export default function CuadrillaClient({ initialJornadas, initialAlertas, trabajadores, initialMediciones, initialAjustes }: Props) {
+  const t = useT();
   const [jornadas, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialAlertas);
   const [medicionesMap, setMedicionesMap] = useState<Record<string, MedicionesAmbientales | null>>(
@@ -57,6 +51,26 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
   );
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [pollFailures, setPollFailures] = useState(0);
+
+  const TIPO_LABELS: Record<TipoAlerta, string> = {
+    RESPIRATORIA: t("cuadrilla.tipoRespiratoria"),
+    AJUSTE: t("cuadrilla.tipoAjuste"),
+    FILTRO: t("cuadrilla.tipoFiltro"),
+    BATERIA: t("cuadrilla.tipoBateria"),
+    DESCONEXION: t("cuadrilla.tipoDesconexion"),
+  };
+
+  const nivelLabel = (nivel: NivelAlerta): string => {
+    if (nivel === "OK") return t("cuadrilla.nivelOk");
+    if (nivel === "ALERTA") return t("cuadrilla.nivelAlerta");
+    return t("cuadrilla.nivelCritico");
+  };
+
+  const estadoLabel = (nivel: NivelAlerta): string => {
+    if (nivel === "OK") return t("cuadrilla.estadoNormal");
+    if (nivel === "ALERTA") return t("cuadrilla.nivelAlerta");
+    return t("cuadrilla.nivelCritico");
+  };
 
   const poll = useCallback(async () => {
     try {
@@ -95,7 +109,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
 
   // Derived data
   const findTrabajador = (rut: string): Trabajador | undefined =>
-    trabajadores.find((t) => t.rut === rut);
+    trabajadores.find((tr) => tr.rut === rut);
 
   const totalActivos = jornadas.length;
 
@@ -184,7 +198,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     const desajustadoLen = circumference - ajustadoLen;
 
     return (
-      <div style={{ width: size, height: size, position: "relative" }} title={`Ajustado: ${pctAjustado}% | Desajustado: ${pctDesajustado}%`}>
+      <div style={{ width: size, height: size, position: "relative" }} title={`${t("cuadrilla.ajustadoLabel")}: ${pctAjustado}% | ${t("cuadrilla.desajustadoLabel")}: ${pctDesajustado}%`}>
         <svg width={size} height={size} viewBox="0 0 36 36" style={{ transform: "rotate(-90deg)" }}>
           {/* Desajustado (rojo) - fondo */}
           <circle cx="18" cy="18" r="15.9" fill="none" stroke="#ef4444" strokeWidth="3.5"
@@ -206,7 +220,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
   }
 
   function renderWorkerCard(jornada: JornadaTrabajo) {
-    const t = findTrabajador(jornada.rutUsuario);
+    const tr = findTrabajador(jornada.rutUsuario);
     const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "CRITICO");
     const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "ALERTA");
     const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
@@ -220,8 +234,8 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.625rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
-            {t?.tieneImagen ? (
-              <img src={`${API_URL}/trabajador/${t.rut}/imagen/`} alt=""
+            {tr?.tieneImagen ? (
+              <img src={`${API_URL}/trabajador/${tr.rut}/imagen/`} alt=""
                 style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--color-border)" }} />
             ) : (
               <div style={{
@@ -230,15 +244,15 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                 display: "flex", alignItems: "center", justifyContent: "center",
                 color: "white", fontWeight: 700, fontSize: "0.75rem",
               }}>
-                {t ? `${t.nombre.charAt(0)}${t.apellidoPaterno.charAt(0)}` : "?"}
+                {tr ? `${tr.nombre.charAt(0)}${tr.apellidoPaterno.charAt(0)}` : "?"}
               </div>
             )}
             <div style={{ minWidth: 0 }}>
               <p style={{ fontWeight: 700, fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {t ? `${t.nombre} ${t.apellidoPaterno}` : jornada.rutUsuario}
+                {tr ? `${tr.nombre} ${tr.apellidoPaterno}` : jornada.rutUsuario}
               </p>
               <p style={{ color: "var(--color-text-secondary)", fontSize: "0.65rem" }}>
-                {t?.rut || jornada.rutUsuario}
+                {tr?.rut || jornada.rutUsuario}
               </p>
             </div>
           </div>
@@ -246,10 +260,10 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             fontSize: "0.6rem", fontWeight: 700, color: alertColor(estadoGeneral),
             letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
           }}>
-            {estadoGeneral === "OK" ? "NORMAL" : estadoGeneral}
+            {estadoLabel(estadoGeneral)}
           </span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.25rem" }}>
+        <div className="cuadrilla-alerts-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.25rem" }}>
           {ALERTA_TIPOS.map((tipo) => {
             const nivel = getAlertNivel(alertas, jornada.rutUsuario, tipo);
             return (
@@ -257,7 +271,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                 display: "flex", alignItems: "center", gap: "0.25rem",
                 padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
                 color: alertColor(nivel), fontSize: "0.65rem", fontWeight: 600,
-              }} title={`${TIPO_LABELS[tipo]}: ${nivel}`}>
+              }} title={`${TIPO_LABELS[tipo]}: ${nivelLabel(nivel)}`}>
                 {TIPO_ICONS[tipo]}
                 <span>{TIPO_LABELS[tipo]}</span>
               </div>
@@ -274,7 +288,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
         }}>
           <div style={{ flexShrink: 0 }}>
             {renderPieChart(ajustesMap[String(jornada.id)], 48)}
-            <p style={{ fontSize: "0.5rem", color: "var(--color-text-secondary)", textAlign: "center", marginTop: "0.125rem" }}>Ajuste</p>
+            <p style={{ fontSize: "0.5rem", color: "var(--color-text-secondary)", textAlign: "center", marginTop: "0.125rem" }}>{t("cuadrilla.fitLabel")}</p>
           </div>
           <div style={{
             display: "grid",
@@ -284,10 +298,10 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             color: "var(--color-text-secondary)",
             flex: 1,
           }}>
-            <span>Frec. Resp: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.frecuenciaRespiratoria ?? '--'} bpm</b></span>
-            <span>Ajuste: <b style={{ color: nivelAjusteColor(medicion?.nivelAjuste) }}>{interpretNivelAjuste(medicion?.nivelAjuste)}</b></span>
-            <span>Atollo: <b style={{ color: nivelAtolloColor(medicion?.nivelAtollo) }}>{interpretNivelAtollo(medicion?.nivelAtollo)}</b></span>
-            <span>Bateria: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.bateria != null ? `${medicion.bateria}%` : '--'}</b></span>
+            <span>{t("cuadrilla.respRateShort")}: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.frecuenciaRespiratoria ?? '--'} {t("cuadrilla.bpm")}</b></span>
+            <span>{t("cuadrilla.fitLabel")}: <b style={{ color: nivelAjusteColor(medicion?.nivelAjuste) }}>{interpretNivelAjuste(medicion?.nivelAjuste)}</b></span>
+            <span>{t("cuadrilla.clogLabel")}: <b style={{ color: nivelAtolloColor(medicion?.nivelAtollo) }}>{interpretNivelAtollo(medicion?.nivelAtollo)}</b></span>
+            <span>{t("cuadrilla.batteryLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.bateria != null ? `${medicion.bateria}%` : '--'}</b></span>
           </div>
         </div>
         {medicion?.timestamp && (
@@ -341,7 +355,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                   {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
                 </p>
                 <p style={{ color: "#3b82f6", fontSize: "0.65rem", fontWeight: 600 }}>
-                  SUPERVISOR
+                  {t("cuadrilla.supervisorBadge")}
                 </p>
               </div>
             </div>
@@ -349,10 +363,10 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
               fontSize: "0.6rem", fontWeight: 700, color: alertColor(estadoGeneral),
               letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
             }}>
-              {estadoGeneral === "OK" ? "NORMAL" : estadoGeneral}
+              {estadoLabel(estadoGeneral)}
             </span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.25rem" }}>
+          <div className="cuadrilla-alerts-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.25rem" }}>
             {ALERTA_TIPOS.map((tipo) => {
               const nivel = getAlertNivel(alertas, supRut, tipo);
               return (
@@ -360,7 +374,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                   display: "flex", alignItems: "center", gap: "0.25rem",
                   padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
                   color: alertColor(nivel), fontSize: "0.65rem", fontWeight: 600,
-                }} title={`${TIPO_LABELS[tipo]}: ${nivel}`}>
+                }} title={`${TIPO_LABELS[tipo]}: ${nivelLabel(nivel)}`}>
                   {TIPO_ICONS[tipo]}
                   <span>{TIPO_LABELS[tipo]}</span>
                 </div>
@@ -377,7 +391,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           }}>
             <div style={{ flexShrink: 0 }}>
               {renderPieChart(supJornada ? ajustesMap[String(supJornada.id)] : null, 48)}
-              <p style={{ fontSize: "0.5rem", color: "var(--color-text-secondary)", textAlign: "center", marginTop: "0.125rem" }}>Ajuste</p>
+              <p style={{ fontSize: "0.5rem", color: "var(--color-text-secondary)", textAlign: "center", marginTop: "0.125rem" }}>{t("cuadrilla.fitLabel")}</p>
             </div>
             <div style={{
               display: "grid",
@@ -387,10 +401,10 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
               color: "var(--color-text-secondary)",
               flex: 1,
             }}>
-              <span>Frec. Resp: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.frecuenciaRespiratoria ?? '--'} bpm</b></span>
-              <span>Ajuste: <b style={{ color: nivelAjusteColor(medicion?.nivelAjuste) }}>{interpretNivelAjuste(medicion?.nivelAjuste)}</b></span>
-              <span>Atollo: <b style={{ color: nivelAtolloColor(medicion?.nivelAtollo) }}>{interpretNivelAtollo(medicion?.nivelAtollo)}</b></span>
-              <span>Bateria: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.bateria != null ? `${medicion.bateria}%` : '--'}</b></span>
+              <span>{t("cuadrilla.respRateShort")}: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.frecuenciaRespiratoria ?? '--'} {t("cuadrilla.bpm")}</b></span>
+              <span>{t("cuadrilla.fitLabel")}: <b style={{ color: nivelAjusteColor(medicion?.nivelAjuste) }}>{interpretNivelAjuste(medicion?.nivelAjuste)}</b></span>
+              <span>{t("cuadrilla.clogLabel")}: <b style={{ color: nivelAtolloColor(medicion?.nivelAtollo) }}>{interpretNivelAtollo(medicion?.nivelAtollo)}</b></span>
+              <span>{t("cuadrilla.batteryLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.bateria != null ? `${medicion.bateria}%` : '--'}</b></span>
             </div>
           </div>
           {medicion?.timestamp && (
@@ -429,7 +443,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                 {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
               </p>
               <p style={{ color: "var(--color-text-secondary)", fontSize: "0.65rem", fontWeight: 600 }}>
-                SUPERVISOR
+                {t("cuadrilla.supervisorBadge")}
               </p>
             </div>
           </div>
@@ -439,7 +453,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             padding: "0.2rem 0.5rem", borderRadius: "9999px",
             backgroundColor: "rgba(139,148,158,0.1)", border: "1px solid rgba(139,148,158,0.2)",
           }}>
-            INACTIVO
+            {t("cuadrilla.inactive")}
           </span>
         </div>
       </div>
@@ -468,7 +482,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
           </p>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>
-            Supervisor · {count} trabajador{count !== 1 ? "es" : ""} activo{count !== 1 ? "s" : ""}
+            {count === 1 ? t("cuadrilla.supervisorWorkersOne", { count }) : t("cuadrilla.supervisorWorkersOther", { count })}
           </p>
         </div>
       </div>
@@ -481,10 +495,10 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
           <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
           <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
-            No hay trabajadores activos
+            {t("cuadrilla.emptyTitle")}
           </p>
           <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
-            Los trabajadores activos apareceran aqui cuando inicien una tanda de trabajo
+            {t("cuadrilla.emptyDescription")}
           </p>
         </div>
       );
@@ -499,7 +513,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           return (
             <div key={supRut}>
               {renderSupervisorHeader(supRut, workerJornadas.length)}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.75rem" }}>
+              <div className="cuadrilla-trabajadores-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.75rem" }}>
                 {renderSupervisorCard(supRut)}
                 {workerJornadas.map((j) => renderWorkerCard(j))}
               </div>
@@ -532,7 +546,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                 <span style={{ fontWeight: 600, color: "var(--color-text-secondary)" }}>
                   {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
                 </span>
-                <span style={{ fontSize: "0.65rem", color: "#3b82f6", fontWeight: 600, marginLeft: "0.5rem" }}>SUP</span>
+                <span style={{ fontSize: "0.65rem", color: "#3b82f6", fontWeight: 600, marginLeft: "0.5rem" }}>{t("cuadrilla.supShort")}</span>
               </div>
             </div>
           </td>
@@ -546,7 +560,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           <td style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>—</td>
           <td style={{ padding: "0.75rem", textAlign: "center" }}>
             <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em" }}>
-              INACTIVO
+              {t("cuadrilla.inactive")}
             </span>
           </td>
         </tr>
@@ -580,7 +594,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
               <span style={{ fontWeight: 600 }}>
                 {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
               </span>
-              <span style={{ fontSize: "0.65rem", color: "#3b82f6", fontWeight: 600, marginLeft: "0.5rem" }}>SUP</span>
+              <span style={{ fontSize: "0.65rem", color: "#3b82f6", fontWeight: 600, marginLeft: "0.5rem" }}>{t("cuadrilla.supShort")}</span>
             </div>
           </div>
         </td>
@@ -596,13 +610,13 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                 gap: "0.25rem", color: alertColor(nivel), fontSize: "0.7rem", fontWeight: 700,
               }}>
                 {TIPO_ICONS[tipo]}
-                <span>{nivel}</span>
+                <span>{nivelLabel(nivel)}</span>
               </div>
             </td>
           );
         })}
         <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
-          {medicion?.frecuenciaRespiratoria ?? '--'} <span style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>bpm</span>
+          {medicion?.frecuenciaRespiratoria ?? '--'} <span style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("cuadrilla.bpm")}</span>
         </td>
         <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
           {medicion?.bateria != null ? `${medicion.bateria}%` : '--'}
@@ -612,7 +626,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             fontSize: "0.65rem", fontWeight: 700,
             color: alertColor(estadoGeneral), letterSpacing: "0.05em",
           }}>
-            {estadoGeneral === "OK" ? "NORMAL" : estadoGeneral}
+            {estadoLabel(estadoGeneral)}
           </span>
         </td>
       </tr>
@@ -625,10 +639,10 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
           <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
           <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
-            No hay trabajadores activos
+            {t("cuadrilla.emptyTitle")}
           </p>
           <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
-            Los trabajadores activos apareceran aqui cuando inicien una tanda de trabajo
+            {t("cuadrilla.emptyDescription")}
           </p>
         </div>
       );
@@ -650,15 +664,15 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           return (
             <div key={supRut}>
               {renderSupervisorHeader(supRut, workerJornadas.length)}
-              <div className="card" style={{ overflowX: "auto" }}>
+              <div className="card cuadrilla-table-wrap" style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
                       <th style={{ padding: "0.75rem", textAlign: "left", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem" }}>
-                        Trabajador
+                        {t("cuadrilla.tableWorker")}
                       </th>
                       <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem" }}>
-                        RUT
+                        {t("common.rut")}
                       </th>
                       {ALERTA_TIPOS.map((tipo) => (
                         <th key={tipo} style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem", whiteSpace: "nowrap" }}>
@@ -669,20 +683,20 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                         </th>
                       ))}
                       <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem", whiteSpace: "nowrap" }}>
-                        Frec. Resp
+                        {t("cuadrilla.respRateShort")}
                       </th>
                       <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem", whiteSpace: "nowrap" }}>
-                        Bateria
+                        {t("cuadrilla.batteryLabel")}
                       </th>
                       <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem" }}>
-                        Estado
+                        {t("common.status")}
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {renderSupervisorTableRow(supRut)}
                     {workerJornadas.map((jornada) => {
-                      const t = findTrabajador(jornada.rutUsuario);
+                      const tr = findTrabajador(jornada.rutUsuario);
                       const hasCritico = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "CRITICO");
                       const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "ALERTA");
                       const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
@@ -691,8 +705,8 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                         <tr key={jornada.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
                           <td style={{ padding: "0.75rem" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                              {t?.tieneImagen ? (
-                                <img src={`${API_URL}/trabajador/${t.rut}/imagen/`} alt=""
+                              {tr?.tieneImagen ? (
+                                <img src={`${API_URL}/trabajador/${tr.rut}/imagen/`} alt=""
                                   style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--color-border)" }} />
                               ) : (
                                 <div style={{
@@ -701,16 +715,16 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                                   display: "flex", alignItems: "center", justifyContent: "center",
                                   color: "white", fontWeight: 700, fontSize: "0.65rem",
                                 }}>
-                                  {t ? `${t.nombre.charAt(0)}${t.apellidoPaterno.charAt(0)}` : "?"}
+                                  {tr ? `${tr.nombre.charAt(0)}${tr.apellidoPaterno.charAt(0)}` : "?"}
                                 </div>
                               )}
                               <span style={{ fontWeight: 600 }}>
-                                {t ? `${t.nombre} ${t.apellidoPaterno}` : jornada.rutUsuario}
+                                {tr ? `${tr.nombre} ${tr.apellidoPaterno}` : jornada.rutUsuario}
                               </span>
                             </div>
                           </td>
                           <td style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>
-                            {t?.rut || jornada.rutUsuario}
+                            {tr?.rut || jornada.rutUsuario}
                           </td>
                           {ALERTA_TIPOS.map((tipo) => {
                             const nivel = getAlertNivel(alertas, jornada.rutUsuario, tipo);
@@ -721,13 +735,13 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                                   gap: "0.25rem", color: alertColor(nivel), fontSize: "0.7rem", fontWeight: 700,
                                 }}>
                                   {TIPO_ICONS[tipo]}
-                                  <span>{nivel}</span>
+                                  <span>{nivelLabel(nivel)}</span>
                                 </div>
                               </td>
                             );
                           })}
                           <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
-                            {medicion?.frecuenciaRespiratoria ?? '--'} <span style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>bpm</span>
+                            {medicion?.frecuenciaRespiratoria ?? '--'} <span style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("cuadrilla.bpm")}</span>
                           </td>
                           <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
                             {medicion?.bateria != null ? `${medicion.bateria}%` : '--'}
@@ -737,7 +751,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                               fontSize: "0.65rem", fontWeight: 700,
                               color: alertColor(estadoGeneral), letterSpacing: "0.05em",
                             }}>
-                              {estadoGeneral === "OK" ? "NORMAL" : estadoGeneral}
+                              {estadoLabel(estadoGeneral)}
                             </span>
                           </td>
                         </tr>
@@ -773,13 +787,13 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
         .pulse-crit { animation: pulseCrit 0.8s ease-in-out infinite; }
       `}</style>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+      <div className="cuadrilla-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
         <div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
-            Estado de Cuadrilla
+          <h1 className="cuadrilla-title" style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
+            {t("cuadrilla.title")}
           </h1>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-            Vista en tiempo real de supervisores y trabajadores activos
+            {t("cuadrilla.subtitle")}
           </p>
         </div>
         <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
@@ -788,7 +802,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             color: "var(--color-text-secondary)", padding: "0.25rem",
             display: "flex", alignItems: "center",
             marginRight: "0.5rem",
-          }} title="Actualizar ahora">
+          }} title={t("cuadrilla.refreshNow")} aria-label={t("cuadrilla.refreshNow")}>
             <RefreshCw size={16} />
           </button>
           <button
@@ -797,7 +811,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8rem", padding: "0.5rem 0.75rem" }}
           >
             <LayoutGrid size={15} />
-            Tarjetas
+            {t("cuadrilla.viewCards")}
           </button>
           <button
             onClick={() => setViewMode("table")}
@@ -805,7 +819,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8rem", padding: "0.5rem 0.75rem" }}
           >
             <Table size={15} />
-            Tabla
+            {t("cuadrilla.viewTable")}
           </button>
         </div>
       </div>
@@ -836,7 +850,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
               flexShrink: 0,
             }}
           />
-          Error al actualizar datos — los valores mostrados pueden estar desactualizados
+          {t("cuadrilla.pollingError")}
         </div>
       )}
 
@@ -849,30 +863,30 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
       {totalActivos > 0 && (
         <div className="card" style={{ marginTop: "1.5rem", padding: "1.25rem" }}>
           <h2 style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.1em", marginBottom: "1rem" }}>
-            RESUMEN DE TURNO
+            {t("cuadrilla.shiftSummary")}
           </h2>
 
           {/* Main stats row */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
+          <div className="cuadrilla-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
             <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(249,115,22,0.08)" }}>
               <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "#f97316" }}>{totalActivos}</p>
-              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>ACTIVOS</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("cuadrilla.statActive")}</p>
             </div>
             <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(34,197,94,0.08)" }}>
               <p className="pulse-ok" style={{ fontSize: "1.75rem", fontWeight: 800, color: "#22c55e" }}>{sinProblemas}</p>
-              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>SIN PROBLEMAS</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("cuadrilla.statHealthy")}</p>
             </div>
             <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: advertencias > 0 ? "rgba(245,158,11,0.08)" : "transparent" }}>
               <p className={advertencias > 0 ? "pulse-warn" : ""} style={{ fontSize: "1.75rem", fontWeight: 800, color: advertencias > 0 ? "#f59e0b" : "var(--color-text-secondary)" }}>{advertencias}</p>
-              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>ADVERTENCIAS</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("cuadrilla.statWarnings")}</p>
             </div>
             <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: alertasCriticas > 0 ? "rgba(239,68,68,0.08)" : "transparent" }}>
               <p className={alertasCriticas > 0 ? "pulse-crit" : ""} style={{ fontSize: "1.75rem", fontWeight: 800, color: alertasCriticas > 0 ? "#ef4444" : "var(--color-text-secondary)" }}>{alertasCriticas}</p>
-              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>CRITICAS</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("cuadrilla.statCritical")}</p>
             </div>
             <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--color-border)" }}>
               <p style={{ fontSize: "1.75rem", fontWeight: 800, color: operativity >= 80 ? "#22c55e" : operativity >= 50 ? "#f59e0b" : "#ef4444" }}>{operativity}%</p>
-              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>OPERATIVIDAD</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("cuadrilla.statOperativity")}</p>
             </div>
           </div>
 
@@ -906,6 +920,36 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 1024px) {
+          .cuadrilla-trabajadores-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .cuadrilla-stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)) !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .cuadrilla-header {
+            margin-bottom: 1rem !important;
+          }
+          .cuadrilla-title {
+            font-size: 1.25rem !important;
+          }
+          .cuadrilla-trabajadores-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .cuadrilla-alerts-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .cuadrilla-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .cuadrilla-table-wrap {
+            overflow-x: auto !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

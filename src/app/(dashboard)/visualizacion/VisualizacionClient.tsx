@@ -5,17 +5,10 @@ import { api } from "@/api/client";
 import type { Trabajador, JornadaTrabajo, AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
 import { Wind, Wrench, Activity, Battery, Wifi, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import Swal from "sweetalert2";
+import { useT } from "@/i18n/LanguageProvider";
+import { API_BASE_URL as API_URL } from "@/api/endpoints";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 const ALERTA_TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
-
-const TIPO_LABELS: Record<TipoAlerta, string> = {
-  RESPIRATORIA: "Respiratoria",
-  AJUSTE: "Ajuste",
-  FILTRO: "Filtro",
-  BATERIA: "Bateria",
-  DESCONEXION: "Desconexion",
-};
 
 const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
   RESPIRATORIA: <Wind size={13} />,
@@ -44,6 +37,14 @@ interface Props {
 }
 
 export default function VisualizacionClient({ trabajadores }: Props) {
+  const t = useT();
+  const TIPO_LABELS: Record<TipoAlerta, string> = {
+    RESPIRATORIA: t("visualizacion.tipo.respiratoria"),
+    AJUSTE: t("visualizacion.tipo.ajuste"),
+    FILTRO: t("visualizacion.tipo.filtro"),
+    BATERIA: t("visualizacion.tipo.bateria"),
+    DESCONEXION: t("visualizacion.tipo.desconexion"),
+  };
   const [loading, setLoading] = useState(false);
   const [filterSupervisor, setFilterSupervisor] = useState("");
   const [fechaDesde, setFechaDesde] = useState("");
@@ -109,15 +110,15 @@ export default function VisualizacionClient({ trabajadores }: Props) {
       console.error("Error:", err);
       Swal.fire({
         icon: "error",
-        title: "Error",
-        text: "No se pudo cargar el historico de cuadrilla",
+        title: t("common.error"),
+        text: t("visualizacion.errorLoadHistory"),
         background: "#1c2333",
         color: "#e6edf3",
       });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Load initial data on mount
   useEffect(() => {
@@ -221,7 +222,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
 
   // Render
   function renderWorkerCard(summary: WorkerAlertSummary) {
-    const t = findTrabajador(summary.rut);
+    const trab = findTrabajador(summary.rut);
     const borderColor = alertColor(summary.worstLevel);
 
     return (
@@ -233,9 +234,9 @@ export default function VisualizacionClient({ trabajadores }: Props) {
         {/* Worker info */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.625rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
-            {t?.tieneImagen ? (
+            {trab?.tieneImagen ? (
               <img
-                src={`${API_URL}/trabajador/${t.rut}/imagen/`}
+                src={`${API_URL}/trabajador/${trab.rut}/imagen/`}
                 alt=""
                 style={{
                   width: 32, height: 32, borderRadius: "50%", objectFit: "cover",
@@ -249,7 +250,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 color: "white", fontWeight: 700, fontSize: "0.75rem",
               }}>
-                {t ? `${t.nombre.charAt(0)}${t.apellidoPaterno.charAt(0)}` : "?"}
+                {trab ? `${trab.nombre.charAt(0)}${trab.apellidoPaterno.charAt(0)}` : "?"}
               </div>
             )}
             <div style={{ minWidth: 0 }}>
@@ -257,10 +258,10 @@ export default function VisualizacionClient({ trabajadores }: Props) {
                 fontWeight: 700, fontSize: "0.85rem",
                 whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
               }}>
-                {t ? `${t.nombre} ${t.apellidoPaterno}` : summary.rut}
+                {trab ? `${trab.nombre} ${trab.apellidoPaterno}` : summary.rut}
               </p>
               <p style={{ color: "var(--color-text-secondary)", fontSize: "0.65rem" }}>
-                {summary.rut} · {summary.jornadas} jornada{summary.jornadas !== 1 ? "s" : ""}
+                {summary.rut} · {t("visualizacion.shiftsCount", { count: summary.jornadas })}
               </p>
             </div>
           </div>
@@ -268,7 +269,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             fontSize: "0.6rem", fontWeight: 700, color: alertColor(summary.worstLevel),
             letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
           }}>
-            {summary.worstLevel === "OK" ? "NORMAL" : summary.worstLevel}
+            {summary.worstLevel === "OK" ? t("visualizacion.statusNormal") : summary.worstLevel}
           </span>
         </div>
 
@@ -285,7 +286,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
                   padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
                   color: alertColor(typeLevel), fontSize: "0.65rem", fontWeight: 600,
                 }}
-                title={`${TIPO_LABELS[tipo]}: ${count} alerta${count !== 1 ? "s" : ""}`}
+                title={`${TIPO_LABELS[tipo]}: ${t("visualizacion.alertsCount", { count })}`}
               >
                 {TIPO_ICONS[tipo]}
                 <span>{TIPO_LABELS[tipo]}</span>
@@ -320,7 +321,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             fontSize: "0.7rem",
             color: "var(--color-text-secondary)",
           }}>
-            <span>Total alertas en el periodo</span>
+            <span>{t("visualizacion.totalAlertsPeriod")}</span>
             <span style={{
               fontWeight: 700,
               color: alertColor(summary.worstLevel),
@@ -364,10 +365,10 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             {sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut}
           </p>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>
-            Supervisor · {workerCount} trabajador{workerCount !== 1 ? "es" : ""}
+            {t("roles.supervisor")} · {t("visualizacion.workersCount", { count: workerCount })}
             {totalGroupAlertas > 0 && (
               <span style={{ color: "#f59e0b", marginLeft: "0.5rem" }}>
-                · {totalGroupAlertas} alerta{totalGroupAlertas !== 1 ? "s" : ""}
+                · {t("visualizacion.alertsCount", { count: totalGroupAlertas })}
               </span>
             )}
           </p>
@@ -386,10 +387,10 @@ export default function VisualizacionClient({ trabajadores }: Props) {
       {/* Header */}
       <div style={{ marginBottom: "2rem" }}>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
-          Historico de Cuadrilla
+          {t("visualizacion.title")}
         </h1>
         <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-          Resumen historico de alertas por trabajador en un rango de fechas
+          {t("visualizacion.subtitle")}
         </p>
       </div>
 
@@ -402,13 +403,13 @@ export default function VisualizacionClient({ trabajadores }: Props) {
           <label style={{
             display: "block", fontSize: "0.75rem",
             color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
-          }}>Supervisor</label>
+          }}>{t("roles.supervisor")}</label>
           <select
             className="input-field"
             value={filterSupervisor}
             onChange={(e) => setFilterSupervisor(e.target.value)}
           >
-            <option value="">Todos</option>
+            <option value="">{t("common.all")}</option>
             {supervisores.map((s) => (
               <option key={s.rut} value={s.rut}>
                 {s.nombre} {s.apellidoPaterno}
@@ -420,7 +421,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
           <label style={{
             display: "block", fontSize: "0.75rem",
             color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
-          }}>Desde</label>
+          }}>{t("historialAlertas.from")}</label>
           <input
             className="input-field"
             type="date"
@@ -432,7 +433,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
           <label style={{
             display: "block", fontSize: "0.75rem",
             color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
-          }}>Hasta</label>
+          }}>{t("historialAlertas.to")}</label>
           <input
             className="input-field"
             type="date"
@@ -447,11 +448,11 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             disabled={loading}
             style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}
           >
-            <Search size={15} /> Buscar
+            <Search size={15} /> {t("common.search")}
           </button>
           {(filterSupervisor || fechaDesde || fechaHasta) && (
             <button className="btn-secondary" onClick={handleClear} style={{ fontSize: "0.8rem" }}>
-              Limpiar
+              {t("visualizacion.clear")}
             </button>
           )}
         </div>
@@ -460,13 +461,13 @@ export default function VisualizacionClient({ trabajadores }: Props) {
       {/* Results */}
       {loading ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
-          Cargando historico...
+          {t("visualizacion.loadingHistory")}
         </div>
       ) : !hasSearched ? null : jornadas.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
-          <p style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>Sin resultados</p>
+          <p style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>{t("visualizacion.noResults")}</p>
           <p style={{ fontSize: "0.85rem" }}>
-            No se encontraron jornadas terminadas para los filtros seleccionados
+            {t("visualizacion.noShiftsForFilters")}
           </p>
         </div>
       ) : (
@@ -481,19 +482,19 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             }}>
               <div style={{ padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(249,115,22,0.08)" }}>
                 <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f97316" }}>{totalJornadas}</p>
-                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>JORNADAS</p>
+                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("visualizacion.statShifts")}</p>
               </div>
               <div style={{ padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(59,130,246,0.08)" }}>
                 <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#3b82f6" }}>
                   {new Set(jornadas.map((j) => j.rutUsuario)).size}
                 </p>
-                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>TRABAJADORES</p>
+                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("visualizacion.statWorkers")}</p>
               </div>
               <div style={{ padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(59,130,246,0.08)" }}>
                 <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#3b82f6" }}>
                   {Object.keys(jornadasPorSupervisor).length}
                 </p>
-                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>SUPERVISORES</p>
+                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("visualizacion.statSupervisors")}</p>
               </div>
               <div style={{
                 padding: "0.5rem", borderRadius: "0.5rem",
@@ -505,7 +506,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
                 }}>
                   {alertas.filter((a) => a.nivel !== "OK").length}
                 </p>
-                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>ALERTAS</p>
+                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("visualizacion.statAlerts")}</p>
               </div>
               <div style={{
                 padding: "0.5rem", borderRadius: "0.5rem",
@@ -517,7 +518,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
                 }}>
                   {alertas.filter((a) => a.nivel === "CRITICO").length}
                 </p>
-                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>CRITICAS</p>
+                <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("visualizacion.statCritical")}</p>
               </div>
             </div>
           </div>
@@ -556,10 +557,14 @@ export default function VisualizacionClient({ trabajadores }: Props) {
                 onClick={() => fetchData(currentPage - 1, filterSupervisor, fechaDesde, fechaHasta)}
                 style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem" }}
               >
-                <ChevronLeft size={16} /> Anterior
+                <ChevronLeft size={16} /> {t("common.previous")}
               </button>
               <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
-                Pagina {(jornadaPage?.number ?? 0) + 1} de {totalPages} ({totalJornadas} registros)
+                {t("visualizacion.pageOf", {
+                  page: (jornadaPage?.number ?? 0) + 1,
+                  total: totalPages,
+                  records: totalJornadas,
+                })}
               </span>
               <button
                 className="btn-secondary"
@@ -567,7 +572,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
                 onClick={() => fetchData(currentPage + 1, filterSupervisor, fechaDesde, fechaHasta)}
                 style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem" }}
               >
-                Siguiente <ChevronRight size={16} />
+                {t("common.next")} <ChevronRight size={16} />
               </button>
             </div>
           )}

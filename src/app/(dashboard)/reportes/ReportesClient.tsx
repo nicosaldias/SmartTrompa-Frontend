@@ -5,6 +5,7 @@ import { api } from "@/api/client";
 import type { Trabajador } from "@/types";
 import { FileText, Download, Calendar, AlertTriangle, Filter, User, Hash, Users } from "lucide-react";
 import Swal from "sweetalert2";
+import { useT } from "@/i18n/LanguageProvider";
 
 interface Props {
   alertasActivasCount: number;
@@ -14,13 +15,6 @@ interface Props {
 }
 
 type Tab = "jornada" | "cuadrilla" | "trabajador" | "general";
-
-const TABS: { key: Tab; label: string; icon: typeof Hash }[] = [
-  { key: "jornada", label: "Por Jornada", icon: Hash },
-  { key: "cuadrilla", label: "Por Cuadrilla", icon: Users },
-  { key: "trabajador", label: "Por Trabajador", icon: User },
-  { key: "general", label: "General", icon: FileText },
-];
 
 function formatDateTimeForInput(d: Date, time: string): string {
   const yyyy = d.getFullYear();
@@ -55,6 +49,13 @@ export default function ReportesClient({
   supervisores,
   trabajadores,
 }: Props) {
+  const t = useT();
+  const TABS: { key: Tab; label: string; icon: typeof Hash }[] = [
+    { key: "jornada", label: t("reportes.tabJornada"), icon: Hash },
+    { key: "cuadrilla", label: t("reportes.tabCuadrilla"), icon: Users },
+    { key: "trabajador", label: t("reportes.tabTrabajador"), icon: User },
+    { key: "general", label: t("reportes.tabGeneral"), icon: FileText },
+  ];
   const [tab, setTab] = useState<Tab>("jornada");
   const [loading, setLoading] = useState(false);
 
@@ -82,11 +83,11 @@ export default function ReportesClient({
 
   function validarRango(desde: string, hasta: string): boolean {
     if (!desde || !hasta) {
-      alerta({ icon: "warning", title: "Fechas requeridas", text: "Seleccione 'desde' y 'hasta'." });
+      alerta({ icon: "warning", title: t("reportes.datesRequiredTitle"), text: t("reportes.datesRequiredText") });
       return false;
     }
     if (desde > hasta) {
-      alerta({ icon: "warning", title: "Rango inválido", text: "'Desde' no puede ser posterior a 'Hasta'." });
+      alerta({ icon: "warning", title: t("reportes.invalidRangeTitle"), text: t("reportes.invalidRangeText") });
       return false;
     }
     return true;
@@ -97,9 +98,9 @@ export default function ReportesClient({
     try {
       const blob = await fn();
       downloadBlob(blob, filename);
-      alerta({ icon: "success", title: "Reporte generado", text: "El PDF se descargó correctamente.", timer: 1800 });
+      alerta({ icon: "success", title: t("reportes.reportGeneratedTitle"), text: t("reportes.reportGeneratedText"), timer: 1800 });
     } catch (err: unknown) {
-      alerta({ icon: "error", title: "Error", text: (err as Error).message || "No se pudo generar el reporte." });
+      alerta({ icon: "error", title: t("common.error"), text: (err as Error).message || t("reportes.reportFailedText") });
     } finally {
       setLoading(false);
     }
@@ -108,7 +109,7 @@ export default function ReportesClient({
   async function handleJornada() {
     const id = Number(idJornada);
     if (!Number.isFinite(id) || id <= 0) {
-      alerta({ icon: "warning", title: "ID inválido", text: "Ingrese un ID de jornada numérico." });
+      alerta({ icon: "warning", title: t("reportes.invalidIdTitle"), text: t("reportes.invalidIdText") });
       return;
     }
     await descargar(() => api.reportes.jornada(id), `reporte_jornada_${id}.pdf`);
@@ -116,7 +117,7 @@ export default function ReportesClient({
 
   async function handleCuadrilla() {
     if (!rutSupervisor) {
-      alerta({ icon: "warning", title: "Supervisor requerido", text: "Seleccione un supervisor." });
+      alerta({ icon: "warning", title: t("reportes.supervisorRequiredTitle"), text: t("reportes.supervisorRequiredText") });
       return;
     }
     if (!validarRango(desdeCuadrilla, hastaCuadrilla)) return;
@@ -128,7 +129,7 @@ export default function ReportesClient({
 
   async function handleTrabajador() {
     if (!rutTrabajador) {
-      alerta({ icon: "warning", title: "Trabajador requerido", text: "Seleccione un trabajador." });
+      alerta({ icon: "warning", title: t("reportes.workerRequiredTitle"), text: t("reportes.workerRequiredText") });
       return;
     }
     if (!validarRango(desdeTrabajador, hastaTrabajador)) return;
@@ -175,15 +176,16 @@ export default function ReportesClient({
   };
 
   return (
-    <div>
+    <div className="reportes-root">
       <div style={{ marginBottom: "1.5rem" }}>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>Reportes de Seguridad</h1>
+        <h1 className="reportes-title" style={{ fontSize: "1.5rem", fontWeight: 800 }}>{t("reportes.title")}</h1>
         <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-          Genera reportes PDF por jornada, cuadrilla, trabajador o consolidado general.
+          {t("reportes.subtitle")}
         </p>
       </div>
 
       <div
+        className="reportes-stats"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -191,13 +193,14 @@ export default function ReportesClient({
           marginBottom: "1.5rem",
         }}
       >
-        <StatCard color="#f59e0b" icon={<AlertTriangle size={22} color="#f59e0b" />} label="Alertas activas" value={alertasActivasCount} />
-        <StatCard color="#ef4444" icon={<Filter size={22} color="#ef4444" />} label="Filtros por vencer" value={filtrosProximosCount} />
-        <StatCard color="#f97316" icon={<FileText size={22} color="#f97316" />} label="Tipos de reporte" value={4} />
+        <StatCard color="#f59e0b" icon={<AlertTriangle size={22} color="#f59e0b" />} label={t("reportes.statActiveAlerts")} value={alertasActivasCount} />
+        <StatCard color="#ef4444" icon={<Filter size={22} color="#ef4444" />} label={t("reportes.statFiltersExpiring")} value={filtrosProximosCount} />
+        <StatCard color="#f97316" icon={<FileText size={22} color="#f97316" />} label={t("reportes.statReportTypes")} value={4} />
       </div>
 
-      <div className="card" style={{ maxWidth: 960 }}>
+      <div className="card reportes-card" style={{ maxWidth: 960 }}>
         <div
+          className="reportes-tabs"
           style={{
             display: "flex",
             gap: "0.25rem",
@@ -213,6 +216,7 @@ export default function ReportesClient({
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
+                className="reportes-tab-btn"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -237,41 +241,41 @@ export default function ReportesClient({
 
         {tab === "jornada" && (
           <div>
-            <h2 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>Reporte por jornada individual</h2>
+            <h2 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>{t("reportes.jornadaHeading")}</h2>
             <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "1.25rem", lineHeight: 1.5 }}>
-              Detalle completo de una jornada específica: trabajador, supervisor, equipamiento, timeline de alertas y observaciones.
+              {t("reportes.jornadaDescription")}
             </p>
             <div style={{ marginBottom: "1.25rem" }}>
-              <label style={labelStyle}><Hash size={14} />ID de jornada</label>
+              <label style={labelStyle}><Hash size={14} />{t("reportes.jornadaIdLabel")}</label>
               <input
                 className="input-field"
                 type="number"
                 min={1}
                 value={idJornada}
                 onChange={(e) => setIdJornada(e.target.value)}
-                placeholder="Ej. 1234"
+                placeholder={t("reportes.jornadaIdPlaceholder")}
                 style={{ width: "100%", maxWidth: 280 }}
               />
             </div>
-            <BotonGenerar onClick={handleJornada} loading={loading} />
+            <BotonGenerar onClick={handleJornada} loading={loading} t={t} />
           </div>
         )}
 
         {tab === "cuadrilla" && (
           <div>
-            <h2 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>Reporte por cuadrilla</h2>
+            <h2 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>{t("reportes.cuadrillaHeading")}</h2>
             <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "1.25rem", lineHeight: 1.5 }}>
-              Agregación de jornadas bajo un mismo supervisor en el rango seleccionado, con distribución por tipo, alertas por día y ranking de trabajadores.
+              {t("reportes.cuadrillaDescription")}
             </p>
             <div style={{ marginBottom: "1rem" }}>
-              <label style={labelStyle}><User size={14} />Supervisor</label>
+              <label style={labelStyle}><User size={14} />{t("roles.supervisor")}</label>
               <select
                 className="input-field"
                 value={rutSupervisor}
                 onChange={(e) => setRutSupervisor(e.target.value)}
                 style={{ width: "100%" }}
               >
-                <option value="">Seleccione un supervisor</option>
+                <option value="">{t("reportes.selectSupervisor")}</option>
                 {supervisores.map((s) => (
                   <option key={s.rut} value={s.rut}>
                     {s.nombre} {s.apellidoPaterno} — {s.rut}
@@ -282,29 +286,30 @@ export default function ReportesClient({
             <RangoFechas
               desde={desdeCuadrilla} setDesde={setDesdeCuadrilla}
               hasta={hastaCuadrilla} setHasta={setHastaCuadrilla}
+              t={t}
             />
-            <BotonGenerar onClick={handleCuadrilla} loading={loading} />
+            <BotonGenerar onClick={handleCuadrilla} loading={loading} t={t} />
           </div>
         )}
 
         {tab === "trabajador" && (
           <div>
-            <h2 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>Reporte por trabajador</h2>
+            <h2 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>{t("reportes.trabajadorHeading")}</h2>
             <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "1.25rem", lineHeight: 1.5 }}>
-              Todas las jornadas de un trabajador en el rango, con donut por tipo, barras por jornada y observaciones automáticas.
+              {t("reportes.trabajadorDescription")}
             </p>
             <div style={{ marginBottom: "1rem" }}>
-              <label style={labelStyle}><User size={14} />Trabajador</label>
+              <label style={labelStyle}><User size={14} />{t("roles.worker")}</label>
               <select
                 className="input-field"
                 value={rutTrabajador}
                 onChange={(e) => setRutTrabajador(e.target.value)}
                 style={{ width: "100%" }}
               >
-                <option value="">Seleccione un trabajador</option>
-                {trabajadores.map((t) => (
-                  <option key={t.rut} value={t.rut}>
-                    {t.nombre} {t.apellidoPaterno} — {t.rut}
+                <option value="">{t("reportes.selectWorker")}</option>
+                {trabajadores.map((w) => (
+                  <option key={w.rut} value={w.rut}>
+                    {w.nombre} {w.apellidoPaterno} — {w.rut}
                   </option>
                 ))}
               </select>
@@ -312,31 +317,44 @@ export default function ReportesClient({
             <RangoFechas
               desde={desdeTrabajador} setDesde={setDesdeTrabajador}
               hasta={hastaTrabajador} setHasta={setHastaTrabajador}
+              t={t}
             />
-            <BotonGenerar onClick={handleTrabajador} loading={loading} />
+            <BotonGenerar onClick={handleTrabajador} loading={loading} t={t} />
           </div>
         )}
 
         {tab === "general" && (
           <div>
-            <h2 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>Reporte general consolidado</h2>
+            <h2 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>{t("reportes.generalHeading")}</h2>
             <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "1rem", lineHeight: 1.5 }}>
-              Consolidado de toda la operación en el periodo: top trabajadores, resumen por supervisor y estado de la flota de filtros.
-              Si es supervisor, el alcance se recortará automáticamente a sus jornadas.
+              {t("reportes.generalDescription")}
             </p>
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-              <button className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.4rem 0.75rem" }} onClick={() => aplicarPresetGeneral("semana")}>Esta semana</button>
-              <button className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.4rem 0.75rem" }} onClick={() => aplicarPresetGeneral("mes")}>Este mes</button>
-              <button className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.4rem 0.75rem" }} onClick={() => aplicarPresetGeneral("mesAnterior")}>Mes anterior</button>
+              <button className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.4rem 0.75rem" }} onClick={() => aplicarPresetGeneral("semana")}>{t("reportes.presetThisWeek")}</button>
+              <button className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.4rem 0.75rem" }} onClick={() => aplicarPresetGeneral("mes")}>{t("reportes.presetThisMonth")}</button>
+              <button className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.4rem 0.75rem" }} onClick={() => aplicarPresetGeneral("mesAnterior")}>{t("reportes.presetLastMonth")}</button>
             </div>
             <RangoFechas
               desde={desdeGeneral} setDesde={setDesdeGeneral}
               hasta={hastaGeneral} setHasta={setHastaGeneral}
+              t={t}
             />
-            <BotonGenerar onClick={handleGeneral} loading={loading} />
+            <BotonGenerar onClick={handleGeneral} loading={loading} t={t} />
           </div>
         )}
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .reportes-title { font-size: 1.2rem !important; }
+          .reportes-stats { grid-template-columns: 1fr !important; gap: 0.5rem !important; }
+          .reportes-card { padding: 0.9rem !important; }
+          .reportes-tabs { gap: 0 !important; }
+          .reportes-tab-btn { flex: 1 1 45% !important; justify-content: center !important; padding: 0.5rem 0.4rem !important; font-size: 0.78rem !important; }
+          .reportes-form-row { flex-direction: column !important; gap: 0.75rem !important; }
+          .reportes-form-col { min-width: 0 !important; width: 100% !important; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -362,22 +380,23 @@ function StatCard({ icon, label, value }: { color: string; icon: React.ReactNode
 }
 
 function RangoFechas({
-  desde, setDesde, hasta, setHasta,
+  desde, setDesde, hasta, setHasta, t,
 }: {
   desde: string; setDesde: (v: string) => void;
   hasta: string; setHasta: (v: string) => void;
+  t: ReturnType<typeof useT>;
 }) {
   return (
-    <div style={{ display: "flex", gap: "1rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>
-      <div style={{ flex: 1, minWidth: 220 }}>
+    <div className="reportes-form-row" style={{ display: "flex", gap: "1rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>
+      <div className="reportes-form-col" style={{ flex: 1, minWidth: 220 }}>
         <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
-          <Calendar size={14} />Desde
+          <Calendar size={14} />{t("reportes.fromLabel")}
         </label>
         <input className="input-field" type="datetime-local" value={desde} onChange={(e) => setDesde(e.target.value)} style={{ width: "100%" }} />
       </div>
-      <div style={{ flex: 1, minWidth: 220 }}>
+      <div className="reportes-form-col" style={{ flex: 1, minWidth: 220 }}>
         <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
-          <Calendar size={14} />Hasta
+          <Calendar size={14} />{t("reportes.toLabel")}
         </label>
         <input className="input-field" type="datetime-local" value={hasta} onChange={(e) => setHasta(e.target.value)} style={{ width: "100%" }} />
       </div>
@@ -385,7 +404,7 @@ function RangoFechas({
   );
 }
 
-function BotonGenerar({ onClick, loading }: { onClick: () => void; loading: boolean }) {
+function BotonGenerar({ onClick, loading, t }: { onClick: () => void; loading: boolean; t: ReturnType<typeof useT> }) {
   return (
     <button
       className="btn-primary"
@@ -397,7 +416,7 @@ function BotonGenerar({ onClick, loading }: { onClick: () => void; loading: bool
       }}
     >
       <Download size={18} />
-      {loading ? "Generando reporte..." : "Generar reporte"}
+      {loading ? t("reportes.generatingReport") : t("reportes.generateReport")}
     </button>
   );
 }

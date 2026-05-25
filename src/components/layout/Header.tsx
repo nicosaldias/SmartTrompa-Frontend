@@ -4,12 +4,22 @@ import { Bell, LogOut, User, AlertTriangle, Clock } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/api/client";
+import { API_BASE_URL } from "@/api/endpoints";
 import type { FilterStatus, AlertaHistorial } from "@/types";
 import { getUserFromCookie } from "@/utils/cookies";
 import { logoutAction } from "@/actions/auth";
 import Swal from "sweetalert2";
+import { useT } from "@/i18n/LanguageProvider";
+import type { TranslationKey } from "@/i18n/types";
+
+const ROLE_KEYS: Record<string, TranslationKey> = {
+  Administrador: "roles.administrator",
+  Supervisor: "roles.supervisor",
+  Trabajador: "roles.worker",
+};
 
 export default function Header() {
+  const t = useT();
   const [user, setUser] = useState<{ nombre?: string; cargo?: string; rut?: string } | null>(null);
   const [filtrosEnRiesgo, setFiltrosEnRiesgo] = useState<number>(0);
   const [alertasActivas, setAlertasActivas] = useState<number>(0);
@@ -56,9 +66,8 @@ export default function Header() {
   }, []);
 
   const initials = user?.nombre ? user.nombre.charAt(0).toUpperCase() : "U";
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
   const [avatarError, setAvatarError] = useState(false);
-  const avatarSrc = user?.rut ? `${API_URL}/trabajador/${user.rut}/imagen/?t=${Date.now()}` : null;
+  const avatarSrc = user?.rut ? `${API_BASE_URL}/trabajador/${user.rut}/imagen/?t=${Date.now()}` : null;
 
   return (
     <div>
@@ -72,7 +81,7 @@ export default function Header() {
           color: "#3b82f6",
         }}>
           <Clock size={14} />
-          La sesion se renovara automaticamente
+          {t("header.sessionRenewing")}
         </div>
       )}
     <header
@@ -94,7 +103,7 @@ export default function Header() {
           textTransform: "uppercase",
         }}
       >
-        INDUSTRIAL COCKPIT
+        {t("header.industrialCockpit")}
       </span>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
         {/* Filter lifecycle warning */}
@@ -114,11 +123,16 @@ export default function Header() {
               textDecoration: "none",
               border: "1px solid rgba(245,158,11,0.3)",
             }}
-            title={`${filtrosEnRiesgo} filtro(s) requieren atencion`}
+            title={t("header.filtersAtRiskTitle", { count: filtrosEnRiesgo })}
           >
             <AlertTriangle size={14} />
             <span className="header-hide-mobile">
-              {filtrosEnRiesgo} filtro{filtrosEnRiesgo > 1 ? "s" : ""} en riesgo
+              {t("header.filtersAtRiskBadge", {
+                count: filtrosEnRiesgo,
+                label: filtrosEnRiesgo > 1
+                  ? t("header.filtersAtRiskLabelPlural")
+                  : t("header.filtersAtRiskLabelSingular"),
+              })}
             </span>
           </Link>
         )}
@@ -135,8 +149,8 @@ export default function Header() {
             position: "relative",
             textDecoration: "none",
           }}
-          title={`${alertasActivas} alerta(s) activa(s)`}
-          aria-label="Ver alertas activas"
+          title={t("header.alertsActiveTitle", { count: alertasActivas })}
+          aria-label={t("header.viewActiveAlerts")}
         >
           <Bell size={20} />
           {alertasActivas > 0 && (
@@ -193,7 +207,7 @@ export default function Header() {
               }`,
             }}
           >
-            {user.cargo}
+            {ROLE_KEYS[user.cargo] ? t(ROLE_KEYS[user.cargo]) : user.cargo}
           </span>
         )}
 
@@ -201,7 +215,7 @@ export default function Header() {
         <div ref={menuRef} style={{ position: "relative" }}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            aria-label="Menu de usuario"
+            aria-label={t("header.userMenu")}
             style={{
               display: "flex",
               alignItems: "center",
@@ -280,7 +294,7 @@ export default function Header() {
               >
                 <p style={{ fontWeight: 600, fontSize: "0.85rem" }}>{user?.nombre}</p>
                 <p style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", marginTop: "0.125rem" }}>
-                  {user?.cargo} — {user?.rut}
+                  {user?.cargo && ROLE_KEYS[user.cargo] ? t(ROLE_KEYS[user.cargo]) : user?.cargo} — {user?.rut}
                 </p>
               </div>
 
@@ -303,17 +317,17 @@ export default function Header() {
                   className="sidebar-link"
                 >
                   <User size={16} />
-                  Ayuda y soporte
+                  {t("header.helpAndSupport")}
                 </Link>
                 <button
                   onClick={async () => {
                     const result = await Swal.fire({
-                      title: "Cerrar sesion",
-                      text: "Estas seguro que deseas cerrar sesion?",
+                      title: t("sidebar.logoutConfirmTitle"),
+                      text: t("sidebar.logoutConfirmText"),
                       icon: "question",
                       showCancelButton: true,
-                      confirmButtonText: "Si, cerrar sesion",
-                      cancelButtonText: "Cancelar",
+                      confirmButtonText: t("sidebar.logoutConfirmYes"),
+                      cancelButtonText: t("common.cancel"),
                       background: "#1c2333",
                       color: "#e6edf3",
                       confirmButtonColor: "#f97316",
@@ -338,7 +352,7 @@ export default function Header() {
                   }}
                 >
                   <LogOut size={16} />
-                  Cerrar sesion
+                  {t("sidebar.logout")}
                 </button>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { api } from "@/api/client";
 import type { Ticket, EstadoTicket, Cargo } from "@/types";
 import Swal from "sweetalert2";
+import { useT } from "@/i18n/LanguageProvider";
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const pct = current / max;
@@ -20,33 +21,7 @@ interface Props {
   userCargo: Cargo | string;
 }
 
-const FAQS = [
-  {
-    pregunta: "Como ingreso al sistema?",
-    respuesta:
-      "Solo los supervisores y administradores pueden ingresar. Usa tu RUT y contrasena asignada por el administrador.",
-  },
-  {
-    pregunta: "Que significan los colores del semaforo?",
-    respuesta:
-      "Verde = todo normal, Amarillo = nivel de atencion (filtros y bateria), Rojo = alerta critica que requiere accion inmediata.",
-  },
-  {
-    pregunta: "Como se generan las alertas?",
-    respuesta:
-      "Las alertas son generadas automaticamente por el modelo de IA del sensor instalado en la mascarilla.",
-  },
-  {
-    pregunta: "Como restablecer mi contrasena?",
-    respuesta:
-      "En la pantalla de login, haz clic en 'Olvidaste tu contrasena?' e ingresa tu correo para recibir un enlace de recuperacion.",
-  },
-  {
-    pregunta: "Puedo ver el historial de alertas de un trabajador especifico?",
-    respuesta:
-      "Si, en la seccion 'Historial de Alertas' puedes filtrar por trabajador, tipo de alerta y rango de fechas.",
-  },
-];
+const FAQ_KEYS = ["login", "trafficLight", "alerts", "resetPassword", "workerHistory"] as const;
 
 const ESTADO_BADGE: Record<EstadoTicket, string> = {
   ABIERTO: "badge-yellow",
@@ -54,13 +29,17 @@ const ESTADO_BADGE: Record<EstadoTicket, string> = {
   CERRADO: "badge-green",
 };
 
-const ESTADO_LABEL: Record<EstadoTicket, string> = {
-  ABIERTO: "Abierto",
-  EN_PROGRESO: "En progreso",
-  CERRADO: "Cerrado",
-};
-
 export default function AyudaClient({ userRut, userCargo }: Props) {
+  const t = useT();
+  const FAQS = FAQ_KEYS.map((k) => ({
+    pregunta: t(`ayuda.faq.${k}.q`),
+    respuesta: t(`ayuda.faq.${k}.a`),
+  }));
+  const ESTADO_LABEL: Record<EstadoTicket, string> = {
+    ABIERTO: t("ayuda.status.open"),
+    EN_PROGRESO: t("ayuda.status.inProgress"),
+    CERRADO: t("ayuda.status.closed"),
+  };
   const [abiertos, setAbiertos] = useState<number[]>([]);
   const [ticket, setTicket] = useState({ asunto: "", descripcion: "" });
   const [enviando, setEnviando] = useState(false);
@@ -69,8 +48,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
   function getTicketFieldError(field: string, value: string): string | null {
     if (!ticketTouched[field]) return null;
     switch (field) {
-      case "asunto": return !value.trim() ? "Asunto es obligatorio" : null;
-      case "descripcion": return !value.trim() ? "Descripcion es obligatoria" : null;
+      case "asunto": return !value.trim() ? t("ayuda.subjectRequired") : null;
+      case "descripcion": return !value.trim() ? t("ayuda.descriptionRequired") : null;
       default: return null;
     }
   }
@@ -116,8 +95,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
       await api.tickets.cambiarEstado(ticketId, nuevoEstado);
       Swal.fire({
         icon: "success",
-        title: "Estado actualizado",
-        text: `Ticket actualizado a ${ESTADO_LABEL[nuevoEstado]}`,
+        title: t("ayuda.statusUpdatedTitle"),
+        text: t("ayuda.ticketUpdatedTo", { status: ESTADO_LABEL[nuevoEstado] }),
         background: "#1c2333",
         color: "#e6edf3",
         timer: 1500,
@@ -128,7 +107,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -161,8 +140,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
       setTicketTouched({});
       Swal.fire({
         icon: "success",
-        title: "Ticket enviado",
-        text: "El equipo de soporte lo atendera pronto",
+        title: t("ayuda.ticketSentTitle"),
+        text: t("ayuda.ticketSentText"),
         background: "#1c2333",
         color: "#e6edf3",
         timer: 2000,
@@ -172,7 +151,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -195,8 +174,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>Ayuda</h1>
+      <div className="ayuda-header" style={{ marginBottom: "2rem" }}>
+        <h1 className="ayuda-title" style={{ fontSize: "1.5rem", fontWeight: 800 }}>{t("ayuda.title")}</h1>
         <p
           style={{
             color: "var(--color-text-secondary)",
@@ -204,11 +183,12 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
             marginTop: "0.25rem",
           }}
         >
-          Preguntas frecuentes y soporte tecnico
+          {t("ayuda.subtitle")}
         </p>
       </div>
 
       <div
+        className="ayuda-main-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
@@ -218,7 +198,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
         {/* FAQ */}
         <div>
           <h2 style={{ fontWeight: 700, fontSize: "1rem", marginBottom: "1rem" }}>
-            Preguntas frecuentes
+            {t("ayuda.faqTitle")}
           </h2>
           <div
             style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
@@ -285,7 +265,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                 marginBottom: "1rem",
               }}
             >
-              Crear ticket de soporte
+              {t("ayuda.createTicketTitle")}
             </h2>
             <div className="card">
               <p
@@ -295,8 +275,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                   marginBottom: "1.25rem",
                 }}
               >
-                No encontraste lo que buscabas? Envianos tu consulta y te
-                responderemos a la brevedad.
+                {t("ayuda.createTicketHelp")}
               </p>
               <form
                 onSubmit={enviarTicket}
@@ -315,11 +294,11 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                       marginBottom: "0.375rem",
                     }}
                   >
-                    Asunto
+                    {t("ayuda.subject")}
                   </label>
                   <input
                     className="input-field"
-                    placeholder="Describe brevemente tu problema"
+                    placeholder={t("ayuda.subjectPlaceholder")}
                     value={ticket.asunto}
                     onChange={(e) =>
                       setTicket({ ...ticket, asunto: e.target.value })
@@ -345,12 +324,12 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                       marginBottom: "0.375rem",
                     }}
                   >
-                    Descripcion
+                    {t("ayuda.description")}
                   </label>
                   <textarea
                     className="input-field"
                     rows={6}
-                    placeholder="Explica con detalle tu problema o consulta..."
+                    placeholder={t("ayuda.descriptionPlaceholder")}
                     value={ticket.descripcion}
                     onChange={(e) =>
                       setTicket({ ...ticket, descripcion: e.target.value })
@@ -379,7 +358,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                     width: "100%",
                   }}
                 >
-                  {enviando ? "Enviando..." : "Enviar ticket"}
+                  {enviando ? t("ayuda.sending") : t("ayuda.sendTicket")}
                 </button>
               </form>
             </div>
@@ -387,9 +366,9 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
 
           {/* My tickets / Admin tickets */}
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <div className="ayuda-tickets-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h2 style={{ fontWeight: 700, fontSize: "1rem" }}>
-                {vistaAdmin ? "Todos los tickets" : "Mis tickets"}
+                {vistaAdmin ? t("ayuda.allTickets") : t("ayuda.myTickets")}
               </h2>
               {isAdmin && (
                 <button
@@ -404,7 +383,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                     cursor: "pointer",
                   }}
                 >
-                  {vistaAdmin ? "Ver mis tickets" : "Administrar tickets"}
+                  {vistaAdmin ? t("ayuda.viewMyTickets") : t("ayuda.manageTickets")}
                 </button>
               )}
             </div>
@@ -432,7 +411,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                     padding: "1.5rem 0",
                   }}
                 >
-                  {vistaAdmin ? "No hay tickets registrados" : "No tienes tickets registrados"}
+                  {vistaAdmin ? t("ayuda.noTicketsRegistered") : t("ayuda.noTicketsOfMine")}
                 </p>
               )}
 
@@ -444,9 +423,10 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                     gap: "0.5rem",
                   }}
                 >
-                  {(vistaAdmin ? allTickets : misTickets).map((t) => (
+                  {(vistaAdmin ? allTickets : misTickets).map((ticket) => (
                     <div
-                      key={t.id}
+                      key={ticket.id}
+                      className="ayuda-ticket-row"
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
@@ -466,7 +446,7 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                             textOverflow: "ellipsis",
                           }}
                         >
-                          {t.asunto}
+                          {ticket.asunto}
                         </p>
                         <p
                           style={{
@@ -475,17 +455,17 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                             marginTop: "0.125rem",
                           }}
                         >
-                          {vistaAdmin && t.trabajador
-                            ? `${t.trabajador.nombre} ${t.trabajador.apellidoPaterno || ""} — `
+                          {vistaAdmin && ticket.trabajador
+                            ? `${ticket.trabajador.nombre} ${ticket.trabajador.apellidoPaterno || ""} — `
                             : ""}
-                          {formatFecha(t.creadoEn)}
+                          {formatFecha(ticket.creadoEn)}
                         </p>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, marginLeft: "0.75rem" }}>
-                        {isAdmin && vistaAdmin && t.estado !== "CERRADO" ? (
+                        {isAdmin && vistaAdmin && ticket.estado !== "CERRADO" ? (
                           <select
-                            value={t.estado}
-                            onChange={(e) => cambiarEstadoTicket(t.id, e.target.value as EstadoTicket)}
+                            value={ticket.estado}
+                            onChange={(e) => cambiarEstadoTicket(ticket.id, e.target.value as EstadoTicket)}
                             style={{
                               fontSize: "0.7rem",
                               padding: "0.25rem 0.5rem",
@@ -496,16 +476,16 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                               cursor: "pointer",
                             }}
                           >
-                            <option value="ABIERTO">Abierto</option>
-                            <option value="EN_PROGRESO">En progreso</option>
-                            <option value="CERRADO">Cerrado</option>
+                            <option value="ABIERTO">{t("ayuda.status.open")}</option>
+                            <option value="EN_PROGRESO">{t("ayuda.status.inProgress")}</option>
+                            <option value="CERRADO">{t("ayuda.status.closed")}</option>
                           </select>
                         ) : (
                           <span
-                            className={ESTADO_BADGE[t.estado] || "badge-gray"}
+                            className={ESTADO_BADGE[ticket.estado] || "badge-gray"}
                             style={{ fontSize: "0.7rem" }}
                           >
-                            {ESTADO_LABEL[t.estado] || t.estado}
+                            {ESTADO_LABEL[ticket.estado] || ticket.estado}
                           </span>
                         )}
                       </div>
@@ -517,6 +497,41 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .ayuda-main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1.25rem !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .ayuda-header {
+            margin-bottom: 1.25rem !important;
+          }
+          .ayuda-title {
+            font-size: 1.25rem !important;
+          }
+          .ayuda-main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .ayuda-tickets-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.5rem !important;
+          }
+          .ayuda-ticket-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.5rem !important;
+          }
+          .ayuda-ticket-row > div:last-child {
+            margin-left: 0 !important;
+            justify-content: flex-start !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

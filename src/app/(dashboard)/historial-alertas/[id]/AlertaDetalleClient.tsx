@@ -111,7 +111,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
   const nivelStyle = nivelBadgeStyle(alerta.nivel);
 
   return (
-    <div>
+    <div className="alerta-detalle-root">
       {/* Back button */}
       <button
         className="btn-secondary"
@@ -123,8 +123,8 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
       </button>
 
       {/* Header */}
-      <div style={{ marginBottom: "1.5rem" }}>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
+      <div style={{ marginBottom: "1.5rem" }} className="alerta-detalle-header">
+        <h1 className="alerta-detalle-title" style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
           Detalle de Alerta #{alerta.id}
         </h1>
         <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
@@ -133,7 +133,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
       </div>
 
       {/* Alert info card */}
-      <div className="card">
+      <div className="card alerta-detalle-card">
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1.25rem" }}>
           {/* Tipo badge */}
           <span
@@ -195,6 +195,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
 
         {/* Info grid */}
         <div
+          className="alerta-detalle-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
@@ -342,6 +343,14 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
           </div>
         )}
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .alerta-detalle-title { font-size: 1.15rem !important; }
+          .alerta-detalle-card { padding: 0.85rem !important; }
+          .alerta-detalle-grid { grid-template-columns: 1fr !important; gap: 0.85rem !important; }
+        }
+      `}</style>
     </div>
   );
 }

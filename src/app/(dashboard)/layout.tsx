@@ -4,9 +4,13 @@ import { useState, Component, type ReactNode } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { Menu } from "lucide-react";
+import { useT } from "@/i18n/LanguageProvider";
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error?: Error }> {
-  constructor(props: { children: ReactNode }) {
+class ErrorBoundary extends Component<
+  { children: ReactNode; messages: { title: string; body: string; reload: string } },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: ErrorBoundary["props"]) {
     super(props);
     this.state = { hasError: false };
   }
@@ -15,18 +19,19 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   }
   render() {
     if (this.state.hasError) {
+      const { title, body, reload } = this.props.messages;
       return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", backgroundColor: "var(--color-bg-primary)", padding: "2rem" }}>
           <div style={{ textAlign: "center", maxWidth: 480 }}>
             <div style={{ fontSize: "3rem", marginBottom: "1rem", opacity: 0.3 }}>&#9888;&#65039;</div>
             <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem", color: "var(--color-text-primary)" }}>
-              Error inesperado
+              {title}
             </h1>
             <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginBottom: "1.5rem" }}>
-              Ocurrio un error al cargar esta seccion. Intenta recargar la pagina.
+              {body}
             </p>
             <button onClick={() => window.location.reload()} className="btn-primary" style={{ padding: "0.75rem 2rem" }}>
-              Recargar pagina
+              {reload}
             </button>
           </div>
         </div>
@@ -37,8 +42,14 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const errorMessages = {
+    title: t("common.unexpectedError"),
+    body: t("common.errorLoadingSection"),
+    reload: t("common.reloadPage"),
+  };
 
   return (
     <div className="dashboard-root">
@@ -63,16 +74,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button
             onClick={() => setSidebarOpen(true)}
             className="hamburger-btn"
-            aria-label="Abrir menu"
+            aria-label={t("sidebar.openMenu")}
           >
             <Menu size={24} />
           </button>
-          <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>SIMOR</span>
+          <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>{t("branding.appName")}</span>
           <div style={{ width: 40 }} />
         </div>
 
         <Header />
-        <ErrorBoundary>{children}</ErrorBoundary>
+        <ErrorBoundary messages={errorMessages}>{children}</ErrorBoundary>
       </main>
 
       <style>{`

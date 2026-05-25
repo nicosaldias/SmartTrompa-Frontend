@@ -6,6 +6,7 @@ import api from "@/api/client";
 import Swal from "sweetalert2";
 import type { AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
 import { Search, ChevronDown, ChevronUp, X } from "lucide-react";
+import { useT } from "@/i18n/LanguageProvider";
 
 interface Props {
   initialPage: PageResponse<AlertaHistorial>;
@@ -28,6 +29,7 @@ function getInitials(nombre?: string, apellido?: string): string {
 }
 
 export default function HistorialAlertasClient({ initialPage }: Props) {
+  const t = useT();
   const router = useRouter();
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialPage.content);
   const [totalElements, setTotalElements] = useState(initialPage.totalElements);
@@ -67,8 +69,8 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
     if (fechaDesde && fechaHasta && new Date(fechaDesde) >= new Date(fechaHasta)) {
       Swal.fire({
         icon: "error",
-        title: "Rango de fechas inválido",
-        text: "La fecha de inicio debe ser anterior a la fecha de fin",
+        title: t("historialAlertas.invalidDateRangeTitle"),
+        text: t("historialAlertas.invalidDateRangeText"),
         background: "#1c2333",
         color: "#e6edf3",
       });
@@ -144,7 +146,11 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
     return (
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
         <p style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
-          Mostrando {currentPage * PAGE_SIZE + 1}-{Math.min((currentPage + 1) * PAGE_SIZE, totalElements)} de {totalElements} resultados
+          {t("historialAlertas.showingResults", {
+            from: currentPage * PAGE_SIZE + 1,
+            to: Math.min((currentPage + 1) * PAGE_SIZE, totalElements),
+            total: totalElements,
+          })}
         </p>
         <div style={{ display: "flex", gap: "0.25rem" }}>
           <button
@@ -153,7 +159,7 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
             disabled={currentPage <= 0}
             onClick={() => handlePageChange(currentPage - 1)}
           >
-            Anterior
+            {t("common.previous")}
           </button>
           {pages.map((p) => (
             <button
@@ -171,7 +177,7 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
             disabled={currentPage >= totalPages - 1}
             onClick={() => handlePageChange(currentPage + 1)}
           >
-            Siguiente
+            {t("common.next")}
           </button>
         </div>
       </div>
@@ -181,12 +187,12 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
-          Historial de Alertas
+      <div className="historial-header" style={{ marginBottom: "2rem" }}>
+        <h1 className="historial-title" style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
+          {t("historialAlertas.title")}
         </h1>
         <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-          Busca y filtra el historial de alertas del sistema
+          {t("historialAlertas.subtitle")}
         </p>
       </div>
 
@@ -206,17 +212,17 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
             color: "var(--color-text-primary)",
           }}
         >
-          <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>Filtros de búsqueda</span>
+          <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{t("historialAlertas.searchFilters")}</span>
           {filtersOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </button>
 
         {filtersOpen && (
           <div style={{ marginTop: "1rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem", alignItems: "flex-end" }}>
+            <div className="historial-filtros-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem", alignItems: "flex-end" }}>
               {/* Fecha desde */}
               <div>
                 <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
-                  Desde
+                  {t("historialAlertas.from")}
                 </label>
                 <input
                   type="datetime-local"
@@ -230,7 +236,7 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
               {/* Fecha hasta */}
               <div>
                 <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
-                  Hasta
+                  {t("historialAlertas.to")}
                 </label>
                 <input
                   type="datetime-local"
@@ -244,13 +250,13 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
               {/* Trabajador search */}
               <div>
                 <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
-                  Trabajador
+                  {t("historialAlertas.worker")}
                 </label>
                 <input
                   type="text"
                   className="input-field"
                   style={{ width: "100%" }}
-                  placeholder="Buscar por nombre o RUT"
+                  placeholder={t("historialAlertas.searchByNameOrRut")}
                   value={trabajadorSearch}
                   onChange={(e) => setTrabajadorSearch(e.target.value)}
                 />
@@ -259,7 +265,7 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
               {/* Tipo */}
               <div>
                 <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
-                  Tipo de alerta
+                  {t("historialAlertas.alertType")}
                 </label>
                 <select
                   className="input-field"
@@ -267,9 +273,9 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
                   value={tipo}
                   onChange={(e) => setTipo(e.target.value as TipoAlerta | "")}
                 >
-                  <option value="">Todos</option>
-                  {TIPOS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                  <option value="">{t("common.all")}</option>
+                  {TIPOS.map((tp) => (
+                    <option key={tp} value={tp}>{tp}</option>
                   ))}
                 </select>
               </div>
@@ -277,7 +283,7 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
               {/* Nivel */}
               <div>
                 <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
-                  Nivel
+                  {t("historialAlertas.level")}
                 </label>
                 <select
                   className="input-field"
@@ -285,7 +291,7 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
                   value={nivel}
                   onChange={(e) => setNivel(e.target.value as NivelAlerta | "")}
                 >
-                  <option value="">Todos</option>
+                  <option value="">{t("common.all")}</option>
                   {NIVELES.map((n) => (
                     <option key={n} value={n}>{n}</option>
                   ))}
@@ -294,14 +300,14 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
             </div>
 
             {/* Action buttons */}
-            <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
+            <div className="historial-filtros-actions" style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
               <button
                 className="btn-secondary"
                 onClick={handleLimpiar}
                 style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}
               >
                 <X size={15} />
-                Limpiar filtros
+                {t("historialAlertas.clearFilters")}
               </button>
               <button
                 className="btn-primary"
@@ -310,7 +316,7 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
                 style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}
               >
                 <Search size={15} />
-                {loading ? "Buscando..." : "Buscar"}
+                {loading ? t("historialAlertas.searching") : t("common.search")}
               </button>
             </div>
           </div>
@@ -319,23 +325,29 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
 
       {/* Table */}
       <div className="card">
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+        <div className="historial-table-wrap" style={{ overflowX: "auto" }}>
+          <table className="historial-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-                {["Timestamp", "Trabajador", "Tipo", "Nivel", "Descripción"].map((h) => (
+                {[
+                  { key: "timestamp", label: t("historialAlertas.colTimestamp"), align: "center" as const },
+                  { key: "trabajador", label: t("historialAlertas.colWorker"), align: "left" as const },
+                  { key: "tipo", label: t("historialAlertas.colType"), align: "center" as const },
+                  { key: "nivel", label: t("historialAlertas.colLevel"), align: "center" as const },
+                  { key: "descripcion", label: t("historialAlertas.colDescription"), align: "center" as const },
+                ].map((h) => (
                   <th
-                    key={h}
+                    key={h.key}
                     style={{
                       padding: "0.75rem 0.5rem",
-                      textAlign: h === "Trabajador" ? "left" : "center",
+                      textAlign: h.align,
                       color: "var(--color-text-secondary)",
                       fontWeight: 600,
                       fontSize: "0.8rem",
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {h.toUpperCase()}
+                    {h.label.toUpperCase()}
                   </th>
                 ))}
               </tr>
@@ -344,13 +356,13 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
               {loading ? (
                 <tr>
                   <td colSpan={5} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
-                    Cargando...
+                    {t("common.loading")}
                   </td>
                 </tr>
               ) : pageData.length === 0 ? (
                 <tr>
                   <td colSpan={5} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
-                    Sin alertas que coincidan con los filtros
+                    {t("historialAlertas.noAlertsMatch")}
                   </td>
                 </tr>
               ) : (
@@ -433,6 +445,42 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
         {/* Pagination */}
         {renderPagination()}
       </div>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .historial-filtros-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .historial-header {
+            margin-bottom: 1.25rem !important;
+          }
+          .historial-title {
+            font-size: 1.25rem !important;
+          }
+          .historial-filtros-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.625rem !important;
+          }
+          .historial-filtros-actions {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .historial-filtros-actions button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          .historial-table-wrap {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+          .historial-table {
+            min-width: 640px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

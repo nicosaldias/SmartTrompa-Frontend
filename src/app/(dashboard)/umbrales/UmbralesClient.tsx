@@ -6,8 +6,10 @@ import type { AlertasUmbrales, Trabajador } from "@/types";
 import { DEFAULT_THRESHOLDS } from "@/utils/sensorMappings";
 import Swal from "sweetalert2";
 import { Search, Plus, Pencil, Trash2, RotateCcw, Users, Check } from "lucide-react";
+import { useT } from "@/i18n/LanguageProvider";
 
 export default function UmbralesClient() {
+  const t = useT();
   const [umbrales, setUmbrales] = useState<AlertasUmbrales[]>([]);
   const [trabajadores, setTrabajadores] = useState<Trabajador[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,22 +116,22 @@ export default function UmbralesClient() {
     const bateBajo = form.alrtBateBajo ? Number(form.alrtBateBajo) : null;
 
     if (filtrAlto != null && filtrBajo != null && filtrAlto >= filtrBajo) {
-      errors.push("Filtro Alto (atollo critico) debe ser menor que Filtro Bajo (atollo medio) en Pa");
+      errors.push(t("umbrales.validation.filtroOrder"));
     }
     if (respBajo != null && respAlto != null && respBajo >= respAlto) {
-      errors.push("Resp. Bajo debe ser menor que Resp. Alto en bpm");
+      errors.push(t("umbrales.validation.respOrder"));
     }
     if (bateAlto != null && bateMedio != null && bateAlto >= bateMedio) {
-      errors.push("Bat. Alto (critico) debe ser menor que Bat. Medio (alerta) en %");
+      errors.push(t("umbrales.validation.bateAltoOrder"));
     }
     if (bateMedio != null && bateBajo != null && bateMedio >= bateBajo) {
-      errors.push("Bat. Medio (alerta) debe ser menor que Bat. Bajo en %");
+      errors.push(t("umbrales.validation.bateMedioOrder"));
     }
 
     if (errors.length > 0) {
       await Swal.fire({
         icon: "error",
-        title: "Error de validacion",
+        title: t("umbrales.validation.errorTitle"),
         html: errors.map((e) => `• ${e}`).join("<br/>"),
         background: "#1c2333",
         color: "#e6edf3",
@@ -138,12 +140,12 @@ export default function UmbralesClient() {
     }
 
     const confirmResult = await Swal.fire({
-      title: "Confirmar",
-      text: editando ? "Se actualizara el registro" : "Se creara el registro",
+      title: t("common.confirm"),
+      text: editando ? t("umbrales.confirm.update") : t("umbrales.confirm.create"),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Si, guardar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("umbrales.confirm.saveBtn"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#f97316",
@@ -169,7 +171,7 @@ export default function UmbralesClient() {
       }
       Swal.fire({
         icon: "success",
-        title: editando ? "Umbral actualizado" : "Umbral creado",
+        title: editando ? t("umbrales.toast.updated") : t("umbrales.toast.created"),
         background: "#1c2333",
         color: "#e6edf3",
         timer: 1500,
@@ -180,7 +182,7 @@ export default function UmbralesClient() {
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -190,12 +192,12 @@ export default function UmbralesClient() {
 
   async function eliminar(id: number) {
     const result = await Swal.fire({
-      title: "Eliminar umbral",
-      text: "Esta accion no se puede deshacer",
+      title: t("umbrales.delete.title"),
+      text: t("umbrales.delete.text"),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("common.delete"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#ef4444",
@@ -207,7 +209,7 @@ export default function UmbralesClient() {
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -275,8 +277,8 @@ export default function UmbralesClient() {
     if (selectedRuts.length === 0) {
       await Swal.fire({
         icon: "warning",
-        title: "Sin trabajadores seleccionados",
-        text: "Selecciona al menos un trabajador",
+        title: t("umbrales.bulk.noWorkersTitle"),
+        text: t("umbrales.bulk.noWorkersText"),
         background: "#1c2333",
         color: "#e6edf3",
       });
@@ -294,22 +296,22 @@ export default function UmbralesClient() {
     const bateBajo = bulkForm.alrtBateBajo ? Number(bulkForm.alrtBateBajo) : null;
 
     if (filtrAlto != null && filtrBajo != null && filtrAlto >= filtrBajo) {
-      errors.push("Filtro Alto (atollo critico) debe ser menor que Filtro Bajo (atollo medio) en Pa");
+      errors.push(t("umbrales.validation.filtroOrder"));
     }
     if (respBajo != null && respAlto != null && respBajo >= respAlto) {
-      errors.push("Resp. Bajo debe ser menor que Resp. Alto en bpm");
+      errors.push(t("umbrales.validation.respOrder"));
     }
     if (bateAlto != null && bateMedio != null && bateAlto >= bateMedio) {
-      errors.push("Bat. Alto (critico) debe ser menor que Bat. Medio (alerta) en %");
+      errors.push(t("umbrales.validation.bateAltoOrder"));
     }
     if (bateMedio != null && bateBajo != null && bateMedio >= bateBajo) {
-      errors.push("Bat. Medio (alerta) debe ser menor que Bat. Bajo en %");
+      errors.push(t("umbrales.validation.bateMedioOrder"));
     }
 
     if (errors.length > 0) {
       await Swal.fire({
         icon: "error",
-        title: "Error de validacion",
+        title: t("umbrales.validation.errorTitle"),
         html: errors.map((e) => `• ${e}`).join("<br/>"),
         background: "#1c2333",
         color: "#e6edf3",
@@ -318,12 +320,12 @@ export default function UmbralesClient() {
     }
 
     const confirmResult = await Swal.fire({
-      title: "Configuracion masiva",
-      html: `Se aplicaran los umbrales a <b>${selectedRuts.length}</b> trabajador(es).<br/>Si ya tienen umbrales configurados, se actualizaran.`,
+      title: t("umbrales.bulk.confirmTitle"),
+      html: t("umbrales.bulk.confirmHtml", { count: selectedRuts.length }),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Si, aplicar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("umbrales.bulk.applyBtn"),
+      cancelButtonText: t("common.cancel"),
       background: "#1c2333",
       color: "#e6edf3",
       confirmButtonColor: "#f97316",
@@ -345,8 +347,8 @@ export default function UmbralesClient() {
       await api.umbrales.bulk(selectedRuts, umbralesData);
       Swal.fire({
         icon: "success",
-        title: "Umbrales aplicados",
-        text: `Se configuraron umbrales para ${selectedRuts.length} trabajador(es)`,
+        title: t("umbrales.bulk.successTitle"),
+        text: t("umbrales.bulk.successText", { count: selectedRuts.length }),
         background: "#1c2333",
         color: "#e6edf3",
         timer: 2000,
@@ -357,7 +359,7 @@ export default function UmbralesClient() {
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Error",
+        title: t("common.error"),
         text: (err as Error).message,
         background: "#1c2333",
         color: "#e6edf3",
@@ -366,14 +368,14 @@ export default function UmbralesClient() {
   }
 
   const CAMPOS_UMBRAL = [
-    { key: "alrtRespAlto", label: "Resp. Alto", unit: "bpm", defaultVal: DEFAULT_THRESHOLDS.respAlto, help: "Frecuencia respiratoria alta" },
-    { key: "alrtRespBajo", label: "Resp. Bajo", unit: "bpm", defaultVal: DEFAULT_THRESHOLDS.respBajo, help: "Frecuencia respiratoria baja" },
-    { key: "alrtAjus", label: "Ajuste", unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thFit, help: "Presion sobre la cual el respirador se considera desajustado" },
-    { key: "alrtFiltrAlto", label: "Filtro Alto", unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thClogHigh, help: "Presion bajo la cual se detecta atollo critico" },
-    { key: "alrtFiltrBajo", label: "Filtro Bajo", unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thClogLow, help: "Presion bajo la cual se detecta atollo medio" },
-    { key: "alrtBateAlto", label: "Bat. Alto", unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateAlto, help: "Nivel de bateria critico" },
-    { key: "alrtBateMedio", label: "Bat. Medio", unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateMedio, help: "Nivel de bateria en alerta" },
-    { key: "alrtBateBajo", label: "Bat. Bajo", unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateBajo, help: "Nivel de bateria bajo" },
+    { key: "alrtRespAlto", label: t("umbrales.fields.respAlto"), unit: "bpm", defaultVal: DEFAULT_THRESHOLDS.respAlto, help: t("umbrales.help.respAlto") },
+    { key: "alrtRespBajo", label: t("umbrales.fields.respBajo"), unit: "bpm", defaultVal: DEFAULT_THRESHOLDS.respBajo, help: t("umbrales.help.respBajo") },
+    { key: "alrtAjus", label: t("umbrales.fields.ajuste"), unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thFit, help: t("umbrales.help.ajuste") },
+    { key: "alrtFiltrAlto", label: t("umbrales.fields.filtrAlto"), unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thClogHigh, help: t("umbrales.help.filtrAlto") },
+    { key: "alrtFiltrBajo", label: t("umbrales.fields.filtrBajo"), unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thClogLow, help: t("umbrales.help.filtrBajo") },
+    { key: "alrtBateAlto", label: t("umbrales.fields.bateAlto"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateAlto, help: t("umbrales.help.bateAlto") },
+    { key: "alrtBateMedio", label: t("umbrales.fields.bateMedio"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateMedio, help: t("umbrales.help.bateMedio") },
+    { key: "alrtBateBajo", label: t("umbrales.fields.bateBajo"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateBajo, help: t("umbrales.help.bateBajo") },
   ] as const;
 
   function fillDefaults() {
@@ -397,19 +399,19 @@ export default function UmbralesClient() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+      <div className="umbrales-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
         <div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>Gestion de Umbrales</h1>
+          <h1 className="umbrales-title" style={{ fontSize: "1.5rem", fontWeight: 800 }}>{t("umbrales.title")}</h1>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-            Configuracion de umbrales de alerta por trabajador
+            {t("umbrales.subtitle")}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div className="umbrales-header-actions" style={{ display: "flex", gap: "0.5rem" }}>
           <button className="btn-secondary" onClick={abrirBulk} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Users size={16} /> Configuracion masiva
+            <Users size={16} /> {t("umbrales.bulkConfigBtn")}
           </button>
           <button className="btn-primary" onClick={abrirCrear} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Plus size={16} /> Nuevo umbral
+            <Plus size={16} /> {t("umbrales.newThresholdBtn")}
           </button>
         </div>
       </div>
@@ -420,7 +422,7 @@ export default function UmbralesClient() {
           <Search size={16} color="var(--color-text-secondary)" />
           <input
             className="input-field"
-            placeholder="Buscar por RUT o nombre del trabajador..."
+            placeholder={t("umbrales.searchPlaceholder")}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             style={{ border: "none", background: "transparent", flex: 1 }}
@@ -431,25 +433,25 @@ export default function UmbralesClient() {
       {/* Table */}
       {loading ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
-          <p style={{ color: "var(--color-text-secondary)" }}>Cargando umbrales...</p>
+          <p style={{ color: "var(--color-text-secondary)" }}>{t("umbrales.loadingThresholds")}</p>
         </div>
       ) : umbralesFiltrados.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
           <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
           <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
-            {busqueda ? "No se encontraron umbrales" : "No hay umbrales configurados"}
+            {busqueda ? t("umbrales.empty.notFound") : t("umbrales.empty.none")}
           </p>
           <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
-            {busqueda ? "Intenta con otro termino de busqueda" : "Agrega el primer umbral usando el boton superior"}
+            {busqueda ? t("umbrales.empty.tryOtherTerm") : t("umbrales.empty.addFirst")}
           </p>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: "auto" }}>
+        <div className="card umbrales-table-wrap" style={{ padding: 0, overflow: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
                 <th style={{ padding: "0.75rem 0.5rem", textAlign: "left", fontWeight: 600, color: "var(--color-text-secondary)", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Trabajador
+                  {t("umbrales.table.worker")}
                 </th>
                 {CAMPOS_UMBRAL.map((c) => (
                   <th key={c.key} style={{ padding: "0.75rem 0.5rem", textAlign: "center", fontWeight: 600, color: "var(--color-text-secondary)", fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
@@ -457,7 +459,7 @@ export default function UmbralesClient() {
                   </th>
                 ))}
                 <th style={{ padding: "0.75rem 0.5rem", textAlign: "center", fontWeight: 600, color: "var(--color-text-secondary)", fontSize: "0.7rem", textTransform: "uppercase" }}>
-                  Acciones
+                  {t("common.actions")}
                 </th>
               </tr>
             </thead>
@@ -479,10 +481,10 @@ export default function UmbralesClient() {
                   ))}
                   <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
                     <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem" }}>
-                      <button onClick={() => abrirEditar(u)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", padding: "0.25rem" }} title="Editar">
+                      <button onClick={() => abrirEditar(u)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", padding: "0.25rem" }} title={t("common.edit")}>
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => eliminar(u.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: "0.25rem" }} title="Eliminar">
+                      <button onClick={() => eliminar(u.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: "0.25rem" }} title={t("common.delete")}>
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -497,25 +499,25 @@ export default function UmbralesClient() {
       {/* Modal bulk */}
       {showBulkForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} onClick={() => setShowBulkForm(false)}>
-          <div className="card modal-content" style={{ width: "100%", maxWidth: 1100, padding: "2rem", maxHeight: "90vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+          <div className="card modal-content modal-umbrales" style={{ width: "100%", maxWidth: 1100, padding: "2rem", maxHeight: "90vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: "1.5rem" }}>
-              Configuracion masiva de umbrales
+              {t("umbrales.bulk.modalTitle")}
             </h2>
             <form onSubmit={guardarBulk} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {/* Seleccion de trabajadores */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", paddingBottom: "0.375rem", borderBottom: "1px solid var(--color-border)" }}>
                   <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                    Seleccionar trabajadores ({selectedRuts.length} de {trabajadores.length})
+                    {t("umbrales.bulk.selectWorkers", { selected: selectedRuts.length, total: trabajadores.length })}
                   </p>
                   <button type="button" onClick={selectAllTrabajadores} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-accent)", fontSize: "0.75rem", fontWeight: 600 }}>
-                    {selectedRuts.length === trabajadores.length ? "Deseleccionar todos" : "Seleccionar todos"}
+                    {selectedRuts.length === trabajadores.length ? t("umbrales.bulk.deselectAll") : t("umbrales.bulk.selectAll")}
                   </button>
                 </div>
                 <div style={{ marginBottom: "0.5rem" }}>
                   <input
                     className="input-field"
-                    placeholder="Buscar trabajador por RUT o nombre..."
+                    placeholder={t("umbrales.bulk.searchWorkerPlaceholder")}
                     value={bulkSearch}
                     onChange={(e) => setBulkSearch(e.target.value)}
                   />
@@ -563,18 +565,18 @@ export default function UmbralesClient() {
               {/* Umbrales de respiracion */}
               <div>
                 <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: "0.5rem", paddingBottom: "0.375rem", borderBottom: "1px solid var(--color-border)" }}>
-                  Umbrales de respiracion
+                  {t("umbrales.sections.respiracion")}
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div className="umbrales-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>Resp. Alto</label>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.respAlto")}</label>
                     <div style={{ position: "relative" }}>
                       <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.respAlto)} value={bulkForm.alrtRespAlto} onChange={(e) => setBulkForm({ ...bulkForm, alrtRespAlto: e.target.value })} style={{ paddingRight: "3rem" }} />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>bpm</span>
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>Resp. Bajo</label>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.respBajo")}</label>
                     <div style={{ position: "relative" }}>
                       <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.respBajo)} value={bulkForm.alrtRespBajo} onChange={(e) => setBulkForm({ ...bulkForm, alrtRespBajo: e.target.value })} style={{ paddingRight: "3rem" }} />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>bpm</span>
@@ -586,18 +588,18 @@ export default function UmbralesClient() {
               {/* Umbrales de filtro */}
               <div>
                 <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: "0.5rem", paddingBottom: "0.375rem", borderBottom: "1px solid var(--color-border)" }}>
-                  Umbrales de filtro
+                  {t("umbrales.sections.filtro")}
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div className="umbrales-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>Filtro Alto (atollo critico)</label>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.filtrAltoLabel")}</label>
                     <div style={{ position: "relative" }}>
                       <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.thClogHigh)} value={bulkForm.alrtFiltrAlto} onChange={(e) => setBulkForm({ ...bulkForm, alrtFiltrAlto: e.target.value })} style={{ paddingRight: "2.5rem" }} />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>Filtro Bajo (atollo medio)</label>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.filtrBajoLabel")}</label>
                     <div style={{ position: "relative" }}>
                       <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.thClogLow)} value={bulkForm.alrtFiltrBajo} onChange={(e) => setBulkForm({ ...bulkForm, alrtFiltrBajo: e.target.value })} style={{ paddingRight: "2.5rem" }} />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
@@ -609,25 +611,25 @@ export default function UmbralesClient() {
               {/* Umbrales de bateria */}
               <div>
                 <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: "0.5rem", paddingBottom: "0.375rem", borderBottom: "1px solid var(--color-border)" }}>
-                  Umbrales de bateria
+                  {t("umbrales.sections.bateria")}
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+                <div className="umbrales-form-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>Bat. Alto (critico)</label>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.bateAltoLabel")}</label>
                     <div style={{ position: "relative" }}>
                       <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.bateAlto)} value={bulkForm.alrtBateAlto} onChange={(e) => setBulkForm({ ...bulkForm, alrtBateAlto: e.target.value })} style={{ paddingRight: "2rem" }} />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>Bat. Medio (alerta)</label>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.bateMedioLabel")}</label>
                     <div style={{ position: "relative" }}>
                       <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.bateMedio)} value={bulkForm.alrtBateMedio} onChange={(e) => setBulkForm({ ...bulkForm, alrtBateMedio: e.target.value })} style={{ paddingRight: "2rem" }} />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>Bat. Bajo</label>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.bateBajo")}</label>
                     <div style={{ position: "relative" }}>
                       <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.bateBajo)} value={bulkForm.alrtBateBajo} onChange={(e) => setBulkForm({ ...bulkForm, alrtBateBajo: e.target.value })} style={{ paddingRight: "2rem" }} />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
@@ -639,10 +641,10 @@ export default function UmbralesClient() {
               {/* Ajuste */}
               <div>
                 <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: "0.5rem", paddingBottom: "0.375rem", borderBottom: "1px solid var(--color-border)" }}>
-                  Ajuste de respirador
+                  {t("umbrales.sections.ajuste")}
                 </p>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>Umbral de ajuste</label>
+                  <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.ajusteUmbral")}</label>
                   <div style={{ position: "relative" }}>
                     <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.thFit)} value={bulkForm.alrtAjus} onChange={(e) => setBulkForm({ ...bulkForm, alrtAjus: e.target.value })} style={{ paddingRight: "2.5rem" }} />
                     <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
@@ -650,15 +652,15 @@ export default function UmbralesClient() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
+              <div className="umbrales-modal-actions" style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
                 <button type="button" onClick={() => setShowBulkForm(false)} className="btn-secondary" style={{ flex: 1 }}>
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button type="button" onClick={fillBulkDefaults} className="btn-secondary" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.375rem" }}>
-                  <RotateCcw size={14} /> Valores por defecto
+                  <RotateCcw size={14} /> {t("umbrales.defaultValuesBtn")}
                 </button>
                 <button className="btn-primary" type="submit" style={{ flex: 1 }}>
-                  Aplicar a {selectedRuts.length} trabajador(es)
+                  {t("umbrales.bulk.applyToCount", { count: selectedRuts.length })}
                 </button>
               </div>
             </form>
@@ -669,9 +671,9 @@ export default function UmbralesClient() {
       {/* Modal form */}
       {showForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} onClick={() => setShowForm(false)}>
-          <div className="card modal-content" style={{ width: "100%", maxWidth: 960, padding: "2rem" }} onClick={(e) => e.stopPropagation()}>
+          <div className="card modal-content modal-umbrales" style={{ width: "100%", maxWidth: 960, padding: "2rem", maxHeight: "90vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: "1.5rem" }}>
-              {editando ? "Editar umbral" : "Nuevo umbral"}
+              {editando ? t("umbrales.form.editTitle") : t("umbrales.form.newTitle")}
             </h2>
             <form onSubmit={guardar} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {/* Section: Trabajador */}
@@ -686,7 +688,7 @@ export default function UmbralesClient() {
                   paddingBottom: "0.375rem",
                   borderBottom: "1px solid var(--color-border)",
                 }}>
-                  Trabajador
+                  {t("umbrales.sections.trabajador")}
                 </p>
                 <select
                   className="input-field"
@@ -695,7 +697,7 @@ export default function UmbralesClient() {
                   required
                   disabled={!!editando}
                 >
-                  <option value="">Seleccionar trabajador...</option>
+                  <option value="">{t("umbrales.form.selectWorker")}</option>
                   {trabajadores.map((t) => (
                     <option key={t.rut} value={t.rut}>
                       {t.nombre} {t.apellidoPaterno} — {t.rut}
@@ -716,12 +718,12 @@ export default function UmbralesClient() {
                   paddingBottom: "0.375rem",
                   borderBottom: "1px solid var(--color-border)",
                 }}>
-                  Umbrales de respiracion
+                  {t("umbrales.sections.respiracion")}
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div className="umbrales-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Resp. Alto
+                      {t("umbrales.fields.respAlto")}
                     </label>
                     <div style={{ position: "relative" }}>
                       <input
@@ -735,11 +737,11 @@ export default function UmbralesClient() {
                       />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>bpm</span>
                     </div>
-                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Frecuencia respiratoria alta</p>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.respAlto")}</p>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Resp. Bajo
+                      {t("umbrales.fields.respBajo")}
                     </label>
                     <div style={{ position: "relative" }}>
                       <input
@@ -753,7 +755,7 @@ export default function UmbralesClient() {
                       />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>bpm</span>
                     </div>
-                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Frecuencia respiratoria baja</p>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.respBajo")}</p>
                   </div>
                 </div>
               </div>
@@ -770,12 +772,12 @@ export default function UmbralesClient() {
                   paddingBottom: "0.375rem",
                   borderBottom: "1px solid var(--color-border)",
                 }}>
-                  Umbrales de filtro
+                  {t("umbrales.sections.filtro")}
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div className="umbrales-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Filtro Alto (atollo critico)
+                      {t("umbrales.fields.filtrAltoLabel")}
                     </label>
                     <div style={{ position: "relative" }}>
                       <input
@@ -789,11 +791,11 @@ export default function UmbralesClient() {
                       />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
                     </div>
-                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Presion bajo la cual se detecta atollo critico</p>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.filtrAlto")}</p>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Filtro Bajo (atollo medio)
+                      {t("umbrales.fields.filtrBajoLabel")}
                     </label>
                     <div style={{ position: "relative" }}>
                       <input
@@ -807,7 +809,7 @@ export default function UmbralesClient() {
                       />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
                     </div>
-                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Presion bajo la cual se detecta atollo medio</p>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.filtrBajo")}</p>
                   </div>
                 </div>
               </div>
@@ -824,12 +826,12 @@ export default function UmbralesClient() {
                   paddingBottom: "0.375rem",
                   borderBottom: "1px solid var(--color-border)",
                 }}>
-                  Umbrales de bateria
+                  {t("umbrales.sections.bateria")}
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+                <div className="umbrales-form-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Bat. Alto (critico)
+                      {t("umbrales.fields.bateAltoLabel")}
                     </label>
                     <div style={{ position: "relative" }}>
                       <input
@@ -843,11 +845,11 @@ export default function UmbralesClient() {
                       />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
-                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Nivel de bateria critico</p>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.bateAlto")}</p>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Bat. Medio (alerta)
+                      {t("umbrales.fields.bateMedioLabel")}
                     </label>
                     <div style={{ position: "relative" }}>
                       <input
@@ -861,11 +863,11 @@ export default function UmbralesClient() {
                       />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
-                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Nivel de bateria en alerta</p>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.bateMedio")}</p>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      Bat. Bajo
+                      {t("umbrales.fields.bateBajo")}
                     </label>
                     <div style={{ position: "relative" }}>
                       <input
@@ -879,7 +881,7 @@ export default function UmbralesClient() {
                       />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
-                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Nivel de bateria bajo</p>
+                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.bateBajo")}</p>
                   </div>
                 </div>
               </div>
@@ -896,11 +898,11 @@ export default function UmbralesClient() {
                   paddingBottom: "0.375rem",
                   borderBottom: "1px solid var(--color-border)",
                 }}>
-                  Ajuste de respirador
+                  {t("umbrales.sections.ajuste")}
                 </p>
                 <div>
                   <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                    Umbral de ajuste
+                    {t("umbrales.fields.ajusteUmbral")}
                   </label>
                   <div style={{ position: "relative" }}>
                     <input
@@ -914,25 +916,69 @@ export default function UmbralesClient() {
                     />
                     <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
                   </div>
-                  <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>Presion sobre la cual el respirador se considera desajustado</p>
+                  <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.ajuste")}</p>
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
+              <div className="umbrales-modal-actions" style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
                 <button type="button" onClick={() => setShowForm(false)} className="btn-secondary" style={{ flex: 1 }}>
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button type="button" onClick={fillDefaults} className="btn-secondary" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.375rem" }}>
-                  <RotateCcw size={14} /> Valores por defecto
+                  <RotateCcw size={14} /> {t("umbrales.defaultValuesBtn")}
                 </button>
                 <button className="btn-primary" type="submit" style={{ flex: 1 }}>
-                  {editando ? "Actualizar" : "Crear"}
+                  {editando ? t("common.update") : t("common.create")}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 1024px) {
+          .umbrales-table-wrap {
+            overflow-x: auto !important;
+          }
+          .umbrales-form-grid-3 {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .umbrales-header {
+            flex-wrap: wrap !important;
+            gap: 0.75rem !important;
+            margin-bottom: 1rem !important;
+          }
+          .umbrales-title {
+            font-size: 1.25rem !important;
+          }
+          .umbrales-header-actions {
+            width: 100% !important;
+            flex-wrap: wrap !important;
+          }
+          .umbrales-table-wrap {
+            overflow-x: auto !important;
+          }
+          .umbrales-form-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+          .umbrales-form-grid-3 {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+          .modal-umbrales {
+            max-width: 95vw !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+            padding: 1rem !important;
+          }
+          .umbrales-modal-actions {
+            flex-direction: column !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,0 +1,46 @@
+name: Deploy frontend (main)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Evita que dos deploys se pisen; nunca cancela uno en curso.
+concurrency:
+  group: deploy-frontend-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    # docker compose interpola estos ${VAR} en docker-compose.yml.
+    # Vienen de los Secrets del repo (Settings -> Secrets -> Actions).
+    env:
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+    steps:
+      - name: Sync + build + up
+        working-directory: /home/cmpc/deploy/smarttrompa/smarttrompa
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          docker compose up -d --build
+
+      - name: Healthcheck frontend
+        working-directory: /home/cmpc/deploy/smarttrompa/smarttrompa
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsSL "http://localhost:10801" >/dev/null; then
+              echo "Frontend healthy"
+              exit 0
+            fi
+            echo "Intento $i — esperando 10s..."
+            sleep 10
+          done
+          echo "Frontend NO respondio. Logs:"
+          docker compose logs --tail=80
+          exit 1
+
+      - name: Limpiar imagenes viejas
+        if: always()
+        run: docker image prune -f

@@ -1,0 +1,14 @@
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        # URL pública del backend — se hornea en el bundle del navegador.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_MOCK_MODE: "false"
+    ports:
+      - "10801:3000"
+    environment:
+      # Debe coincidir con el JWT_SECRET del backend.
+      JWT_SECRET: ${JWT_SECRET}
+    restart: unless-stopped

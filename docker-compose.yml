@@ -5,7 +5,9 @@ services:
       args:
         # URL pública del backend — se hornea en el bundle del navegador.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-        NEXT_PUBLIC_MOCK_MODE: "false"
+        # TEMPORAL: mock mode para desplegar el frontend sin backend.
+        # Volver a "false" y definir el secret NEXT_PUBLIC_API_URL al integrar el backend.
+        NEXT_PUBLIC_MOCK_MODE: "true"
     ports:
       - "10801:3000"
     environment:

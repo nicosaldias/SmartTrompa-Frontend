@@ -6,6 +6,8 @@ import { trabajadorEndpoints } from "@/api/endpoints";
 import { MOCK_TRABAJADORES } from "@/api/mock-data";
 
 const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
+// Dominio compartido entre subdominios (front rfs.* ↔ back udec.*). Vacío en local.
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
 
 export async function loginAction(rut: string, password: string) {
   if (MOCK_MODE) {
@@ -26,9 +28,9 @@ export async function loginAction(rut: string, password: string) {
 
   // Limpiar cookies residuales antes de intentar login
   const cookieStorePre = await cookies();
-  cookieStorePre.delete("accessToken");
-  cookieStorePre.delete("refreshToken");
-  cookieStorePre.delete("st_user");
+  cookieStorePre.delete({ name: "accessToken", path: "/", domain: COOKIE_DOMAIN });
+  cookieStorePre.delete({ name: "refreshToken", path: "/", domain: COOKIE_DOMAIN });
+  cookieStorePre.delete({ name: "st_user", path: "/", domain: COOKIE_DOMAIN });
 
   let res: Response;
   try {
@@ -63,6 +65,7 @@ export async function loginAction(rut: string, password: string) {
         secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 15,
         path: "/",
+        domain: COOKIE_DOMAIN,
       });
     }
 
@@ -73,6 +76,7 @@ export async function loginAction(rut: string, password: string) {
         secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 24 * 7,
         path: "/",
+        domain: COOKIE_DOMAIN,
       });
     }
   }
@@ -111,7 +115,7 @@ export async function loginAction(rut: string, password: string) {
       apellidoPaterno: data.apellidoPaterno,
       cargo: data.cargo,
     }),
-    { path: "/", maxAge: 60 * 60 * 24 * 7 }
+    { path: "/", maxAge: 60 * 60 * 24 * 7, domain: COOKIE_DOMAIN }
   );
 
   return { success: true, cargo: data.cargo };
@@ -138,9 +142,9 @@ export async function logoutAction() {
   }
 
   const cookieStore = await cookies();
-  cookieStore.delete("accessToken");
-  cookieStore.delete("refreshToken");
-  cookieStore.delete("st_user");
+  cookieStore.delete({ name: "accessToken", path: "/", domain: COOKIE_DOMAIN });
+  cookieStore.delete({ name: "refreshToken", path: "/", domain: COOKIE_DOMAIN });
+  cookieStore.delete({ name: "st_user", path: "/", domain: COOKIE_DOMAIN });
   redirect("/login");
 }
 
@@ -233,6 +237,7 @@ export async function refreshTokensAction() {
         secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 15,
         path: "/",
+        domain: COOKIE_DOMAIN,
       });
     }
 
@@ -243,6 +248,7 @@ export async function refreshTokensAction() {
         secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 24 * 7,
         path: "/",
+        domain: COOKIE_DOMAIN,
       });
     }
   }

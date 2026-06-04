@@ -12,4 +12,7 @@ services:
     environment:
       # Debe coincidir con el JWT_SECRET del backend.
       JWT_SECRET: ${JWT_SECRET}
+      # Dominio raíz compartido para que la cookie viaje entre subdominios
+      # (rfs.c4i-udec.cl ↔ udec.c4i-udec.cl). En local queda sin definir → host-only.
+      COOKIE_DOMAIN: ".c4i-udec.cl"
     restart: unless-stopped

@@ -8,6 +8,8 @@ if (!API_BASE_URL && process.env.NEXT_PUBLIC_MOCK_MODE !== 'true') {
   throw new Error("NEXT_PUBLIC_API_URL no está definida (requerida fuera de MOCK_MODE)");
 }
 const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
+// Dominio compartido entre subdominios (front rfs.* ↔ back udec.*). Vacío en local.
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
 
 async function verifyToken(token: string, secret: string): Promise<boolean> {
   try {
@@ -40,6 +42,7 @@ async function attemptRefresh(
           secure: process.env.NODE_ENV === "production",
           maxAge: 60 * 15,
           path: "/",
+          domain: COOKIE_DOMAIN,
         });
       }
       const refreshMatch = cookieStr.match(/refreshToken=([^;]+)/);
@@ -49,6 +52,7 @@ async function attemptRefresh(
           secure: process.env.NODE_ENV === "production",
           maxAge: 60 * 60 * 24 * 7,
           path: "/",
+          domain: COOKIE_DOMAIN,
         });
       }
     }
@@ -60,9 +64,9 @@ async function attemptRefresh(
 
 function clearSessionAndRedirectToLogin(request: NextRequest): NextResponse {
   const response = NextResponse.redirect(new URL("/login", request.url));
-  response.cookies.delete("accessToken");
-  response.cookies.delete("refreshToken");
-  response.cookies.delete("st_user");
+  response.cookies.delete({ name: "accessToken", path: "/", domain: COOKIE_DOMAIN });
+  response.cookies.delete({ name: "refreshToken", path: "/", domain: COOKIE_DOMAIN });
+  response.cookies.delete({ name: "st_user", path: "/", domain: COOKIE_DOMAIN });
   return response;
 }
 

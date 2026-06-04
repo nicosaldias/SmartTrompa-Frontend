@@ -5,9 +5,8 @@ services:
       args:
         # URL pública del backend — se hornea en el bundle del navegador.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-        # TEMPORAL: mock mode para desplegar el frontend sin backend.
-        # Volver a "false" y definir el secret NEXT_PUBLIC_API_URL al integrar el backend.
-        NEXT_PUBLIC_MOCK_MODE: "true"
+        # Backend real integrado (https://udec.c4i-udec.cl:18091).
+        NEXT_PUBLIC_MOCK_MODE: "false"
     ports:
       - "10801:3000"
     environment:

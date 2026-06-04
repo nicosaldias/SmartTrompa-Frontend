@@ -131,7 +131,11 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
       return JSON.parse(text) as T;
     }
 
-    // Refresh failed — throw to trigger login redirect
+    // Refresh falló — sesión realmente expirada.
+    // En el navegador, forzar la salida al login para no quedar navegando con una sesión muerta.
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
     throw new Error('Sesión expirada. Inicie sesión nuevamente.');
   }
 

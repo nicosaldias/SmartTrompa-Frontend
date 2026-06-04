@@ -63,7 +63,7 @@ export async function loginAction(rut: string, password: string) {
       cookieStore.set("accessToken", accessMatch[1], {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 15,
+        maxAge: 60 * 60 * 8,
         path: "/",
         domain: COOKIE_DOMAIN,
       });
@@ -90,7 +90,7 @@ export async function loginAction(rut: string, password: string) {
         cookieStore.set("accessToken", accessMatch[1], {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          maxAge: 60 * 15,
+          maxAge: 60 * 60 * 8,
           path: "/",
         });
       }
@@ -235,7 +235,7 @@ export async function refreshTokensAction() {
       cookieStore.set("accessToken", accessMatch[1], {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 15,
+        maxAge: 60 * 60 * 8,
         path: "/",
         domain: COOKIE_DOMAIN,
       });

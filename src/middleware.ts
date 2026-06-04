@@ -40,7 +40,7 @@ async function attemptRefresh(
         response.cookies.set("accessToken", accessMatch[1], {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          maxAge: 60 * 15,
+          maxAge: 60 * 60 * 8,
           path: "/",
           domain: COOKIE_DOMAIN,
         });

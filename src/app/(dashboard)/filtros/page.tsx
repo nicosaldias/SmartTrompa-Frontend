@@ -8,13 +8,10 @@ export const metadata = { title: "Filtros y Respiradores - SIMOR" };
 export default async function FiltrosPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
-  try {
-    const [filtros, respiradores] = await Promise.all([
-      api.tipoFiltros.listWithImages(cookieHeader),
-      api.tipoRespiradores.listWithImages(cookieHeader),
-    ]);
-    return <FiltrosClient initialFiltros={filtros} initialRespiradores={respiradores} />;
-  } catch {
-    redirect("/login");
-  }
+
+  const [filtros, respiradores] = await Promise.all([
+    api.tipoFiltros.listWithImages(cookieHeader),
+    api.tipoRespiradores.listWithImages(cookieHeader),
+  ]);
+  return <FiltrosClient initialFiltros={filtros} initialRespiradores={respiradores} />;
 }

@@ -8,10 +8,7 @@ export const metadata = { title: "Trabajadores - SIMOR" };
 export default async function TrabajadoresPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
-  try {
-    const pageData = await api.trabajadores.listPaged(0, 20, cookieHeader);
-    return <TrabajadoresClient initialPage={pageData} />;
-  } catch {
-    redirect("/login");
-  }
+
+  const pageData = await api.trabajadores.listPaged(0, 20, cookieHeader);
+  return <TrabajadoresClient initialPage={pageData} />;
 }

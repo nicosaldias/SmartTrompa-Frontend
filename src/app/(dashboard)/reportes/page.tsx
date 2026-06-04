@@ -9,27 +9,23 @@ export default async function ReportesPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
 
-  try {
-    const [alertasActivas, filtrosProximos, trabajadores] = await Promise.all([
-      api.alertas.activas(cookieHeader),
-      api.filterLifecycle.proximosVencer(cookieHeader),
-      api.trabajadores.list(cookieHeader),
-    ]);
+  const [alertasActivas, filtrosProximos, trabajadores] = await Promise.all([
+    api.alertas.activas(cookieHeader),
+    api.filterLifecycle.proximosVencer(cookieHeader),
+    api.trabajadores.list(cookieHeader),
+  ]);
 
-    // Filtrar supervisores (cargo Supervisor o Administrador)
-    const supervisores = trabajadores.filter(
-      (t) => t.cargo === "Supervisor" || t.cargo === "Administrador"
-    );
+  // Filtrar supervisores (cargo Supervisor o Administrador)
+  const supervisores = trabajadores.filter(
+    (t) => t.cargo === "Supervisor" || t.cargo === "Administrador"
+  );
 
-    return (
-      <ReportesClient
-        alertasActivasCount={alertasActivas.length}
-        filtrosProximosCount={filtrosProximos.length}
-        supervisores={supervisores}
-        trabajadores={trabajadores}
-      />
-    );
-  } catch {
-    redirect("/login");
-  }
+  return (
+    <ReportesClient
+      alertasActivasCount={alertasActivas.length}
+      filtrosProximosCount={filtrosProximos.length}
+      supervisores={supervisores}
+      trabajadores={trabajadores}
+    />
+  );
 }

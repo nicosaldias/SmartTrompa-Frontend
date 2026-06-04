@@ -9,10 +9,6 @@ export default async function VidaUtilFiltrosPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
 
-  try {
-    const estadoFiltros = await api.filterLifecycle.estado(cookieHeader);
-    return <VidaUtilFiltrosClient initialData={estadoFiltros} />;
-  } catch {
-    redirect("/login");
-  }
+  const estadoFiltros = await api.filterLifecycle.estado(cookieHeader);
+  return <VidaUtilFiltrosClient initialData={estadoFiltros} />;
 }

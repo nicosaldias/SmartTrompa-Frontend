@@ -8,10 +8,7 @@ export const metadata = { title: "Historial de Alertas - SIMOR" };
 export default async function HistorialAlertasPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
-  try {
-    const pageData = await api.alertas.listPaged(0, 20, {}, cookieHeader);
-    return <HistorialAlertasClient initialPage={pageData} />;
-  } catch {
-    redirect("/login");
-  }
+
+  const pageData = await api.alertas.listPaged(0, 20, {}, cookieHeader);
+  return <HistorialAlertasClient initialPage={pageData} />;
 }

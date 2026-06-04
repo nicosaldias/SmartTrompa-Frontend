@@ -155,8 +155,15 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
 
 export const api = {
   trabajadores: {
-    list: (cookieHeader?: string) =>
-      request<Trabajador[]>(trabajadorEndpoints.all(), { cookieHeader }),
+    list: async (cookieHeader?: string): Promise<Trabajador[]> => {
+      // El backend pagina /api/trabajador/ (devuelve Page<Trabajador>, no un array).
+      // Pedimos un tamaño amplio y devolvemos el contenido como array plano.
+      const page = await request<PageResponse<Trabajador>>(
+        `${trabajadorEndpoints.all()}?page=0&size=1000`,
+        { cookieHeader }
+      );
+      return page.content;
+    },
     listPaged: (page: number = 0, size: number = 20, cookieHeader?: string) =>
       request<PageResponse<Trabajador>>(
         `${trabajadorEndpoints.all()}?page=${page}&size=${size}`,

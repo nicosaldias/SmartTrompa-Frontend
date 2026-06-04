@@ -7,6 +7,7 @@ import Swal from "sweetalert2";
 import type { AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
 import { Search, ChevronDown, ChevronUp, X } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
+import { abrirCalendario } from "@/utils/datePicker";
 
 interface Props {
   initialPage: PageResponse<AlertaHistorial>;
@@ -227,9 +228,10 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
                 <input
                   type="datetime-local"
                   className="input-field"
-                  style={{ width: "100%" }}
+                  style={{ width: "100%", cursor: "pointer" }}
                   value={fechaDesde}
                   onChange={(e) => setFechaDesde(e.target.value)}
+                  onClick={abrirCalendario}
                 />
               </div>
 
@@ -241,9 +243,10 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
                 <input
                   type="datetime-local"
                   className="input-field"
-                  style={{ width: "100%" }}
+                  style={{ width: "100%", cursor: "pointer" }}
                   value={fechaHasta}
                   onChange={(e) => setFechaHasta(e.target.value)}
+                  onClick={abrirCalendario}
                 />
               </div>
 

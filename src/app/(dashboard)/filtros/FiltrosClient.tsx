@@ -6,6 +6,7 @@ import { TipoFiltro, TipoRespirador } from "@/types";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Image as ImageIcon, Upload } from "lucide-react";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
+import { abrirCalendario } from "@/utils/datePicker";
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const pct = current / max;
@@ -722,6 +723,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                       type="date"
                       value={form.fechaHomologacion}
                       onChange={(e) => setForm({ ...form, fechaHomologacion: e.target.value })}
+                      onClick={abrirCalendario}
+                      style={{ cursor: "pointer" }}
                     />
                   </div>
 

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/api/client";
-import type { Trabajador } from "@/types";
+import type { Trabajador, JornadaTrabajo } from "@/types";
 import { FileText, Download, Calendar, AlertTriangle, Filter, User, Hash, Users } from "lucide-react";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
+import { abrirCalendario } from "@/utils/datePicker";
 
 interface Props {
   alertasActivasCount: number;
@@ -68,7 +69,39 @@ export default function ReportesClient({
   const defaultDesde = formatDateTimeForInput(lastWeek, "00:00");
   const defaultHasta = formatDateTimeForInput(today, "23:59");
 
+  // Tab Jornada: el usuario elige trabajador → jornada (ya no escribe un ID).
+  const [rutJornadaTrabajador, setRutJornadaTrabajador] = useState("");
+  const [jornadasDisponibles, setJornadasDisponibles] = useState<JornadaTrabajo[]>([]);
+  const [loadingJornadas, setLoadingJornadas] = useState(false);
   const [idJornada, setIdJornada] = useState("");
+
+  useEffect(() => {
+    if (!rutJornadaTrabajador) {
+      setJornadasDisponibles([]);
+      setIdJornada("");
+      return;
+    }
+    let cancelado = false;
+    setLoadingJornadas(true);
+    setIdJornada("");
+    api.jornadas
+      .byUsuario(rutJornadaTrabajador)
+      .then((js) => {
+        if (cancelado) return;
+        // Más recientes primero
+        const ordenadas = [...js].sort((a, b) => (a.inicio < b.inicio ? 1 : -1));
+        setJornadasDisponibles(ordenadas);
+      })
+      .catch(() => {
+        if (!cancelado) setJornadasDisponibles([]);
+      })
+      .finally(() => {
+        if (!cancelado) setLoadingJornadas(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [rutJornadaTrabajador]);
 
   const [rutSupervisor, setRutSupervisor] = useState("");
   const [desdeCuadrilla, setDesdeCuadrilla] = useState(defaultDesde);
@@ -106,10 +139,22 @@ export default function ReportesClient({
     }
   }
 
+  function labelJornada(j: JornadaTrabajo): string {
+    const f = new Date(j.inicio);
+    const dd = String(f.getDate()).padStart(2, "0");
+    const mm = String(f.getMonth() + 1).padStart(2, "0");
+    const hh = String(f.getHours()).padStart(2, "0");
+    const min = String(f.getMinutes()).padStart(2, "0");
+    const fecha = `${dd}/${mm}/${f.getFullYear()} ${hh}:${min}`;
+    const ubic = j.ubicacion?.nombre ? ` · ${j.ubicacion.nombre}` : "";
+    const estado = j.terminada ? "" : ` · ${t("reportes.jornadaEnCurso")}`;
+    return `#${j.id} · ${fecha}${ubic}${estado}`;
+  }
+
   async function handleJornada() {
     const id = Number(idJornada);
     if (!Number.isFinite(id) || id <= 0) {
-      alerta({ icon: "warning", title: t("reportes.invalidIdTitle"), text: t("reportes.invalidIdText") });
+      alerta({ icon: "warning", title: t("reportes.invalidIdTitle"), text: t("reportes.selectJornadaText") });
       return;
     }
     await descargar(() => api.reportes.jornada(id), `reporte_jornada_${id}.pdf`);
@@ -245,17 +290,46 @@ export default function ReportesClient({
             <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "1.25rem", lineHeight: 1.5 }}>
               {t("reportes.jornadaDescription")}
             </p>
-            <div style={{ marginBottom: "1.25rem" }}>
-              <label style={labelStyle}><Hash size={14} />{t("reportes.jornadaIdLabel")}</label>
-              <input
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={labelStyle}><User size={14} />{t("roles.worker")}</label>
+              <select
                 className="input-field"
-                type="number"
-                min={1}
+                value={rutJornadaTrabajador}
+                onChange={(e) => setRutJornadaTrabajador(e.target.value)}
+                style={{ width: "100%" }}
+              >
+                <option value="">{t("reportes.selectWorker")}</option>
+                {trabajadores.map((w) => (
+                  <option key={w.rut} value={w.rut}>
+                    {w.nombre} {w.apellidoPaterno} — {w.rut}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ marginBottom: "1.25rem" }}>
+              <label style={labelStyle}><Hash size={14} />{t("reportes.jornadaSelectLabel")}</label>
+              <select
+                className="input-field"
                 value={idJornada}
                 onChange={(e) => setIdJornada(e.target.value)}
-                placeholder={t("reportes.jornadaIdPlaceholder")}
-                style={{ width: "100%", maxWidth: 280 }}
-              />
+                disabled={!rutJornadaTrabajador || loadingJornadas}
+                style={{ width: "100%" }}
+              >
+                <option value="">
+                  {loadingJornadas
+                    ? t("reportes.loadingJornadas")
+                    : !rutJornadaTrabajador
+                      ? t("reportes.selectWorkerFirst")
+                      : jornadasDisponibles.length === 0
+                        ? t("reportes.noJornadas")
+                        : t("reportes.selectJornada")}
+                </option>
+                {jornadasDisponibles.map((j) => (
+                  <option key={j.id} value={String(j.id)}>
+                    {labelJornada(j)}
+                  </option>
+                ))}
+              </select>
             </div>
             <BotonGenerar onClick={handleJornada} loading={loading} t={t} />
           </div>
@@ -392,13 +466,13 @@ function RangoFechas({
         <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
           <Calendar size={14} />{t("reportes.fromLabel")}
         </label>
-        <input className="input-field" type="datetime-local" value={desde} onChange={(e) => setDesde(e.target.value)} style={{ width: "100%" }} />
+        <input className="input-field" type="datetime-local" value={desde} onChange={(e) => setDesde(e.target.value)} onClick={abrirCalendario} style={{ width: "100%", cursor: "pointer" }} />
       </div>
       <div className="reportes-form-col" style={{ flex: 1, minWidth: 220 }}>
         <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
           <Calendar size={14} />{t("reportes.toLabel")}
         </label>
-        <input className="input-field" type="datetime-local" value={hasta} onChange={(e) => setHasta(e.target.value)} style={{ width: "100%" }} />
+        <input className="input-field" type="datetime-local" value={hasta} onChange={(e) => setHasta(e.target.value)} onClick={abrirCalendario} style={{ width: "100%", cursor: "pointer" }} />
       </div>
     </div>
   );

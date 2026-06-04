@@ -7,6 +7,7 @@ import { Wind, Wrench, Activity, Battery, Wifi, Search, ChevronLeft, ChevronRigh
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
+import { abrirCalendario } from "@/utils/datePicker";
 
 const ALERTA_TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
 
@@ -427,6 +428,8 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             type="date"
             value={fechaDesde}
             onChange={(e) => setFechaDesde(e.target.value)}
+            onClick={abrirCalendario}
+            style={{ cursor: "pointer" }}
           />
         </div>
         <div style={{ flex: "0 1 160px" }}>
@@ -439,6 +442,8 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             type="date"
             value={fechaHasta}
             onChange={(e) => setFechaHasta(e.target.value)}
+            onClick={abrirCalendario}
+            style={{ cursor: "pointer" }}
           />
         </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>

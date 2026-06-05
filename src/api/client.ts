@@ -65,8 +65,11 @@ async function attemptRefresh(cookieHeader?: string): Promise<boolean> {
 async function mensajeError(res: Response, fallback: string): Promise<string> {
   try {
     const data = await res.clone().json();
-    if (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string') {
-      return data.message;
+    if (data && typeof data === 'object') {
+      // RFC7807 (ProblemDetail) trae el mensaje en `detail`; otros endpoints en `message`.
+      const msg = (data as { detail?: unknown; message?: unknown }).detail
+        ?? (data as { message?: unknown }).message;
+      if (typeof msg === 'string') return msg;
     }
   } catch {
     // body no es JSON
@@ -119,7 +122,7 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
 
       if (!retryRes.ok) {
         const errorData = await retryRes.json().catch(() => ({ message: 'Error desconocido' }));
-        throw new Error(errorData.message || errorData.error || `Request failed with status ${retryRes.status}`);
+        throw new Error(errorData.detail || errorData.message || errorData.error || `Request failed with status ${retryRes.status}`);
       }
 
       if (retryRes.status === 204) {
@@ -141,7 +144,7 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({ message: 'Error desconocido' }));
-    throw new Error(errorData.message || errorData.error || `Request failed with status ${res.status}`);
+    throw new Error(errorData.detail || errorData.message || errorData.error || `Request failed with status ${res.status}`);
   }
 
   if (res.status === 204) {

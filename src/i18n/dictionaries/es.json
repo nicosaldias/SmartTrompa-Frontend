@@ -357,6 +357,8 @@
     "nivelOk": "OK",
     "nivelAlerta": "ALERTA",
     "nivelCritico": "CRITICO",
+    "estadoAnomalo": "ANÓMALO",
+    "estadoDesajustado": "DESAJUSTADO",
     "tipoRespiratoria": "Respiratoria",
     "tipoAjuste": "Ajuste",
     "tipoFiltro": "Filtro",

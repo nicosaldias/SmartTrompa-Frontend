@@ -357,6 +357,8 @@
     "nivelOk": "OK",
     "nivelAlerta": "WARNING",
     "nivelCritico": "CRITICAL",
+    "estadoAnomalo": "ABNORMAL",
+    "estadoDesajustado": "MISADJUSTED",
     "tipoRespiratoria": "Respiratory",
     "tipoAjuste": "Fit",
     "tipoFiltro": "Filter",

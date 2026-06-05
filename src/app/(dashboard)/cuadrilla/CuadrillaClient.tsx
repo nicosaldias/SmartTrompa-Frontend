@@ -5,7 +5,7 @@ import api from "@/api/client";
 import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAlerta, MedicionesAmbientales, Ajustes } from "@/types";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BINARY_ALERT_TYPES } from "@/types";
-import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime } from "@/utils/sensorMappings";
+import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime, DEFAULT_THRESHOLDS } from "@/utils/sensorMappings";
 import { fmtNum } from "@/utils/format";
 import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
@@ -71,6 +71,27 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     if (nivel === "OK") return t("cuadrilla.estadoNormal");
     if (nivel === "ALERTA") return t("cuadrilla.nivelAlerta");
     return t("cuadrilla.nivelCritico");
+  };
+
+  // Estado por variable con etiquetas especificas:
+  // - AJUSTE: binario OK / Desajustado (rojo)
+  // - RESPIRATORIA: Normal / Anomalo (+ flecha ↑ si la frecuencia esta alta, ↓ si esta baja)
+  // - FILTRO/BATERIA/DESCONEXION: OK / Alerta / Critico (sin cambio)
+  const estadoVariable = (
+    tipo: TipoAlerta,
+    nivel: NivelAlerta,
+    medicion?: MedicionesAmbientales | null
+  ): string => {
+    if (tipo === "AJUSTE") {
+      return nivel === "OK" ? t("cuadrilla.nivelOk") : t("cuadrilla.estadoDesajustado");
+    }
+    if (tipo === "RESPIRATORIA") {
+      if (nivel === "OK") return t("cuadrilla.estadoNormal");
+      const fr = medicion?.frecuenciaRespiratoria;
+      const flecha = fr == null ? "" : fr > DEFAULT_THRESHOLDS.respAlto ? " ↑" : fr < DEFAULT_THRESHOLDS.respBajo ? " ↓" : "";
+      return t("cuadrilla.estadoAnomalo") + flecha;
+    }
+    return nivelLabel(nivel);
   };
 
   const poll = useCallback(async () => {
@@ -272,7 +293,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                 display: "flex", alignItems: "center", gap: "0.25rem",
                 padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
                 color: alertColor(nivel), fontSize: "0.65rem", fontWeight: 600,
-              }} title={`${TIPO_LABELS[tipo]}: ${nivelLabel(nivel)}`}>
+              }} title={`${TIPO_LABELS[tipo]}: ${estadoVariable(tipo, nivel, medicion)}`}>
                 {TIPO_ICONS[tipo]}
                 <span>{TIPO_LABELS[tipo]}</span>
               </div>
@@ -375,7 +396,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                   display: "flex", alignItems: "center", gap: "0.25rem",
                   padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
                   color: alertColor(nivel), fontSize: "0.65rem", fontWeight: 600,
-                }} title={`${TIPO_LABELS[tipo]}: ${nivelLabel(nivel)}`}>
+                }} title={`${TIPO_LABELS[tipo]}: ${estadoVariable(tipo, nivel, medicion)}`}>
                   {TIPO_ICONS[tipo]}
                   <span>{TIPO_LABELS[tipo]}</span>
                 </div>
@@ -611,7 +632,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                 gap: "0.25rem", color: alertColor(nivel), fontSize: "0.7rem", fontWeight: 700,
               }}>
                 {TIPO_ICONS[tipo]}
-                <span>{nivelLabel(nivel)}</span>
+                <span>{estadoVariable(tipo, nivel, medicion)}</span>
               </div>
             </td>
           );
@@ -736,7 +757,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                                   gap: "0.25rem", color: alertColor(nivel), fontSize: "0.7rem", fontWeight: 700,
                                 }}>
                                   {TIPO_ICONS[tipo]}
-                                  <span>{nivelLabel(nivel)}</span>
+                                  <span>{estadoVariable(tipo, nivel, medicion)}</span>
                                 </div>
                               </td>
                             );

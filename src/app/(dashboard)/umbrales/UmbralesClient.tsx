@@ -5,6 +5,7 @@ import { api } from "@/api/client";
 import { API_BASE_URL } from "@/api/endpoints";
 import type { AlertasUmbrales, Trabajador } from "@/types";
 import { DEFAULT_THRESHOLDS } from "@/utils/sensorMappings";
+import { fmtNum } from "@/utils/format";
 import Swal from "sweetalert2";
 import { Search, Plus, Pencil, Trash2, RotateCcw, Users, Check } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
@@ -416,7 +417,7 @@ export default function UmbralesClient() {
 
   function formatWithUnit(value: number | null | undefined, unit: string): string {
     if (value == null) return "—";
-    return unit === "%" ? `${value}%` : `${value} ${unit}`;
+    return unit === "%" ? `${fmtNum(value)}%` : `${fmtNum(value)} ${unit}`;
   }
 
   return (

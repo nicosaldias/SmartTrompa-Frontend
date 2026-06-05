@@ -18,6 +18,16 @@ function CharCounter({ current, max }: { current: number; max: number }) {
   );
 }
 
+/**
+ * El backend devuelve fechaHomologacion como timestamp ISO completo
+ * (ej. "2026-06-03T17:49:06.900-04:00"). El <input type="date"> exige
+ * "yyyy-MM-dd", así que tomamos solo la parte de fecha (ya en tz Santiago).
+ */
+function toDateInputValue(value?: string | null): string {
+  if (!value) return "";
+  return value.slice(0, 10);
+}
+
 interface Props {
   initialFiltros: TipoFiltro[];
   initialRespiradores: TipoRespirador[];
@@ -51,6 +61,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
 
 
   const currentItems = activeTab === "filtros" ? filtros : respiradores;
@@ -90,7 +101,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       marca: item.marca || "",
       modelo: item.modelo || "",
       descripcion: item.descripcion || "",
-      fechaHomologacion: item.fechaHomologacion || "",
+      fechaHomologacion: toDateInputValue(item.fechaHomologacion),
     });
     setImageFile(null);
     setImagePreview("");
@@ -155,6 +166,17 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       return;
     }
 
+    setIsSaving(true);
+    // Loader mientras se sube la imagen y se guarda (puede tardar varios segundos).
+    Swal.fire({
+      title: t("common.processing"),
+      text: t("common.processingText"),
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      background: "#1c2333",
+      color: "#e6edf3",
+      didOpen: () => Swal.showLoading(),
+    });
     try {
       const formData = new FormData();
       const jsonKey = modalTab === "filtros" ? "tipoFiltro" : "tipoRespirador";
@@ -162,7 +184,9 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
         marca: form.marca,
         modelo: form.modelo,
         descripcion: form.descripcion,
-        fechaHomologacion: form.fechaHomologacion || null,
+        // El backend guarda java.util.Date y serializa en tz America/Santiago.
+        // Anclamos a mediodía UTC para que la fecha calendario no se corra un día.
+        fechaHomologacion: form.fechaHomologacion ? `${form.fechaHomologacion}T12:00:00Z` : null,
         habilitado: editingItem ? editingItem.habilitado : true,
       };
       formData.append(jsonKey, JSON.stringify(payload));
@@ -202,6 +226,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
         background: "#1c2333",
         color: "#e6edf3",
       });
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -751,11 +777,12 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                   type="button"
                   onClick={() => setShowModal(false)}
                   style={{ flex: 1 }}
+                  disabled={isSaving}
                 >
                   {t("common.cancel")}
                 </button>
-                <button className="btn-primary" type="submit" style={{ flex: 1 }}>
-                  {t("common.save")}
+                <button className="btn-primary" type="submit" style={{ flex: 1 }} disabled={isSaving}>
+                  {isSaving ? t("common.saving") : t("common.save")}
                 </button>
               </div>
             </form>

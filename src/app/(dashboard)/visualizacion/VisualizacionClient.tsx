@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/api/client";
 import type { Trabajador, JornadaTrabajo, AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
 import { Wind, Wrench, Activity, Battery, Wifi, Search, ChevronLeft, ChevronRight } from "lucide-react";
@@ -31,6 +32,7 @@ interface WorkerAlertSummary {
   worstLevel: NivelAlerta;
   totalAlertas: number;
   jornadas: number;
+  jornadaList: JornadaTrabajo[];
 }
 
 interface Props {
@@ -39,6 +41,7 @@ interface Props {
 
 export default function VisualizacionClient({ trabajadores }: Props) {
   const t = useT();
+  const router = useRouter();
   const TIPO_LABELS: Record<TipoAlerta, string> = {
     RESPIRATORIA: t("visualizacion.tipo.respiratoria"),
     AJUSTE: t("visualizacion.tipo.ajuste"),
@@ -137,8 +140,13 @@ export default function VisualizacionClient({ trabajadores }: Props) {
     fetchData(0);
   }
 
-  // Build worker alert summaries from jornadas and alerts
-  const jornadas = jornadaPage?.content || [];
+  // Build worker alert summaries from jornadas and alerts.
+  // Este histórico es solo de jornadas TERMINADAS. El backend ya filtra terminada=true,
+  // pero filtramos defensivamente para no mostrar jornadas activas si la fuente cambia.
+  const jornadas = (jornadaPage?.content || []).filter((j) => j.terminada);
+
+  // Navega al detalle de una alerta (ruta existente: /historial-alertas/[id]).
+  const abrirAlerta = (id: number) => router.push(`/historial-alertas/${id}`);
 
   // Group jornadas by supervisor
   const jornadasPorSupervisor: Record<string, JornadaTrabajo[]> = {};
@@ -164,9 +172,11 @@ export default function VisualizacionClient({ trabajadores }: Props) {
           worstLevel: "OK",
           totalAlertas: 0,
           jornadas: 0,
+          jornadaList: [],
         };
       }
       workerMap[j.rutUsuario].jornadas++;
+      workerMap[j.rutUsuario].jornadaList.push(j);
     }
 
     // Count alerts per worker per type
@@ -219,6 +229,79 @@ export default function VisualizacionClient({ trabajadores }: Props) {
 
   function getTypeAlertCount(counts: { ok: number; alerta: number; critico: number }): number {
     return counts.alerta + counts.critico;
+  }
+
+  // Alertas asociadas a una jornada concreta: por jornadaId si existe; si no, por
+  // trabajador + ventana temporal de la jornada (inicio..fin).
+  function alertasDeJornada(j: JornadaTrabajo): AlertaHistorial[] {
+    const ini = new Date(j.inicio).getTime();
+    const fin = j.fin ? new Date(j.fin).getTime() : Date.now();
+    return alertas.filter((a) => {
+      if (a.rutTrabajador !== j.rutUsuario) return false;
+      if (a.jornadaId != null) return a.jornadaId === j.id;
+      const ts = new Date(a.timestamp).getTime();
+      return ts >= ini && ts <= fin;
+    });
+  }
+
+  // Barra temporal de una jornada terminada con sus alertas posicionadas por timestamp.
+  function renderJornadaTimeline(j: JornadaTrabajo) {
+    const ini = new Date(j.inicio).getTime();
+    const fin = j.fin ? new Date(j.fin).getTime() : ini;
+    const span = Math.max(fin - ini, 1); // evitar división por cero
+    const jAlertas = alertasDeJornada(j).filter((a) => a.nivel !== "OK");
+
+    const fmtHora = (iso: string) =>
+      new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    const fmtFecha = (iso: string) =>
+      new Date(iso).toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" });
+
+    return (
+      <div key={j.id} style={{ marginTop: "0.5rem" }}>
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          fontSize: "0.6rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem",
+        }}>
+          <span>{fmtFecha(j.inicio)} · {fmtHora(j.inicio)}</span>
+          <span>{j.fin ? fmtHora(j.fin) : "—"}</span>
+        </div>
+        <div style={{
+          position: "relative",
+          height: 10,
+          borderRadius: "9999px",
+          backgroundColor: "rgba(255,255,255,0.07)",
+          border: "1px solid var(--color-border)",
+        }}>
+          {jAlertas.map((a) => {
+            const ts = new Date(a.timestamp).getTime();
+            // Clamp 0..100 para alertas fuera del rango exacto de la jornada.
+            const pct = Math.min(100, Math.max(0, ((ts - ini) / span) * 100));
+            return (
+              <button
+                key={a.id}
+                onClick={(e) => { e.stopPropagation(); abrirAlerta(a.id); }}
+                title={`${a.tipo} · ${a.nivel} · ${fmtHora(a.timestamp)}${a.descripcion ? ` — ${a.descripcion}` : ""}`}
+                aria-label={`Ver alerta ${a.tipo} ${a.nivel}`}
+                style={{
+                  position: "absolute",
+                  left: `${pct}%`,
+                  top: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: 12,
+                  height: 12,
+                  borderRadius: "50%",
+                  backgroundColor: alertColor(a.nivel),
+                  border: "2px solid var(--color-bg-card, #1c2333)",
+                  cursor: "pointer",
+                  padding: 0,
+                  boxShadow: "0 0 0 1px rgba(0,0,0,0.4)",
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
   }
 
   // Render
@@ -309,6 +392,32 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             );
           })}
         </div>
+
+        {/* Línea de tiempo: una barra por jornada terminada con sus alertas posicionadas */}
+        {summary.jornadaList.length > 0 && (
+          <div style={{
+            borderTop: "1px solid var(--color-border)",
+            paddingTop: "0.5rem",
+            marginTop: "0.5rem",
+          }}>
+            <p style={{
+              fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.05em",
+              color: "var(--color-text-secondary)", marginBottom: "0.25rem",
+            }}>
+              {t("visualizacion.statShifts").toUpperCase()}
+            </p>
+            {summary.jornadaList
+              .slice()
+              .sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime())
+              .map((j) => renderJornadaTimeline(j))}
+            <p style={{
+              fontSize: "0.55rem", color: "var(--color-text-secondary)",
+              marginTop: "0.375rem", fontStyle: "italic",
+            }}>
+              Clic en un punto para ver el detalle de la alerta
+            </p>
+          </div>
+        )}
 
         {/* Total alerts footer */}
         {summary.totalAlertas > 0 && (

@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/api/client";
-import type { JornadaTrabajo, AlertaHistorial, TipoAlerta, MedicionesAmbientales } from "@/types";
-import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock, RefreshCw } from "lucide-react";
+import type { JornadaTrabajo, AlertaHistorial, TipoAlerta, NivelAlerta, MedicionesAmbientales } from "@/types";
+import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock, RefreshCw, ChevronRight } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 
 interface Props {
@@ -27,6 +27,25 @@ const TIPO_COLORS: Record<TipoAlerta, string> = {
   FILTRO: "#eab308",
   BATERIA: "#8b949e",
   DESCONEXION: "#8b5cf6",
+};
+
+// Severidad: orden y colores para badge de nivel
+const NIVEL_COLORS: Record<NivelAlerta, string> = {
+  CRITICO: "#ef4444",
+  ALERTA: "#f59e0b",
+  OK: "#22c55e",
+};
+
+const NIVEL_LABELS: Record<NivelAlerta, string> = {
+  CRITICO: "CRITICO",
+  ALERTA: "ALERTA",
+  OK: "OK",
+};
+
+const NIVEL_ORDER: Record<NivelAlerta, number> = {
+  CRITICO: 0,
+  ALERTA: 1,
+  OK: 2,
 };
 
 export default function ResumenClient({ initialJornadas, initialAlertas, initialMediciones }: Props) {
@@ -89,8 +108,13 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
 
   const formatTime = (timestamp: string): string => {
     const d = new Date(timestamp);
-    return d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+    return d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: "America/Santiago" });
   };
+
+  // Ordenar alertas por severidad (CRITICO -> ALERTA -> OK) antes de tomar las 5 ultimas
+  const alertasOrdenadas = [...alertas].sort(
+    (a, b) => (NIVEL_ORDER[a.nivel] ?? 99) - (NIVEL_ORDER[b.nivel] ?? 99)
+  );
 
   // --- Sensor KPI aggregations ---
   const medValues = Object.values(medicionesMap).filter((m): m is MedicionesAmbientales => m !== null);
@@ -205,15 +229,20 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
           const isActive = count > 0;
 
           return (
-            <div
+            <Link
               key={tipo}
-              className="card resumen-alert-card"
+              href={`/historial-alertas?tipo=${tipo}`}
+              className="card resumen-alert-card resumen-clickable-card"
               style={{
+                display: "block",
                 borderTop: `3px solid ${isActive ? color : "var(--color-border)"}`,
                 borderRadius: "0.75rem",
                 textAlign: "center",
                 padding: "1.75rem 1.25rem",
-                transition: "transform 0.15s",
+                transition: "transform 0.15s, box-shadow 0.15s",
+                textDecoration: "none",
+                color: "inherit",
+                cursor: "pointer",
               }}
             >
               <div
@@ -249,7 +278,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
               >
                 {loading ? "--" : String(count).padStart(2, "0")}
               </p>
-            </div>
+            </Link>
           );
         })}
       </div>
@@ -270,19 +299,25 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>
-            {alertas.slice(0, 5).map((a, idx) => {
+            {alertasOrdenadas.slice(0, 5).map((a, idx) => {
               const dotColor = TIPO_COLORS[a.tipo];
-              const isLast = idx === Math.min(alertas.length, 5) - 1;
+              const nivelColor = NIVEL_COLORS[a.nivel] ?? "#8b949e";
+              const isLast = idx === Math.min(alertasOrdenadas.length, 5) - 1;
 
               return (
-                <div
+                <Link
                   key={a.id}
+                  href={`/historial-alertas/${a.id}`}
+                  className="resumen-alert-row"
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: "0.75rem",
-                    padding: "0.625rem 0",
+                    padding: "0.625rem 0.5rem",
                     borderBottom: isLast ? "none" : "1px solid var(--color-border)",
+                    textDecoration: "none",
+                    color: "inherit",
+                    cursor: "pointer",
                   }}
                 >
                   {/* Colored dot */}
@@ -295,7 +330,24 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
                       flexShrink: 0,
                     }}
                   />
-                  <span style={{ fontSize: "0.85rem", flex: 1 }}>
+                  {/* Badge de severidad */}
+                  <span
+                    style={{
+                      fontSize: "0.6rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: nivelColor,
+                      backgroundColor: `${nivelColor}22`,
+                      border: `1px solid ${nivelColor}44`,
+                      borderRadius: "9999px",
+                      padding: "0.1rem 0.5rem",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {NIVEL_LABELS[a.nivel] ?? a.nivel}
+                  </span>
+                  <span style={{ fontSize: "0.85rem", flex: 1, minWidth: 0 }}>
                     <span style={{ fontWeight: 600 }}>{TIPO_LABELS[a.tipo]}</span>
                     <span style={{ color: "var(--color-text-secondary)" }}> — </span>
                     {a.trabajador?.nombre} {a.trabajador?.apellidoPaterno}
@@ -303,7 +355,8 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
                   <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", fontFamily: "monospace", flexShrink: 0 }}>
                     {formatTime(a.timestamp)}
                   </span>
-                </div>
+                  <ChevronRight size={14} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
+                </Link>
               );
             })}
           </div>
@@ -325,6 +378,73 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
             {t("resumen.viewFullHistory")}
           </Link>
         </div>
+      </div>
+
+      {/* Accesos rapidos */}
+      <h2 style={{
+        marginBottom: "1rem",
+        marginTop: "1.5rem",
+        fontSize: "0.8rem",
+        fontWeight: 700,
+        color: "var(--color-text-secondary)",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.375rem",
+        letterSpacing: "0.05em",
+        textTransform: "uppercase",
+      }}>
+        <Activity size={14} />
+        Accesos rapidos
+      </h2>
+
+      <div className="resumen-quick-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
+        {[
+          { href: "/cuadrilla", label: "Cuadrillas", desc: "Gestionar cuadrillas y trabajadores", icon: <Activity size={20} />, color: "#3b82f6" },
+          { href: "/vida-util-filtros", label: "Vida util de filtros", desc: "Estado y reemplazo de filtros", icon: <Wrench size={20} />, color: "#f59e0b" },
+          { href: "/historial-alertas", label: "Historial de alertas", desc: "Revisar todas las alertas", icon: <AlertTriangle size={20} />, color: "#ef4444" },
+        ].map((q) => (
+          <Link
+            key={q.href}
+            href={q.href}
+            className="card resumen-quick-card resumen-clickable-card"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.875rem",
+              padding: "1.25rem",
+              borderRadius: "0.75rem",
+              textDecoration: "none",
+              color: "inherit",
+              cursor: "pointer",
+              transition: "transform 0.15s, box-shadow 0.15s",
+            }}
+          >
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 44,
+                height: 44,
+                borderRadius: "0.625rem",
+                backgroundColor: `${q.color}22`,
+                color: q.color,
+                flexShrink: 0,
+              }}
+            >
+              {q.icon}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontWeight: 700, fontSize: "0.9rem", color: "var(--color-text-primary)" }}>
+                {q.label}
+              </span>
+              <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginTop: "0.125rem" }}>
+                {q.desc}
+              </span>
+            </span>
+            <ChevronRight size={16} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
+          </Link>
+        ))}
       </div>
 
       {/* Indicadores de Sensor */}
@@ -393,7 +513,22 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
       </div>
 
       <style>{`
+        .resumen-clickable-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        }
+        .resumen-alert-row {
+          border-radius: 0.375rem;
+          transition: background-color 0.15s;
+        }
+        .resumen-alert-row:hover {
+          background-color: rgba(139,148,158,0.08);
+        }
         @media (max-width: 1024px) {
+          .resumen-quick-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
           .resumen-alert-grid {
             grid-template-columns: repeat(3, 1fr) !important;
             gap: 0.75rem !important;

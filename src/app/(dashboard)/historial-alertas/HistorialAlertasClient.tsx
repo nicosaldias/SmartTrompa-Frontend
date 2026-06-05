@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/api/client";
 import Swal from "sweetalert2";
 import type { AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
@@ -30,8 +30,18 @@ function getInitials(nombre?: string, apellido?: string): string {
 }
 
 export default function HistorialAlertasClient({ initialPage }: Props) {
+  // useSearchParams requiere un boundary de Suspense en Next.js 15.
+  return (
+    <Suspense fallback={null}>
+      <HistorialAlertasInner initialPage={initialPage} />
+    </Suspense>
+  );
+}
+
+function HistorialAlertasInner({ initialPage }: Props) {
   const t = useT();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialPage.content);
   const [totalElements, setTotalElements] = useState(initialPage.totalElements);
   const [serverTotalPages, setServerTotalPages] = useState(initialPage.totalPages);
@@ -102,6 +112,53 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
 
   function handlePageChange(page: number) {
     fetchPage(page);
+  }
+
+  // Aplica el filtro por tipo recibido vía query param `?tipo=` (contrato con el dashboard).
+  // Valores esperados: enum TipoAlerta en MAYÚSCULAS (RESPIRATORIA|AJUSTE|FILTRO|BATERIA|DESCONEXION).
+  const queryTipoApplied = useRef(false);
+  useEffect(() => {
+    if (queryTipoApplied.current) return;
+    const raw = searchParams.get("tipo");
+    if (!raw) return;
+    const candidate = raw.toUpperCase() as TipoAlerta;
+    if (!TIPOS.includes(candidate)) return;
+
+    queryTipoApplied.current = true;
+    setTipo(candidate);
+    setFiltersOpen(true);
+
+    // Fetch del lado del servidor con el tipo forzado (el estado aún no está sincronizado).
+    setLoading(true);
+    api.alertas
+      .listPaged(0, PAGE_SIZE, { tipo: candidate })
+      .then((result) => {
+        setAlertas(result.content);
+        setTotalElements(result.totalElements);
+        setServerTotalPages(result.totalPages);
+        setCurrentPage(result.number);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [searchParams]);
+
+  function handleLimpiarTipoChip() {
+    setTipo("");
+    setCurrentPage(0);
+    setLoading(true);
+    const serverParams: Record<string, string> = {};
+    if (fechaDesde) serverParams.inicio = new Date(fechaDesde).toISOString();
+    if (fechaHasta) serverParams.fin = new Date(fechaHasta).toISOString();
+    api.alertas
+      .listPaged(0, PAGE_SIZE, serverParams)
+      .then((result) => {
+        setAlertas(result.content);
+        setTotalElements(result.totalElements);
+        setServerTotalPages(result.totalPages);
+        setCurrentPage(result.number);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }
 
   // Client-side filtering for text search and nivel (nivel is not a server param)
@@ -196,6 +253,48 @@ export default function HistorialAlertasClient({ initialPage }: Props) {
           {t("historialAlertas.subtitle")}
         </p>
       </div>
+
+      {/* Chip de filtro activo por tipo (proveniente del query param `?tipo=`) */}
+      {tipo && (
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>Filtrado por tipo:</span>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.375rem",
+              padding: "0.25rem 0.625rem",
+              borderRadius: "9999px",
+              backgroundColor: "rgba(249,115,22,0.12)",
+              border: "1px solid var(--color-accent)",
+              color: "var(--color-accent)",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              letterSpacing: "0.02em",
+            }}
+          >
+            {tipo}
+            <button
+              onClick={handleLimpiarTipoChip}
+              aria-label="Quitar filtro de tipo"
+              title="Quitar filtro de tipo"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                color: "var(--color-accent)",
+                lineHeight: 0,
+              }}
+            >
+              <X size={14} />
+            </button>
+          </span>
+        </div>
+      )}
 
       {/* Filter section — collapsible */}
       <div className="card" style={{ marginBottom: "1.5rem" }}>

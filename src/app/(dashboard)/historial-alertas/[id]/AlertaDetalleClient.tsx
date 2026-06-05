@@ -73,6 +73,62 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
     fetchAlerta();
   }, [fetchAlerta]);
 
+  const handleResolver = useCallback(async () => {
+    const { value: formValues, isConfirmed } = await Swal.fire({
+      title: "Resolver alerta",
+      html: `
+        <label style="display:block;text-align:left;font-size:0.8rem;color:#8b949e;margin-bottom:0.25rem;">Resolucion / Observacion</label>
+        <textarea id="swal-resolucion" class="swal2-textarea" placeholder="Describe la resolucion" style="margin:0 0 0.75rem 0;width:100%;min-height:80px;"></textarea>
+        <label style="display:block;text-align:left;font-size:0.8rem;color:#8b949e;margin-bottom:0.25rem;">Medidas tomadas</label>
+        <textarea id="swal-medidas" class="swal2-textarea" placeholder="Que medidas se tomaron" style="margin:0;width:100%;min-height:80px;"></textarea>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Resolver alerta",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#22c55e",
+      cancelButtonColor: "#6b7280",
+      background: "#1c2333",
+      color: "#e6edf3",
+      preConfirm: () => {
+        const resolucion = (document.getElementById("swal-resolucion") as HTMLTextAreaElement)?.value.trim() ?? "";
+        const medidasTomadas = (document.getElementById("swal-medidas") as HTMLTextAreaElement)?.value.trim() ?? "";
+        if (!resolucion) {
+          Swal.showValidationMessage("Ingresa la resolucion de la alerta");
+          return false;
+        }
+        return { resolucion, medidasTomadas };
+      },
+    });
+
+    if (!isConfirmed || !formValues) return;
+
+    try {
+      await api.alertas.resolver(alertaId, {
+        resolucion: formValues.resolucion,
+        medidasTomadas: formValues.medidasTomadas || undefined,
+      });
+      await fetchAlerta();
+      await Swal.fire({
+        icon: "success",
+        title: "Alerta resuelta",
+        text: "La alerta se marco como resuelta correctamente",
+        background: "#1c2333",
+        color: "#e6edf3",
+        confirmButtonColor: "#22c55e",
+      });
+    } catch {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo resolver la alerta. Intenta nuevamente.",
+        background: "#1c2333",
+        color: "#e6edf3",
+        confirmButtonColor: "#ef4444",
+      });
+    }
+  }, [alertaId, fetchAlerta]);
+
   if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
@@ -123,13 +179,40 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
       </button>
 
       {/* Header */}
-      <div style={{ marginBottom: "1.5rem" }} className="alerta-detalle-header">
-        <h1 className="alerta-detalle-title" style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
-          Detalle de Alerta #{alerta.id}
-        </h1>
-        <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-          Informacion de la alerta
-        </p>
+      <div
+        style={{ marginBottom: "1.5rem", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}
+        className="alerta-detalle-header"
+      >
+        <div>
+          <h1 className="alerta-detalle-title" style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
+            Detalle de Alerta #{alerta.id}
+          </h1>
+          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+            Informacion de la alerta
+          </p>
+        </div>
+        {alerta.activa && (
+          <button
+            onClick={handleResolver}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.5rem 1rem",
+              borderRadius: "0.5rem",
+              border: "1px solid rgba(34,197,94,0.4)",
+              backgroundColor: "rgba(34,197,94,0.15)",
+              color: "#22c55e",
+              fontSize: "0.85rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            <CheckCircle size={16} />
+            Resolver alerta
+          </button>
+        )}
       </div>
 
       {/* Alert info card */}

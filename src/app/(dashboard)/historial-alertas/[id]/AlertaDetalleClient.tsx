@@ -36,9 +36,9 @@ function nivelBadgeStyle(nivel: NivelAlerta): { bg: string; text: string } {
 
 function nivelLabel(nivel: NivelAlerta, tipo: TipoAlerta): string {
   if (BINARY_ALERT_TYPES.includes(tipo)) {
-    return nivel === "OK" ? "NORMAL" : "CRITICO";
+    return nivel === "OK" ? "NORMAL" : "CRÍTICO";
   }
-  return nivel;
+  return nivel === "CRITICO" ? "CRÍTICO" : nivel;
 }
 
 export default function AlertaDetalleClient({ alertaId }: Props) {
@@ -79,10 +79,10 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
     const { value: formValues, isConfirmed } = await Swal.fire({
       title: "Resolver alerta",
       html: `
-        <label style="display:block;text-align:left;font-size:0.8rem;color:#8b949e;margin-bottom:0.25rem;">Resolucion / Observacion</label>
-        <textarea id="swal-resolucion" class="swal2-textarea" placeholder="Describe la resolucion" style="margin:0 0 0.75rem 0;width:100%;min-height:80px;"></textarea>
+        <label style="display:block;text-align:left;font-size:0.8rem;color:#8b949e;margin-bottom:0.25rem;">Resolución / Observación</label>
+        <textarea id="swal-resolucion" class="swal2-textarea" placeholder="Describe la resolución" style="margin:0 0 0.75rem 0;width:100%;min-height:80px;"></textarea>
         <label style="display:block;text-align:left;font-size:0.8rem;color:#8b949e;margin-bottom:0.25rem;">Medidas tomadas</label>
-        <textarea id="swal-medidas" class="swal2-textarea" placeholder="Que medidas se tomaron" style="margin:0;width:100%;min-height:80px;"></textarea>
+        <textarea id="swal-medidas" class="swal2-textarea" placeholder="Qué medidas se tomaron" style="margin:0;width:100%;min-height:80px;"></textarea>
       `,
       focusConfirm: false,
       showCancelButton: true,
@@ -96,7 +96,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
         const resolucion = (document.getElementById("swal-resolucion") as HTMLTextAreaElement)?.value.trim() ?? "";
         const medidasTomadas = (document.getElementById("swal-medidas") as HTMLTextAreaElement)?.value.trim() ?? "";
         if (!resolucion) {
-          Swal.showValidationMessage("Ingresa la resolucion de la alerta");
+          Swal.showValidationMessage("Ingresa la resolución de la alerta");
           return false;
         }
         return { resolucion, medidasTomadas };
@@ -114,7 +114,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
       await Swal.fire({
         icon: "success",
         title: "Alerta resuelta",
-        text: "La alerta se marco como resuelta correctamente",
+        text: "La alerta se marcó como resuelta correctamente",
         background: "#1c2333",
         color: "#e6edf3",
         confirmButtonColor: "#22c55e",
@@ -154,7 +154,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
           <AlertTriangle size={48} style={{ color: "var(--color-text-secondary)", margin: "0 auto 1rem" }} />
           <p style={{ color: "var(--color-text-secondary)", fontSize: "1rem" }}>
-            No se encontro la alerta solicitada
+            No se encontró la alerta solicitada
           </p>
         </div>
       </div>
@@ -190,7 +190,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
             Detalle de Alerta #{alerta.id}
           </h1>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-            Informacion de la alerta
+            Información de la alerta
           </p>
         </div>
         {alerta.activa && (
@@ -349,7 +349,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
           {/* Fecha resolucion o No resuelta */}
           <div>
             <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-              Resolucion
+              Resolución
             </p>
             {alerta.activa ? (
               <p style={{ fontWeight: 600, fontSize: "0.9rem", color: "#f59e0b" }}>
@@ -374,7 +374,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
         {alerta.descripcion && (
           <div style={{ marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "1px solid var(--color-border)" }}>
             <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
-              Descripcion
+              Descripción
             </p>
             <p style={{ fontSize: "0.875rem", color: "var(--color-text-primary)", lineHeight: 1.6 }}>
               {alerta.descripcion}
@@ -393,7 +393,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
           >
             <h3 style={{ fontSize: "0.9rem", fontWeight: 700, color: "#22c55e", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <CheckCircle size={16} />
-              Informacion de resolucion
+              Información de resolución
             </h3>
             {alerta.resueltaPor && (
               <div style={{ marginBottom: "0.75rem" }}>
@@ -408,7 +408,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
             {alerta.resolucion && (
               <div style={{ marginBottom: "0.75rem" }}>
                 <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                  Observacion / Resolucion
+                  Observación / Resolución
                 </p>
                 <p style={{ fontSize: "0.875rem", color: "var(--color-text-primary)", lineHeight: 1.6 }}>
                   {alerta.resolucion}

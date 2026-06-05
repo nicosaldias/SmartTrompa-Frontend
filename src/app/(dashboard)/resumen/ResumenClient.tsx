@@ -394,13 +394,13 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
         textTransform: "uppercase",
       }}>
         <Activity size={14} />
-        Accesos rapidos
+        Accesos rápidos
       </h2>
 
       <div className="resumen-quick-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
         {[
           { href: "/cuadrilla", label: "Cuadrillas", desc: "Gestionar cuadrillas y trabajadores", icon: <Activity size={20} />, color: "#3b82f6" },
-          { href: "/vida-util-filtros", label: "Vida util de filtros", desc: "Estado y reemplazo de filtros", icon: <Wrench size={20} />, color: "#f59e0b" },
+          { href: "/vida-util-filtros", label: "Vida útil de filtros", desc: "Estado y reemplazo de filtros", icon: <Wrench size={20} />, color: "#f59e0b" },
           { href: "/historial-alertas", label: "Historial de alertas", desc: "Revisar todas las alertas", icon: <AlertTriangle size={20} />, color: "#ef4444" },
         ].map((q) => (
           <Link

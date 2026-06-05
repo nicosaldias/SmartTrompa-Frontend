@@ -57,7 +57,7 @@
     "resetSubmitting": "Enviando...",
     "resetSuccess": "Revisa tu correo para restablecer tu contraseña",
     "resetError": "Error: ",
-    "backToLogin": "Volver al login"
+    "backToLogin": "Volver al inicio de sesión"
   },
   "branding": {
     "appName": "SIMOR",
@@ -148,7 +148,7 @@
     "statFiltersExpiring": "Filtros por vencer",
     "statReportTypes": "Tipos de reporte",
     "jornadaHeading": "Reporte por jornada individual",
-    "jornadaDescription": "Detalle completo de una jornada específica: trabajador, supervisor, equipamiento, timeline de alertas y observaciones. Elija el trabajador y luego la jornada.",
+    "jornadaDescription": "Detalle completo de una jornada específica: trabajador, supervisor, equipamiento, cronología de alertas y observaciones. Elija el trabajador y luego la jornada.",
     "jornadaIdLabel": "ID de jornada",
     "jornadaIdPlaceholder": "Ej. 1234",
     "jornadaSelectLabel": "Jornada",
@@ -225,7 +225,7 @@
     "level": "Nivel",
     "clearFilters": "Limpiar filtros",
     "searching": "Buscando...",
-    "colTimestamp": "Timestamp",
+    "colTimestamp": "Fecha y hora",
     "colWorker": "Trabajador",
     "colType": "Tipo",
     "colLevel": "Nivel",
@@ -280,7 +280,7 @@
       },
       "resetPassword": {
         "q": "¿Cómo restablecer mi contraseña?",
-        "a": "En la pantalla de login, haz clic en '¿Olvidaste tu contraseña?' e ingresa tu correo para recibir un enlace de recuperación."
+        "a": "En la pantalla de inicio de sesión, haz clic en '¿Olvidaste tu contraseña?' e ingresa tu correo para recibir un enlace de recuperación."
       },
       "workerHistory": {
         "q": "¿Puedo ver el historial de alertas de un trabajador específico?",
@@ -356,7 +356,7 @@
     "estadoNormal": "NORMAL",
     "nivelOk": "OK",
     "nivelAlerta": "ALERTA",
-    "nivelCritico": "CRITICO",
+    "nivelCritico": "CRÍTICO",
     "estadoAnomalo": "ANÓMALO",
     "estadoDesajustado": "DESAJUSTADO",
     "tipoRespiratoria": "Respiratoria",

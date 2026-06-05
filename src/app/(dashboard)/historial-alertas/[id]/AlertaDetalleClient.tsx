@@ -7,6 +7,7 @@ import Swal from "sweetalert2";
 import { ArrowLeft, AlertTriangle, CheckCircle, Clock, User, Activity, Loader2 } from "lucide-react";
 import type { AlertaHistorial, TipoAlerta, NivelAlerta } from "@/types";
 import { BINARY_ALERT_TYPES } from "@/types";
+import { fmtNum } from "@/utils/format";
 
 interface Props {
   alertaId: number;
@@ -339,7 +340,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
                 Valor medido
               </p>
               <p style={{ fontWeight: 700, fontSize: "1.25rem", color: "var(--color-text-primary)" }}>
-                {alerta.valorMedido}
+                {fmtNum(alerta.valorMedido)}
               </p>
             </div>
           )}

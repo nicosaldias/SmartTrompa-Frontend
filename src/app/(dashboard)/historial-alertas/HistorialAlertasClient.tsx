@@ -8,6 +8,7 @@ import type { AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/t
 import { Search, ChevronDown, ChevronUp, X } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { abrirCalendario } from "@/utils/datePicker";
+import { formatValorAlerta } from "@/utils/sensorMappings";
 
 interface Props {
   initialPage: PageResponse<AlertaHistorial>;
@@ -436,6 +437,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
                   { key: "trabajador", label: t("historialAlertas.colWorker"), align: "left" as const },
                   { key: "tipo", label: t("historialAlertas.colType"), align: "center" as const },
                   { key: "nivel", label: t("historialAlertas.colLevel"), align: "center" as const },
+                  { key: "valor", label: t("historialAlertas.colValor"), align: "center" as const },
                   { key: "descripcion", label: t("historialAlertas.colDescription"), align: "center" as const },
                 ].map((h) => (
                   <th
@@ -457,13 +459,13 @@ function HistorialAlertasInner({ initialPage }: Props) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
+                  <td colSpan={6} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
                     {t("common.loading")}
                   </td>
                 </tr>
               ) : pageData.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
+                  <td colSpan={6} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
                     {t("historialAlertas.noAlertsMatch")}
                   </td>
                 </tr>
@@ -522,6 +524,11 @@ function HistorialAlertasInner({ initialPage }: Props) {
                         <span className={nivelBadgeClass(a.nivel)}>
                           {a.nivel}
                         </span>
+                      </td>
+
+                      {/* VALOR */}
+                      <td style={{ padding: "0.75rem 0.5rem", textAlign: "center", color: "var(--color-text-primary)", whiteSpace: "nowrap" }}>
+                        {formatValorAlerta(a.tipo, a.valorMedido)}
                       </td>
 
                       {/* DESCRIPCION */}

@@ -1,4 +1,6 @@
 // Mapeos y utilidades para datos de sensores — alineados con la app movil (Flutter BLE)
+import type { TipoAlerta } from "@/types";
+import { fmtNum } from "@/utils/format";
 
 // --- Nivel de Ajuste ---
 // La app movil calcula: presion minima > thFit → Desajustado, sino Ajustado
@@ -17,14 +19,14 @@ export function nivelAjusteColor(value?: number | null): string {
 
 // --- Nivel de Atollo (saturacion de filtro) ---
 // La app movil calcula: presion min > thClogLow → Bajo, >= thClogHigh → Medio, < thClogHigh → Alto
-export const NIVEL_ATOLLO_MAP = { 0: 'Bajo', 1: 'Medio', 2: 'Alto' } as const;
+export const NIVEL_ATOLLO_MAP = { 0: 'Baja', 1: 'Media', 2: 'Alta' } as const;
 export type NivelAtolloLabel = typeof NIVEL_ATOLLO_MAP[keyof typeof NIVEL_ATOLLO_MAP];
 
 export function interpretNivelAtollo(value?: number | null): string {
   if (value === undefined || value === null) return '--';
-  if (value === 0) return 'Bajo';
-  if (value === 1) return 'Medio';
-  return 'Alto';
+  if (value === 0) return 'Baja';
+  if (value === 1) return 'Media';
+  return 'Alta';
 }
 
 export function nivelAtolloColor(value?: number | null): string {
@@ -55,6 +57,20 @@ export const DEFAULT_THRESHOLDS = {
 // alrtBateAlto  ↔ bateAlto    — bateria critica
 // alrtBateMedio ↔ bateMedio   — bateria alerta
 // alrtBateBajo  ↔ bateBajo    — bateria baja
+
+// --- Valor + unidad por tipo de alerta ---
+// Solo frecuencia respiratoria (bpm) y bateria (%) tienen un valor medido con unidad.
+// Ajuste, filtro y desconexion son estados/eventos sin magnitud → no se muestra valor.
+export const VALOR_UNIDAD: Partial<Record<TipoAlerta, string>> = {
+  RESPIRATORIA: "bpm",
+  BATERIA: "%",
+};
+
+export function formatValorAlerta(tipo: TipoAlerta, valor?: number | null): string {
+  const unidad = VALOR_UNIDAD[tipo];
+  if (valor == null || !unidad) return "—";
+  return `${fmtNum(valor)} ${unidad}`;
+}
 
 // --- Formato de tiempo relativo ---
 export function formatRelativeTime(timestamp: string): string {

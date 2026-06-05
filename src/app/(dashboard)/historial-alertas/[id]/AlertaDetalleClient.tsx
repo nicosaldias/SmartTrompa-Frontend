@@ -8,6 +8,7 @@ import { ArrowLeft, AlertTriangle, CheckCircle, Clock, User, Activity, Loader2 }
 import type { AlertaHistorial, TipoAlerta, NivelAlerta } from "@/types";
 import { BINARY_ALERT_TYPES } from "@/types";
 import { fmtNum } from "@/utils/format";
+import { VALOR_UNIDAD } from "@/utils/sensorMappings";
 
 interface Props {
   alertaId: number;
@@ -334,13 +335,13 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
           </div>
 
           {/* Valor medido */}
-          {alerta.valorMedido != null && (
+          {alerta.valorMedido != null && VALOR_UNIDAD[alerta.tipo] && (
             <div>
               <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                 Valor medido
               </p>
               <p style={{ fontWeight: 700, fontSize: "1.25rem", color: "var(--color-text-primary)" }}>
-                {fmtNum(alerta.valorMedido)}
+                {fmtNum(alerta.valorMedido)} {VALOR_UNIDAD[alerta.tipo]}
               </p>
             </div>
           )}

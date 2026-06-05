@@ -35,10 +35,10 @@ describe("sensorMappings - nivelAjusteColor", () => {
 
 describe("sensorMappings - interpretNivelAtollo", () => {
   it.each([
-    [0, "Bajo"],
-    [1, "Medio"],
-    [2, "Alto"],
-    [99, "Alto"],
+    [0, "Baja"],
+    [1, "Media"],
+    [2, "Alta"],
+    [99, "Alta"],
   ])("interpreta nivel %s como '%s'", (input, expected) => {
     expect(interpretNivelAtollo(input)).toBe(expected);
   });

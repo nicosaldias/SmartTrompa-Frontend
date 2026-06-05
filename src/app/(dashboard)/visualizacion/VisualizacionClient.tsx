@@ -101,7 +101,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
           allAlertas = allAlertas.filter((a) => new Date(a.timestamp) >= desdeDate);
         }
         if (hasta) {
-          const hastaDate = new Date(hasta + "T23:59:59");
+          const hastaDate = new Date(hasta);
           allAlertas = allAlertas.filter((a) => new Date(a.timestamp) <= hastaDate);
         }
       }
@@ -527,28 +527,28 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             ))}
           </select>
         </div>
-        <div style={{ flex: "0 1 160px" }}>
+        <div style={{ flex: "0 1 220px" }}>
           <label style={{
             display: "block", fontSize: "0.75rem",
             color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
           }}>{t("historialAlertas.from")}</label>
           <input
             className="input-field"
-            type="date"
+            type="datetime-local"
             value={fechaDesde}
             onChange={(e) => setFechaDesde(e.target.value)}
             onClick={abrirCalendario}
             style={{ cursor: "pointer" }}
           />
         </div>
-        <div style={{ flex: "0 1 160px" }}>
+        <div style={{ flex: "0 1 220px" }}>
           <label style={{
             display: "block", fontSize: "0.75rem",
             color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
           }}>{t("historialAlertas.to")}</label>
           <input
             className="input-field"
-            type="date"
+            type="datetime-local"
             value={fechaHasta}
             onChange={(e) => setFechaHasta(e.target.value)}
             onClick={abrirCalendario}

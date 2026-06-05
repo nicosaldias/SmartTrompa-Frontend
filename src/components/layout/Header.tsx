@@ -18,6 +18,12 @@ const ROLE_KEYS: Record<string, TranslationKey> = {
   Trabajador: "roles.worker",
 };
 
+// Marca configurable (white-label). Sobrescribible en build con:
+//   NEXT_PUBLIC_BRAND_NAME — nombre de la empresa/institucion
+//   NEXT_PUBLIC_BRAND_LOGO — ruta del logo (archivo en public/, ej: /brand-logo.png)
+const BRAND_NAME = process.env.NEXT_PUBLIC_BRAND_NAME || "Compañía Minera Universidad de Concepción";
+const BRAND_LOGO = process.env.NEXT_PUBLIC_BRAND_LOGO || "/brand-logo.png";
+
 export default function Header() {
   const t = useT();
   const [user, setUser] = useState<{ nombre?: string; cargo?: string; rut?: string } | null>(null);
@@ -25,6 +31,7 @@ export default function Header() {
   const [alertasActivas, setAlertasActivas] = useState<number>(0);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [sessionWarning, setSessionWarning] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -94,17 +101,28 @@ export default function Header() {
         borderBottom: "1px solid var(--color-border)",
       }}
     >
-      <span
-        style={{
-          color: "var(--color-accent)",
-          fontSize: "0.7rem",
-          fontWeight: 700,
-          letterSpacing: "0.15em",
-          textTransform: "uppercase",
-        }}
-      >
-        {t("header.industrialCockpit")}
-      </span>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", minWidth: 0 }}>
+        {BRAND_LOGO && !logoError && (
+          <img
+            src={BRAND_LOGO}
+            alt={BRAND_NAME}
+            style={{ height: 38, width: "auto", maxWidth: 180, objectFit: "contain", flexShrink: 0 }}
+            onError={() => setLogoError(true)}
+          />
+        )}
+        <span
+          className="header-hide-mobile"
+          style={{
+            color: "var(--color-text-primary)",
+            fontSize: "0.9rem",
+            fontWeight: 700,
+            letterSpacing: "0.01em",
+            lineHeight: 1.15,
+          }}
+        >
+          {BRAND_NAME}
+        </span>
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
         {/* Filter lifecycle warning */}
         {filtrosEnRiesgo > 0 && (

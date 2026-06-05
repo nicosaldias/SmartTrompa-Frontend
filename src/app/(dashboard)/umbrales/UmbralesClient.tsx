@@ -2,11 +2,24 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { api } from "@/api/client";
+import { API_BASE_URL } from "@/api/endpoints";
 import type { AlertasUmbrales, Trabajador } from "@/types";
 import { DEFAULT_THRESHOLDS } from "@/utils/sensorMappings";
 import Swal from "sweetalert2";
 import { Search, Plus, Pencil, Trash2, RotateCcw, Users, Check } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
+
+function formatRut(value: string): string {
+  const clean = value.replace(/[^0-9kK]/g, "").toLowerCase();
+  if (clean.length <= 1) return clean;
+  const body = clean.slice(0, -1);
+  const dv = clean.slice(-1).toUpperCase();
+  return `${body.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}-${dv}`;
+}
+
+function getInitials(nombre: string, apellido: string): string {
+  return `${nombre.charAt(0)}${apellido.charAt(0)}`.toUpperCase();
+}
 
 export default function UmbralesClient() {
   const t = useT();
@@ -61,14 +74,23 @@ export default function UmbralesClient() {
     cargarDatos();
   }, []);
 
+  const trabajadorPorRut = useMemo(() => {
+    const map = new Map<string, Trabajador>();
+    for (const trab of trabajadores) map.set(trab.rut, trab);
+    return map;
+  }, [trabajadores]);
+
   const umbralesFiltrados = useMemo(() => {
     if (!busqueda) return umbrales;
     const q = busqueda.toLowerCase();
-    return umbrales.filter(
-      (u) =>
-        u.rutTrabajador?.toLowerCase().includes(q)
-    );
-  }, [umbrales, busqueda]);
+    return umbrales.filter((u) => {
+      const trab = u.rutTrabajador ? trabajadorPorRut.get(u.rutTrabajador) : undefined;
+      const nombre = trab
+        ? `${trab.nombre} ${trab.apellidoPaterno} ${trab.apellidoMaterno}`.toLowerCase()
+        : "";
+      return u.rutTrabajador?.toLowerCase().includes(q) || nombre.includes(q);
+    });
+  }, [umbrales, busqueda, trabajadorPorRut]);
 
   function abrirCrear() {
     setEditando(null);
@@ -464,15 +486,46 @@ export default function UmbralesClient() {
               </tr>
             </thead>
             <tbody>
-              {umbralesFiltrados.map((u) => (
+              {umbralesFiltrados.map((u) => {
+                const trab = u.rutTrabajador ? trabajadorPorRut.get(u.rutTrabajador) : undefined;
+                return (
                 <tr key={u.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
                   <td style={{ padding: "0.75rem 0.5rem" }}>
-                    <p style={{ fontWeight: 600 }}>
-                      {u.rutTrabajador || "—"}
-                    </p>
-                    <p style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)" }}>
-                      {u.rutTrabajador}
-                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      {trab?.tieneImagen ? (
+                        <img
+                          src={`${API_BASE_URL}/trabajador/${trab.rut}/imagen/`}
+                          alt=""
+                          style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "linear-gradient(135deg, #f97316, #ea580c)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "white",
+                            fontWeight: 700,
+                            fontSize: "0.85rem",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {trab ? getInitials(trab.nombre, trab.apellidoPaterno) : "—"}
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 600 }}>
+                          {trab ? `${trab.nombre} ${trab.apellidoPaterno} ${trab.apellidoMaterno}` : "—"}
+                        </div>
+                        <div style={{ color: "var(--color-text-secondary)", fontSize: "0.8rem", marginTop: "0.125rem" }}>
+                          {u.rutTrabajador ? formatRut(u.rutTrabajador) : "—"}
+                        </div>
+                      </div>
+                    </div>
                   </td>
                   {CAMPOS_UMBRAL.map((c) => (
                     <td key={c.key} style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
@@ -490,7 +543,8 @@ export default function UmbralesClient() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

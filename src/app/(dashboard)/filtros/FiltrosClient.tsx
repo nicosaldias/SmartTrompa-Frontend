@@ -72,19 +72,6 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
     return { activos, inactivos };
   }, [currentItems]);
 
-  async function refreshLists() {
-    try {
-      const [newFiltros, newRespiradores] = await Promise.all([
-        api.tipoFiltros.listWithImages(),
-        api.tipoRespiradores.listWithImages(),
-      ]);
-      setFiltros(newFiltros);
-      setRespiradores(newRespiradores);
-    } catch (err) {
-      console.error("Error recargando datos", err);
-    }
-  }
-
   function openCreate(tab: ActiveTab) {
     setEditingItem(null);
     setModalTab(tab);
@@ -194,22 +181,28 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
         formData.append("imagen", imageFile);
       }
 
-      if (editingItem) {
-        if (modalTab === "filtros") {
-          await api.tipoFiltros.update(editingItem.id, formData);
-        } else {
-          await api.tipoRespiradores.update(editingItem.id, formData);
-        }
+      // Guardamos y actualizamos SOLO el item afectado en el estado local con la
+      // entidad que devuelve el backend. Antes se llamaba refreshLists(), que
+      // re-descargaba AMBOS catálogos completos con sus imágenes en base64
+      // (varios MB) y bloqueaba el modal de éxito ~30s. Con la actualización
+      // local el feedback es inmediato.
+      if (modalTab === "filtros") {
+        const saved = editingItem
+          ? await api.tipoFiltros.update(editingItem.id, formData)
+          : await api.tipoFiltros.create(formData);
+        setFiltros((prev) =>
+          editingItem ? prev.map((f) => (f.id === saved.id ? saved : f)) : [saved, ...prev]
+        );
       } else {
-        if (modalTab === "filtros") {
-          await api.tipoFiltros.create(formData);
-        } else {
-          await api.tipoRespiradores.create(formData);
-        }
+        const saved = editingItem
+          ? await api.tipoRespiradores.update(editingItem.id, formData)
+          : await api.tipoRespiradores.create(formData);
+        setRespiradores((prev) =>
+          editingItem ? prev.map((r) => (r.id === saved.id ? saved : r)) : [saved, ...prev]
+        );
       }
 
       setShowModal(false);
-      await refreshLists();
       Swal.fire({
         icon: "success",
         title: editingItem ? t("filtros.updated") : t("filtros.created"),
@@ -248,11 +241,12 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
     if (result.isConfirmed) {
       try {
         if (activeTab === "filtros") {
-          await api.tipoFiltros.toggleHabilitado(item.id);
+          const updated = await api.tipoFiltros.toggleHabilitado(item.id);
+          setFiltros((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
         } else {
-          await api.tipoRespiradores.toggleHabilitado(item.id);
+          const updated = await api.tipoRespiradores.toggleHabilitado(item.id);
+          setRespiradores((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
         }
-        await refreshLists();
       } catch (err: unknown) {
         Swal.fire({
           icon: "error",
@@ -281,10 +275,11 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       try {
         if (activeTab === "filtros") {
           await api.tipoFiltros.delete(item.id);
+          setFiltros((prev) => prev.filter((f) => f.id !== item.id));
         } else {
           await api.tipoRespiradores.delete(item.id);
+          setRespiradores((prev) => prev.filter((r) => r.id !== item.id));
         }
-        await refreshLists();
         Swal.fire({
           icon: "success",
           title: t("filtros.deleted"),
@@ -312,15 +307,18 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
 
   function formatDate(dateStr?: string): string {
     if (!dateStr) return t("filtros.noDate");
-    try {
-      return new Date(dateStr).toLocaleDateString("es-CL", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
+    // El backend manda la fecha como ISO con hora/offset (tz Santiago) o como
+    // yyyy-MM-dd. Tomamos solo la parte de fecha y la construimos a medianoche
+    // LOCAL en ambos runtimes (servidor UTC y navegador Santiago): así el día
+    // calendario es idéntico en SSR y en hidratación (evita React #418) y no se
+    // corre un día por zona horaria.
+    const [y, m, d] = dateStr.slice(0, 10).split("-").map(Number);
+    if (!y || !m || !d) return dateStr;
+    return new Date(y, m - 1, d).toLocaleDateString("es-CL", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   }
 
   return (

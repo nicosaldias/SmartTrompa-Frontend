@@ -21,7 +21,7 @@ interface Props {
   userCargo: Cargo | string;
 }
 
-const FAQ_KEYS = ["login", "trafficLight", "alerts", "resetPassword", "workerHistory"] as const;
+const FAQ_KEYS = ["login", "trafficLight", "alerts", "resetPassword", "workerHistory", "menuTabs", "alertAction", "summaryInfo", "additionalHelp"] as const;
 
 const ESTADO_BADGE: Record<EstadoTicket, string> = {
   ABIERTO: "badge-yellow",

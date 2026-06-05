@@ -285,6 +285,22 @@
       "workerHistory": {
         "q": "Can I view the alert history of a specific worker?",
         "a": "Yes, in the 'Alert History' section you can filter by worker, alert type and date range."
+      },
+      "menuTabs": {
+        "q": "What can I do if I don't see some tabs in the menu?",
+        "a": "The visible tabs depend on your role in the platform. If you are a worker, you will only see the options relevant to you; supervisors and administrators have access to additional features."
+      },
+      "alertAction": {
+        "q": "What should I do if I see an alert on my platform?",
+        "a": "Review the alert in the 'Alert History' section. If you are a supervisor or administrator, you will also be able to manage your team's alerts."
+      },
+      "summaryInfo": {
+        "q": "What kind of information can I see in the 'Summary' section?",
+        "a": "In 'Summary' you will see an overview of your shifts, statistics and the relevant alerts for your team. Supervisors and administrators see additional information about their workers."
+      },
+      "additionalHelp": {
+        "q": "How can I get additional help if I have problems with the platform?",
+        "a": "You can contact your supervisor or use the 'Create support ticket' button here in Help to get technical support."
       }
     }
   },

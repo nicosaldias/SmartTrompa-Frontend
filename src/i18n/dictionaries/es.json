@@ -285,6 +285,22 @@
       "workerHistory": {
         "q": "¿Puedo ver el historial de alertas de un trabajador específico?",
         "a": "Sí, en la sección 'Historial de Alertas' puedes filtrar por trabajador, tipo de alerta y rango de fechas."
+      },
+      "menuTabs": {
+        "q": "¿Qué puedo hacer si no veo algunas de las pestañas en el menú?",
+        "a": "Las pestañas visibles dependen de tu cargo en la plataforma. Si eres trabajador, solo verás las opciones relevantes para ti; los supervisores y administradores tienen acceso a funciones adicionales."
+      },
+      "alertAction": {
+        "q": "¿Qué debo hacer si veo una alerta en mi plataforma?",
+        "a": "Revisa la alerta en la sección 'Historial de Alertas'. Si eres supervisor o administrador, también podrás gestionar las alertas de tu equipo."
+      },
+      "summaryInfo": {
+        "q": "¿Qué tipo de información puedo ver en la sección de 'Resumen'?",
+        "a": "En 'Resumen' verás un panorama general de tus jornadas, estadísticas y las alertas relevantes de tu equipo. Los supervisores y administradores ven información adicional sobre sus trabajadores."
+      },
+      "additionalHelp": {
+        "q": "¿Cómo puedo obtener asistencia adicional si tengo problemas con la plataforma?",
+        "a": "Puedes contactar a tu supervisor o usar el botón 'Crear ticket de soporte' aquí en Ayuda para recibir soporte técnico."
       }
     }
   },

@@ -6,7 +6,6 @@ import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAler
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BINARY_ALERT_TYPES } from "@/types";
 import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime } from "@/utils/sensorMappings";
-import { fmtNum } from "@/utils/format";
 import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
@@ -299,10 +298,10 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             color: "var(--color-text-secondary)",
             flex: 1,
           }}>
-            <span>{t("cuadrilla.respRateShort")}: <b style={{ color: "var(--color-text-primary)" }}>{fmtNum(medicion?.frecuenciaRespiratoria)} {t("cuadrilla.bpm")}</b></span>
+            <span>{t("cuadrilla.respRateShort")}: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.frecuenciaRespiratoria ?? '--'} {t("cuadrilla.bpm")}</b></span>
             <span>{t("cuadrilla.fitLabel")}: <b style={{ color: nivelAjusteColor(medicion?.nivelAjuste) }}>{interpretNivelAjuste(medicion?.nivelAjuste)}</b></span>
             <span>{t("cuadrilla.clogLabel")}: <b style={{ color: nivelAtolloColor(medicion?.nivelAtollo) }}>{interpretNivelAtollo(medicion?.nivelAtollo)}</b></span>
-            <span>{t("cuadrilla.batteryLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.bateria != null ? `${fmtNum(medicion.bateria)}%` : '--'}</b></span>
+            <span>{t("cuadrilla.batteryLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.bateria != null ? `${medicion.bateria}%` : '--'}</b></span>
           </div>
         </div>
         {medicion?.timestamp && (
@@ -402,10 +401,10 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
               color: "var(--color-text-secondary)",
               flex: 1,
             }}>
-              <span>{t("cuadrilla.respRateShort")}: <b style={{ color: "var(--color-text-primary)" }}>{fmtNum(medicion?.frecuenciaRespiratoria)} {t("cuadrilla.bpm")}</b></span>
+              <span>{t("cuadrilla.respRateShort")}: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.frecuenciaRespiratoria ?? '--'} {t("cuadrilla.bpm")}</b></span>
               <span>{t("cuadrilla.fitLabel")}: <b style={{ color: nivelAjusteColor(medicion?.nivelAjuste) }}>{interpretNivelAjuste(medicion?.nivelAjuste)}</b></span>
               <span>{t("cuadrilla.clogLabel")}: <b style={{ color: nivelAtolloColor(medicion?.nivelAtollo) }}>{interpretNivelAtollo(medicion?.nivelAtollo)}</b></span>
-              <span>{t("cuadrilla.batteryLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.bateria != null ? `${fmtNum(medicion.bateria)}%` : '--'}</b></span>
+              <span>{t("cuadrilla.batteryLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{medicion?.bateria != null ? `${medicion.bateria}%` : '--'}</b></span>
             </div>
           </div>
           {medicion?.timestamp && (
@@ -617,10 +616,10 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           );
         })}
         <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
-          {fmtNum(medicion?.frecuenciaRespiratoria)} <span style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("cuadrilla.bpm")}</span>
+          {medicion?.frecuenciaRespiratoria ?? '--'} <span style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("cuadrilla.bpm")}</span>
         </td>
         <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
-          {medicion?.bateria != null ? `${fmtNum(medicion.bateria)}%` : '--'}
+          {medicion?.bateria != null ? `${medicion.bateria}%` : '--'}
         </td>
         <td style={{ padding: "0.75rem", textAlign: "center" }}>
           <span className={alertAnimClass(estadoGeneral)} style={{
@@ -742,10 +741,10 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                             );
                           })}
                           <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
-                            {fmtNum(medicion?.frecuenciaRespiratoria)} <span style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("cuadrilla.bpm")}</span>
+                            {medicion?.frecuenciaRespiratoria ?? '--'} <span style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("cuadrilla.bpm")}</span>
                           </td>
                           <td style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-primary)" }}>
-                            {medicion?.bateria != null ? `${fmtNum(medicion.bateria)}%` : '--'}
+                            {medicion?.bateria != null ? `${medicion.bateria}%` : '--'}
                           </td>
                           <td style={{ padding: "0.75rem", textAlign: "center" }}>
                             <span className={alertAnimClass(estadoGeneral)} style={{

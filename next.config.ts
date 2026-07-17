@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import pkg from "./package.json";
 
 /**
  * Image remote patterns leídos desde NEXT_PUBLIC_API_URL en build time.
@@ -27,6 +28,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // JWT_SECRET NO se declara aquí: el bloque `env:` lo inyectaría en bundles cliente.
   // El middleware (Edge runtime) lo lee via process.env.JWT_SECRET sin necesidad de exponerlo.
+  // Solo exponemos el número de versión (público, tomado de package.json) para mostrarlo en el login.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+  },
   images: {
     remotePatterns: imageRemotePatterns(),
   },

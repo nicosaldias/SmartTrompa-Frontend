@@ -178,6 +178,15 @@ export interface Ajustes {
   desajustado: number;
 }
 
+/** Conteo de registros relacionados que se borrarian en cascada (advertencia previa al borrado). */
+export interface RelacionesResumen {
+  jornadas: number;
+  mediciones: number;
+  alertas: number;
+  otros: number;
+  total: number;
+}
+
 export interface AlertasUmbrales {
   id: number;
   alrtRespAlto?: number;

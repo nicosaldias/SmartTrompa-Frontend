@@ -16,6 +16,22 @@
     --color-blue: #3b82f6;
   }
 
+  /* Tema claro: se activa con data-theme="light" en <html>. Mayor especificidad que :root. */
+  :root[data-theme="light"] {
+    --color-bg-primary: #f4f6f9;
+    --color-bg-secondary: #ffffff;
+    --color-bg-card: #ffffff;
+    --color-border: #d8dee4;
+    --color-accent: #f97316;
+    --color-accent-hover: #ea580c;
+    --color-text-primary: #1a1f26;
+    --color-text-secondary: #57606a;
+    --color-green: #1a7f37;
+    --color-yellow: #9a6700;
+    --color-red: #cf222e;
+    --color-blue: #0969da;
+  }
+
   * {
     box-sizing: border-box;
     margin: 0;

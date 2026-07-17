@@ -83,8 +83,8 @@ function HistorialAlertasInner({ initialPage }: Props) {
         icon: "error",
         title: t("historialAlertas.invalidDateRangeTitle"),
         text: t("historialAlertas.invalidDateRangeText"),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
       return;
     }

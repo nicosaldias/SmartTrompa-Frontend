@@ -31,6 +31,7 @@ import type {
   FilterStatus,
   MedicionesAmbientales,
   Ajustes,
+  RelacionesResumen,
 } from '@/types';
 import { getMockResponse } from './mock-data';
 
@@ -38,6 +39,31 @@ const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 
 interface RequestOptions extends RequestInit {
   cookieHeader?: string;
+}
+
+/**
+ * Error de API que preserva el código HTTP. Permite al frontend ramificar
+ * (ej.: 409 = el registro tiene relaciones → ofrecer borrado en cascada).
+ * Extiende Error, así que `(err as Error).message` sigue funcionando igual.
+ */
+export class ApiError extends Error {
+  status: number;
+  detail?: string;
+  constructor(message: string, status: number, detail?: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
+async function buildApiError(res: Response): Promise<ApiError> {
+  const errorData = await res.json().catch(() => ({ message: 'Error desconocido' }));
+  const detail = errorData.detail ?? errorData.message ?? errorData.error;
+  const message = typeof detail === 'string' && detail
+    ? detail
+    : `Request failed with status ${res.status}`;
+  return new ApiError(message, res.status, typeof detail === 'string' ? detail : undefined);
 }
 
 let isRefreshing = false;
@@ -121,8 +147,7 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
       });
 
       if (!retryRes.ok) {
-        const errorData = await retryRes.json().catch(() => ({ message: 'Error desconocido' }));
-        throw new Error(errorData.detail || errorData.message || errorData.error || `Request failed with status ${retryRes.status}`);
+        throw await buildApiError(retryRes);
       }
 
       if (retryRes.status === 204) {
@@ -143,8 +168,7 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
   }
 
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({ message: 'Error desconocido' }));
-    throw new Error(errorData.detail || errorData.message || errorData.error || `Request failed with status ${res.status}`);
+    throw await buildApiError(res);
   }
 
   if (res.status === 204) {
@@ -209,6 +233,10 @@ export const api = {
       }),
     delete: (rut: string, cookieHeader?: string) =>
       request<void>(trabajadorEndpoints.delete(rut), { method: 'DELETE', cookieHeader }),
+    relaciones: (rut: string, cookieHeader?: string) =>
+      request<RelacionesResumen>(trabajadorEndpoints.relaciones(rut), { cookieHeader }),
+    deleteCascade: (rut: string, cookieHeader?: string) =>
+      request<void>(trabajadorEndpoints.deleteCascade(rut), { method: 'DELETE', cookieHeader }),
     supervisados: (rut: string, cookieHeader?: string) =>
       request<Trabajador[]>(trabajadorEndpoints.supervisados(rut), { cookieHeader }),
   },
@@ -367,6 +395,10 @@ export const api = {
       }),
     delete: (id: number, cookieHeader?: string) =>
       request<void>(tipoFiltroEndpoints.byId(id), { method: 'DELETE', cookieHeader }),
+    relaciones: (id: number, cookieHeader?: string) =>
+      request<RelacionesResumen>(tipoFiltroEndpoints.relaciones(id), { cookieHeader }),
+    deleteCascade: (id: number, cookieHeader?: string) =>
+      request<void>(tipoFiltroEndpoints.deleteCascade(id), { method: 'DELETE', cookieHeader }),
   },
 
   tipoRespiradores: {
@@ -395,6 +427,10 @@ export const api = {
       }),
     delete: (id: number, cookieHeader?: string) =>
       request<void>(tipoRespiradorEndpoints.byId(id), { method: 'DELETE', cookieHeader }),
+    relaciones: (id: number, cookieHeader?: string) =>
+      request<RelacionesResumen>(tipoRespiradorEndpoints.relaciones(id), { cookieHeader }),
+    deleteCascade: (id: number, cookieHeader?: string) =>
+      request<void>(tipoRespiradorEndpoints.deleteCascade(id), { method: 'DELETE', cookieHeader }),
   },
 
   tickets: {

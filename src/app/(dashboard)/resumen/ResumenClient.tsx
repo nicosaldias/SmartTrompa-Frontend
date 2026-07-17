@@ -6,6 +6,7 @@ import { api } from "@/api/client";
 import type { JornadaTrabajo, AlertaHistorial, TipoAlerta, NivelAlerta, MedicionesAmbientales } from "@/types";
 import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock, RefreshCw, ChevronRight } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
+import ResumenJornadaActual from "@/components/ResumenJornadaActual";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
@@ -25,7 +26,7 @@ const TIPO_COLORS: Record<TipoAlerta, string> = {
   RESPIRATORIA: "#ef4444",
   AJUSTE: "#f97316",
   FILTRO: "#eab308",
-  BATERIA: "#8b949e",
+  BATERIA: "var(--color-text-secondary)",
   DESCONEXION: "#8b5cf6",
 };
 
@@ -57,7 +58,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
     BATERIA: t("resumen.tipoBateria"),
     DESCONEXION: t("resumen.tipoDesconexion"),
   };
-  const [, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
+  const [jornadas, setJornadas] = useState<JornadaTrabajo[]>(initialJornadas);
   const [alertas, setAlertas] = useState<AlertaHistorial[]>(initialAlertas);
   const [medicionesMap, setMedicionesMap] = useState<Record<string, MedicionesAmbientales | null>>(
     initialMediciones || {}
@@ -115,27 +116,6 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
   const alertasOrdenadas = [...alertas].sort(
     (a, b) => (NIVEL_ORDER[a.nivel] ?? 99) - (NIVEL_ORDER[b.nivel] ?? 99)
   );
-
-  // --- Sensor KPI aggregations ---
-  const medValues = Object.values(medicionesMap).filter((m): m is MedicionesAmbientales => m !== null);
-
-  const frecValues = medValues.filter(m => m.frecuenciaRespiratoria != null);
-  const avgFrec = frecValues.length > 0
-    ? Math.round(frecValues.reduce((sum, m) => sum + (m.frecuenciaRespiratoria ?? 0), 0) / frecValues.length)
-    : null;
-
-  const desajusteCount = medValues.filter(m => m.nivelAjuste === 1).length;
-
-  const atolloCounts = {
-    bajo: medValues.filter(m => m.nivelAtollo === 0 || m.nivelAtollo == null).length,
-    medio: medValues.filter(m => m.nivelAtollo === 1).length,
-    alto: medValues.filter(m => m.nivelAtollo === 2).length,
-  };
-
-  const bateriaValues = medValues.filter(m => m.bateria != null).map(m => m.bateria!);
-  const avgBateria = bateriaValues.length > 0
-    ? Math.round(bateriaValues.reduce((a, b) => a + b, 0) / bateriaValues.length)
-    : null;
 
   return (
     <div>
@@ -203,6 +183,9 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
           {t("resumen.pollFailureWarning")}
         </div>
       )}
+
+      {/* Resumen Jornada Actual (bloque compartido con Estado de Cuadrilla) */}
+      <ResumenJornadaActual jornadas={jornadas} medicionesMap={medicionesMap} />
 
       {/* Alertas activas - header */}
       <h2
@@ -301,7 +284,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
           <div style={{ display: "flex", flexDirection: "column" }}>
             {alertasOrdenadas.slice(0, 5).map((a, idx) => {
               const dotColor = TIPO_COLORS[a.tipo];
-              const nivelColor = NIVEL_COLORS[a.nivel] ?? "#8b949e";
+              const nivelColor = NIVEL_COLORS[a.nivel] ?? "var(--color-text-secondary)";
               const isLast = idx === Math.min(alertasOrdenadas.length, 5) - 1;
 
               return (
@@ -445,71 +428,6 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
             <ChevronRight size={16} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
           </Link>
         ))}
-      </div>
-
-      {/* Indicadores de Sensor */}
-      <h2 style={{
-        marginBottom: "1rem",
-        marginTop: "1.5rem",
-        fontSize: "0.8rem",
-        fontWeight: 700,
-        color: "var(--color-text-secondary)",
-        display: "flex",
-        alignItems: "center",
-        gap: "0.375rem",
-        letterSpacing: "0.05em",
-        textTransform: "uppercase",
-      }}>
-        <Activity size={14} />
-        {t("resumen.sensorIndicators")}
-      </h2>
-
-      <div className="resumen-sensor-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
-        {/* Promedio frec. respiratoria */}
-        <div className="card resumen-sensor-card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
-          <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
-            {t("resumen.respiratoryRate")}
-          </p>
-          <p className="resumen-sensor-value" style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
-            {avgFrec != null ? `${avgFrec}` : '--'}
-          </p>
-          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("resumen.bpmAverage")}</p>
-        </div>
-
-        {/* Desajustes */}
-        <div className="card resumen-sensor-card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
-          <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
-            {t("resumen.misfits")}
-          </p>
-          <p className="resumen-sensor-value" style={{ fontSize: "2rem", fontWeight: 800, color: desajusteCount > 0 ? "#ef4444" : "#22c55e" }}>
-            {desajusteCount}
-          </p>
-          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("resumen.workers")}</p>
-        </div>
-
-        {/* Atollo */}
-        <div className="card resumen-sensor-card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
-          <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
-            {t("resumen.filterSaturation")}
-          </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: "0.75rem", fontSize: "0.75rem", fontWeight: 700 }}>
-            <span style={{ color: "#22c55e" }}>{atolloCounts.bajo}</span>
-            <span style={{ color: "#f59e0b" }}>{atolloCounts.medio}</span>
-            <span style={{ color: "#ef4444" }}>{atolloCounts.alto}</span>
-          </div>
-          <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("resumen.saturationLevels")}</p>
-        </div>
-
-        {/* Bateria promedio */}
-        <div className="card resumen-sensor-card" style={{ textAlign: "center", padding: "1.25rem 1rem" }}>
-          <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
-            {t("resumen.sensorBattery")}
-          </p>
-          <p className="resumen-sensor-value" style={{ fontSize: "2rem", fontWeight: 800, color: avgBateria != null && avgBateria < 20 ? "#ef4444" : "var(--color-text-primary)" }}>
-            {avgBateria != null ? `${avgBateria}%` : '--'}
-          </p>
-          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("resumen.average")}</p>
-        </div>
       </div>
 
       <style>{`

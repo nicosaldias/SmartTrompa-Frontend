@@ -97,8 +97,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
         icon: "success",
         title: t("ayuda.statusUpdatedTitle"),
         text: t("ayuda.ticketUpdatedTo", { status: ESTADO_LABEL[nuevoEstado] }),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
         timer: 1500,
         showConfirmButton: false,
       });
@@ -109,8 +109,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     }
   }
@@ -142,8 +142,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
         icon: "success",
         title: t("ayuda.ticketSentTitle"),
         text: t("ayuda.ticketSentText"),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
         timer: 2000,
         showConfirmButton: false,
       });
@@ -153,8 +153,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     } finally {
       setEnviando(false);

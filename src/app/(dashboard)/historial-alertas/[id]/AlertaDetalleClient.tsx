@@ -63,8 +63,8 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
         icon: "error",
         title: "Error",
         text: "No se pudo cargar la alerta",
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     } finally {
       setLoading(false);
@@ -79,9 +79,9 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
     const { value: formValues, isConfirmed } = await Swal.fire({
       title: "Resolver alerta",
       html: `
-        <label style="display:block;text-align:left;font-size:0.8rem;color:#8b949e;margin-bottom:0.25rem;">Resolución / Observación</label>
+        <label style="display:block;text-align:left;font-size:0.8rem;color:var(--color-text-secondary);margin-bottom:0.25rem;">Resolución / Observación</label>
         <textarea id="swal-resolucion" class="swal2-textarea" placeholder="Describe la resolución" style="margin:0 0 0.75rem 0;width:100%;min-height:80px;"></textarea>
-        <label style="display:block;text-align:left;font-size:0.8rem;color:#8b949e;margin-bottom:0.25rem;">Medidas tomadas</label>
+        <label style="display:block;text-align:left;font-size:0.8rem;color:var(--color-text-secondary);margin-bottom:0.25rem;">Medidas tomadas</label>
         <textarea id="swal-medidas" class="swal2-textarea" placeholder="Qué medidas se tomaron" style="margin:0;width:100%;min-height:80px;"></textarea>
       `,
       focusConfirm: false,
@@ -90,8 +90,8 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
       cancelButtonText: "Cancelar",
       confirmButtonColor: "#22c55e",
       cancelButtonColor: "#6b7280",
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       preConfirm: () => {
         const resolucion = (document.getElementById("swal-resolucion") as HTMLTextAreaElement)?.value.trim() ?? "";
         const medidasTomadas = (document.getElementById("swal-medidas") as HTMLTextAreaElement)?.value.trim() ?? "";
@@ -115,8 +115,8 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
         icon: "success",
         title: "Alerta resuelta",
         text: "La alerta se marcó como resuelta correctamente",
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
         confirmButtonColor: "#22c55e",
       });
     } catch {
@@ -124,8 +124,8 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
         icon: "error",
         title: "Error",
         text: "No se pudo resolver la alerta. Intenta nuevamente.",
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
         confirmButtonColor: "#ef4444",
       });
     }

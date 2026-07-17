@@ -89,8 +89,8 @@ export default function RolesUbicacionesClient({
       showCancelButton: true,
       confirmButtonText: t("rolesUbicaciones.confirm.saveBtn"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#f97316",
     });
     if (!confirmResult.isConfirmed) return;
@@ -113,16 +113,16 @@ export default function RolesUbicacionesClient({
         title: t("rolesUbicaciones.toast.saved"),
         timer: 1200,
         showConfirmButton: false,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     }
   }
@@ -136,8 +136,8 @@ export default function RolesUbicacionesClient({
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     }
   }
@@ -150,8 +150,8 @@ export default function RolesUbicacionesClient({
       showCancelButton: true,
       confirmButtonText: t("rolesUbicaciones.delete.confirmBtn"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#ef4444",
     });
     if (result.isConfirmed) {
@@ -163,8 +163,8 @@ export default function RolesUbicacionesClient({
           icon: "error",
           title: t("common.error"),
           text: (err as Error).message,
-          background: "#1c2333",
-          color: "#e6edf3",
+          background: "var(--color-bg-card)",
+          color: "var(--color-text-primary)",
         });
       }
     }
@@ -200,8 +200,8 @@ export default function RolesUbicacionesClient({
       showCancelButton: true,
       confirmButtonText: t("rolesUbicaciones.confirm.saveBtn"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#f97316",
     });
     if (!confirmResult.isConfirmed) return;
@@ -224,16 +224,16 @@ export default function RolesUbicacionesClient({
         title: t("rolesUbicaciones.toast.saved"),
         timer: 1200,
         showConfirmButton: false,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     }
   }
@@ -247,8 +247,8 @@ export default function RolesUbicacionesClient({
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     }
   }
@@ -261,8 +261,8 @@ export default function RolesUbicacionesClient({
       showCancelButton: true,
       confirmButtonText: t("rolesUbicaciones.delete.confirmBtn"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#ef4444",
     });
     if (result.isConfirmed) {
@@ -274,8 +274,8 @@ export default function RolesUbicacionesClient({
           icon: "error",
           title: t("common.error"),
           text: (err as Error).message,
-          background: "#1c2333",
-          color: "#e6edf3",
+          background: "var(--color-bg-card)",
+          color: "var(--color-text-primary)",
         });
       }
     }

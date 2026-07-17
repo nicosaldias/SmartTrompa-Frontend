@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { api } from "@/api/client";
+import { api, ApiError } from "@/api/client";
 import { API_BASE_URL } from "@/api/endpoints";
 import { Trabajador, TrabajadorRequest, Cargo, PageResponse } from "@/types";
 import { Plus, Pencil, Trash2, Search, Eye, EyeOff, Upload } from "lucide-react";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import type { TranslationKey } from "@/i18n/types";
+import { confirmCascadeDelete } from "@/utils/cascadeDelete";
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const pct = current / max;
@@ -135,7 +136,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      Swal.fire({ icon: "error", title: t("common.error"), text: t("trabajadores.imageTooLarge"), background: "#1c2333", color: "#e6edf3" });
+      Swal.fire({ icon: "error", title: t("common.error"), text: t("trabajadores.imageTooLarge"), background: "var(--color-bg-card)", color: "var(--color-text-primary)" });
       return;
     }
     setFormImageFile(file);
@@ -188,8 +189,8 @@ export default function TrabajadoresClient({ initialPage }: Props) {
         icon: "error",
         title: t("common.error"),
         text: t("trabajadores.passwordsDoNotMatch"),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
       return;
     }
@@ -201,8 +202,8 @@ export default function TrabajadoresClient({ initialPage }: Props) {
       showCancelButton: true,
       confirmButtonText: t("trabajadores.yesSave"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#f97316",
     });
     if (!confirmResult.isConfirmed) return;
@@ -237,16 +238,16 @@ export default function TrabajadoresClient({ initialPage }: Props) {
         title: editingTrabajador ? t("trabajadores.workerUpdated") : t("trabajadores.workerCreated"),
         timer: 1500,
         showConfirmButton: false,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     }
   }
@@ -261,8 +262,8 @@ export default function TrabajadoresClient({ initialPage }: Props) {
       showCancelButton: true,
       confirmButtonText: trab.activo ? t("trabajadores.yesDeactivate") : t("trabajadores.yesActivate"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: trab.activo ? "#ef4444" : "#22c55e",
     });
     if (result.isConfirmed) {
@@ -274,46 +275,76 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           icon: "error",
           title: t("common.error"),
           text: (err as Error).message,
-          background: "#1c2333",
-          color: "#e6edf3",
+          background: "var(--color-bg-card)",
+          color: "var(--color-text-primary)",
         });
       }
     }
   }
 
   async function handleDelete(trab: Trabajador) {
+    const nombre = `${trab.nombre} ${trab.apellidoPaterno}`;
     const result = await Swal.fire({
       title: t("trabajadores.deleteTitle"),
-      text: t("trabajadores.deleteText", { name: `${trab.nombre} ${trab.apellidoPaterno}` }),
+      text: t("trabajadores.deleteText", { name: nombre }),
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: t("trabajadores.yesDelete"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#ef4444",
     });
-    if (result.isConfirmed) {
-      try {
-        await api.trabajadores.delete(trab.rut);
-        await refreshList();
-        Swal.fire({
-          icon: "success",
-          title: t("trabajadores.deleted"),
-          timer: 1500,
-          showConfirmButton: false,
-          background: "#1c2333",
-          color: "#e6edf3",
-        });
-      } catch (err: unknown) {
-        Swal.fire({
-          icon: "error",
-          title: t("common.error"),
-          text: (err as Error).message,
-          background: "#1c2333",
-          color: "#e6edf3",
-        });
+    if (!result.isConfirmed) return;
+    try {
+      await api.trabajadores.delete(trab.rut);
+      await refreshList();
+      Swal.fire({
+        icon: "success",
+        title: t("trabajadores.deleted"),
+        timer: 1500,
+        showConfirmButton: false,
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
+      });
+    } catch (err: unknown) {
+      // 409 = tiene registros relacionados: ofrecer borrado en cascada con confirmación del nombre.
+      if (err instanceof ApiError && err.status === 409) {
+        try {
+          const deleted = await confirmCascadeDelete({
+            nombre,
+            fetchRelaciones: () => api.trabajadores.relaciones(trab.rut),
+            cascadeDelete: () => api.trabajadores.deleteCascade(trab.rut),
+            t,
+          });
+          if (deleted) {
+            await refreshList();
+            Swal.fire({
+              icon: "success",
+              title: t("cascade.deletedTitle"),
+              text: t("cascade.deletedText", { name: nombre }),
+              background: "var(--color-bg-card)",
+              color: "var(--color-text-primary)",
+            });
+          }
+        } catch (err2: unknown) {
+          Swal.fire({
+            icon: "error",
+            title: t("common.error"),
+            text: (err2 as Error).message,
+            background: "var(--color-bg-card)",
+            color: "var(--color-text-primary)",
+          });
+        }
+        return;
       }
+      Swal.fire({
+        icon: "error",
+        title: t("common.error"),
+        text: (err as Error).message,
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
+      });
     }
   }
 

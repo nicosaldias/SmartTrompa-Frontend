@@ -552,6 +552,18 @@ export default function LoginPage() {
           >
             {t("login.footerNote")}
           </p>
+          {/* Número de versión de la plataforma */}
+          <p
+            style={{
+              textAlign: "center",
+              color: "var(--color-text-secondary)",
+              fontSize: "0.7rem",
+              marginTop: "0.5rem",
+              opacity: 0.7,
+            }}
+          >
+            v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0"}
+          </p>
         </div>
       </div>
 

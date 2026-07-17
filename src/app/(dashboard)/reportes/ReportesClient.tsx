@@ -39,8 +39,8 @@ function alerta(opts: { icon: "warning" | "error" | "success"; title: string; te
   Swal.fire({
     ...opts,
     showConfirmButton: opts.icon !== "success",
-    background: "#1c2333",
-    color: "#e6edf3",
+    background: "var(--color-bg-card)",
+    color: "var(--color-text-primary)",
   });
 }
 

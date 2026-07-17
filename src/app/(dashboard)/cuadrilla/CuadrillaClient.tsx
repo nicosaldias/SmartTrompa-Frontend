@@ -10,6 +10,7 @@ import { fmtNum } from "@/utils/format";
 import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
+import ResumenJornadaActual from "@/components/ResumenJornadaActual";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
@@ -132,32 +133,6 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
   // Derived data
   const findTrabajador = (rut: string): Trabajador | undefined =>
     trabajadores.find((tr) => tr.rut === rut);
-
-  const totalActivos = jornadas.length;
-
-  const alertasCriticas = jornadas.filter((j) =>
-    ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, j.rutUsuario, tipo) === "CRITICO")
-  ).length;
-
-  const advertencias = jornadas.filter((j) =>
-    ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, j.rutUsuario, tipo) === "ALERTA") &&
-    !ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, j.rutUsuario, tipo) === "CRITICO")
-  ).length;
-
-  const sinProblemas = totalActivos - alertasCriticas - advertencias;
-
-  const operativity = totalActivos > 0
-    ? Math.round(((totalActivos - alertasCriticas) / totalActivos) * 100)
-    : 0;
-
-  // Conteo por tipo de alerta
-  const alertasPorTipo = ALERTA_TIPOS.reduce((acc, tipo) => {
-    acc[tipo] = jornadas.filter((j) => {
-      const nivel = getAlertNivel(alertas, j.rutUsuario, tipo);
-      return nivel !== "OK";
-    }).length;
-    return acc;
-  }, {} as Record<TipoAlerta, number>);
 
   // Agrupar jornadas por supervisor
   const jornadasPorSupervisor = jornadas.reduce((groups, j) => {
@@ -846,6 +821,9 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
         </div>
       </div>
 
+      {/* Resumen Jornada Actual (mismo bloque que la página Resumen, lo más arriba) */}
+      <ResumenJornadaActual jornadas={jornadas} medicionesMap={medicionesMap} />
+
       {/* Polling failure warning */}
       {pollFailures >= 3 && (
         <div
@@ -881,67 +859,6 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
         {viewMode === "cards" ? renderCards() : renderTable()}
       </div>
 
-      {/* Summary Card */}
-      {totalActivos > 0 && (
-        <div className="card" style={{ marginTop: "1.5rem", padding: "1.25rem" }}>
-          <h2 style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.1em", marginBottom: "1rem" }}>
-            {t("cuadrilla.shiftSummary")}
-          </h2>
-
-          {/* Main stats row */}
-          <div className="cuadrilla-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
-            <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(249,115,22,0.08)" }}>
-              <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "#f97316" }}>{totalActivos}</p>
-              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("cuadrilla.statActive")}</p>
-            </div>
-            <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(34,197,94,0.08)" }}>
-              <p className="pulse-ok" style={{ fontSize: "1.75rem", fontWeight: 800, color: "#22c55e" }}>{sinProblemas}</p>
-              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("cuadrilla.statHealthy")}</p>
-            </div>
-            <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: advertencias > 0 ? "rgba(245,158,11,0.08)" : "transparent" }}>
-              <p className={advertencias > 0 ? "pulse-warn" : ""} style={{ fontSize: "1.75rem", fontWeight: 800, color: advertencias > 0 ? "#f59e0b" : "var(--color-text-secondary)" }}>{advertencias}</p>
-              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("cuadrilla.statWarnings")}</p>
-            </div>
-            <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: alertasCriticas > 0 ? "rgba(239,68,68,0.08)" : "transparent" }}>
-              <p className={alertasCriticas > 0 ? "pulse-crit" : ""} style={{ fontSize: "1.75rem", fontWeight: 800, color: alertasCriticas > 0 ? "#ef4444" : "var(--color-text-secondary)" }}>{alertasCriticas}</p>
-              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("cuadrilla.statCritical")}</p>
-            </div>
-            <div style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--color-border)" }}>
-              <p style={{ fontSize: "1.75rem", fontWeight: 800, color: operativity >= 80 ? "#22c55e" : operativity >= 50 ? "#f59e0b" : "#ef4444" }}>{operativity}%</p>
-              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("cuadrilla.statOperativity")}</p>
-            </div>
-          </div>
-
-          {/* Alertas por tipo */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            {ALERTA_TIPOS.map((tipo) => {
-              const count = alertasPorTipo[tipo];
-              const hasIssue = count > 0;
-              return (
-                <div
-                  key={tipo}
-                  className={hasIssue ? "pulse-warn" : ""}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.375rem",
-                    padding: "0.3rem 0.625rem",
-                    borderRadius: "9999px",
-                    fontSize: "0.7rem",
-                    fontWeight: 600,
-                    color: hasIssue ? "#f59e0b" : "var(--color-text-secondary)",
-                    backgroundColor: hasIssue ? "rgba(245,158,11,0.1)" : "rgba(139,148,158,0.08)",
-                    border: `1px solid ${hasIssue ? "rgba(245,158,11,0.25)" : "transparent"}`,
-                  }}
-                >
-                  {TIPO_ICONS[tipo]}
-                  {TIPO_LABELS[tipo]}: {count}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
       <style>{`
         @media (max-width: 1024px) {
           .cuadrilla-trabajadores-grid {

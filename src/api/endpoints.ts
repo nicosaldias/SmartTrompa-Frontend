@@ -9,6 +9,8 @@ export const trabajadorEndpoints = {
   update: (rut: string) => `${API_BASE_URL}/trabajador/${rut}/`,
   toggleActivo: (rut: string) => `${API_BASE_URL}/trabajador/${rut}/activo/`,
   delete: (rut: string) => `${API_BASE_URL}/trabajador/${rut}/`,
+  relaciones: (rut: string) => `${API_BASE_URL}/trabajador/${rut}/relaciones/`,
+  deleteCascade: (rut: string) => `${API_BASE_URL}/trabajador/${rut}/cascada/`,
   imagen: (rut: string) => `${API_BASE_URL}/trabajador/${rut}/imagen/`,
   login: () => `${API_BASE_URL}/trabajador/login/`,
   logout: () => `${API_BASE_URL}/trabajador/logout/`,
@@ -45,6 +47,8 @@ export const tipoFiltroEndpoints = {
   withImages: () => `${API_BASE_URL}/tipo-filtro/images/`,
   byId: (id: number) => `${API_BASE_URL}/tipo-filtro/${id}/`,
   toggleHabilitado: (id: number) => `${API_BASE_URL}/tipo-filtro/${id}/habilitado/`,
+  relaciones: (id: number) => `${API_BASE_URL}/tipo-filtro/${id}/relaciones/`,
+  deleteCascade: (id: number) => `${API_BASE_URL}/tipo-filtro/${id}/cascada/`,
 };
 
 export const tipoRespiradorEndpoints = {
@@ -52,6 +56,8 @@ export const tipoRespiradorEndpoints = {
   withImages: () => `${API_BASE_URL}/tipo-respirador/images/`,
   byId: (id: number) => `${API_BASE_URL}/tipo-respirador/${id}/`,
   toggleHabilitado: (id: number) => `${API_BASE_URL}/tipo-respirador/${id}/habilitado/`,
+  relaciones: (id: number) => `${API_BASE_URL}/tipo-respirador/${id}/relaciones/`,
+  deleteCascade: (id: number) => `${API_BASE_URL}/tipo-respirador/${id}/cascada/`,
 };
 
 export const alertaHistorialEndpoints = {

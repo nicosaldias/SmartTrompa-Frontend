@@ -215,7 +215,7 @@ export default function Header() {
                   ? "#ef4444"
                   : user.cargo === "Supervisor"
                     ? "#3b82f6"
-                    : "#8b949e",
+                    : "var(--color-text-secondary)",
               border: `1px solid ${
                 user.cargo === "Administrador"
                   ? "rgba(239,68,68,0.3)"
@@ -346,8 +346,8 @@ export default function Header() {
                       showCancelButton: true,
                       confirmButtonText: t("sidebar.logoutConfirmYes"),
                       cancelButtonText: t("common.cancel"),
-                      background: "#1c2333",
-                      color: "#e6edf3",
+                      background: "var(--color-bg-card)",
+                      color: "var(--color-text-primary)",
                       confirmButtonColor: "#f97316",
                     });
                     if (result.isConfirmed) {

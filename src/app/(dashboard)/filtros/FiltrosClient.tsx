@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { api } from "@/api/client";
+import { api, ApiError } from "@/api/client";
 import { TipoFiltro, TipoRespirador } from "@/types";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Image as ImageIcon, Upload } from "lucide-react";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import { abrirCalendario } from "@/utils/datePicker";
+import { confirmCascadeDelete } from "@/utils/cascadeDelete";
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const pct = current / max;
@@ -26,6 +27,13 @@ function CharCounter({ current, max }: { current: number; max: number }) {
 function toDateInputValue(value?: string | null): string {
   if (!value) return "";
   return value.slice(0, 10);
+}
+
+/** Fecha de hoy en formato yyyy-MM-dd (hora local), default al crear un filtro/respirador. */
+function todayInputValue(): string {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
 }
 
 interface Props {
@@ -75,7 +83,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
   function openCreate(tab: ActiveTab) {
     setEditingItem(null);
     setModalTab(tab);
-    setForm(EMPTY_FORM);
+    // Fecha de homologación por defecto = hoy.
+    setForm({ ...EMPTY_FORM, fechaHomologacion: todayInputValue() });
     setImageFile(null);
     setImagePreview("");
     setShowModal(true);
@@ -103,12 +112,12 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
     const file = e.target.files?.[0];
     if (!file) return;
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      Swal.fire({ icon: "warning", title: t("filtros.unsupportedFormat"), text: t("filtros.acceptedFormats"), background: "#1c2333", color: "#e6edf3" });
+      Swal.fire({ icon: "warning", title: t("filtros.unsupportedFormat"), text: t("filtros.acceptedFormats"), background: "var(--color-bg-card)", color: "var(--color-text-primary)" });
       e.target.value = "";
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      Swal.fire({ icon: "warning", title: t("filtros.fileTooLarge"), text: t("filtros.maxFileSize"), background: "#1c2333", color: "#e6edf3" });
+      Swal.fire({ icon: "warning", title: t("filtros.fileTooLarge"), text: t("filtros.maxFileSize"), background: "var(--color-bg-card)", color: "var(--color-text-primary)" });
       e.target.value = "";
       return;
     }
@@ -125,8 +134,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       showCancelButton: true,
       confirmButtonText: t("filtros.yesSave"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#f97316",
     });
     if (!confirmResult.isConfirmed) return;
@@ -137,8 +146,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
         icon: "warning",
         title: t("filtros.imageRequired"),
         text: t("filtros.imageRequiredText"),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
       return;
     }
@@ -147,8 +156,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
         icon: "warning",
         title: t("filtros.imageRequired"),
         text: t("filtros.imageRequiredText"),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
       return;
     }
@@ -160,8 +169,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       text: t("common.processingText"),
       allowOutsideClick: false,
       allowEscapeKey: false,
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       didOpen: () => Swal.showLoading(),
     });
     try {
@@ -208,16 +217,16 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
         title: editingItem ? t("filtros.updated") : t("filtros.created"),
         timer: 1500,
         showConfirmButton: false,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     } finally {
       setIsSaving(false);
@@ -234,8 +243,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       showCancelButton: true,
       confirmButtonText: item.habilitado ? t("filtros.yesDisable") : t("filtros.yesEnable"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: item.habilitado ? "#ef4444" : "#22c55e",
     });
     if (result.isConfirmed) {
@@ -252,51 +261,85 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
           icon: "error",
           title: t("common.error"),
           text: (err as Error).message,
-          background: "#1c2333",
-          color: "#e6edf3",
+          background: "var(--color-bg-card)",
+          color: "var(--color-text-primary)",
         });
       }
     }
   }
 
   async function handleDelete(item: TipoFiltro | TipoRespirador) {
+    const esFiltro = activeTab === "filtros";
+    const nombre = item.nombre || `${item.marca} ${item.modelo}`;
+    const quitarDeLista = () => {
+      if (esFiltro) setFiltros((prev) => prev.filter((f) => f.id !== item.id));
+      else setRespiradores((prev) => prev.filter((r) => r.id !== item.id));
+    };
+
     const result = await Swal.fire({
-      title: activeTab === "filtros" ? t("filtros.deleteFilterTitle") : t("filtros.deleteRespiratorTitle"),
-      text: t("filtros.deleteText", { name: item.nombre || `${item.marca} ${item.modelo}` }),
+      title: esFiltro ? t("filtros.deleteFilterTitle") : t("filtros.deleteRespiratorTitle"),
+      text: t("filtros.deleteText", { name: nombre }),
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: t("filtros.yesDelete"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#ef4444",
     });
-    if (result.isConfirmed) {
-      try {
-        if (activeTab === "filtros") {
-          await api.tipoFiltros.delete(item.id);
-          setFiltros((prev) => prev.filter((f) => f.id !== item.id));
-        } else {
-          await api.tipoRespiradores.delete(item.id);
-          setRespiradores((prev) => prev.filter((r) => r.id !== item.id));
+    if (!result.isConfirmed) return;
+    try {
+      if (esFiltro) await api.tipoFiltros.delete(item.id);
+      else await api.tipoRespiradores.delete(item.id);
+      quitarDeLista();
+      Swal.fire({
+        icon: "success",
+        title: t("filtros.deleted"),
+        timer: 1500,
+        showConfirmButton: false,
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
+      });
+    } catch (err: unknown) {
+      // 409 = el equipo está en uso en jornadas: ofrecer borrado en cascada confirmando el nombre.
+      if (err instanceof ApiError && err.status === 409) {
+        try {
+          const deleted = await confirmCascadeDelete({
+            nombre,
+            fetchRelaciones: () =>
+              esFiltro ? api.tipoFiltros.relaciones(item.id) : api.tipoRespiradores.relaciones(item.id),
+            cascadeDelete: () =>
+              esFiltro ? api.tipoFiltros.deleteCascade(item.id) : api.tipoRespiradores.deleteCascade(item.id),
+            t,
+          });
+          if (deleted) {
+            quitarDeLista();
+            Swal.fire({
+              icon: "success",
+              title: t("cascade.deletedTitle"),
+              text: t("cascade.deletedText", { name: nombre }),
+              background: "var(--color-bg-card)",
+              color: "var(--color-text-primary)",
+            });
+          }
+        } catch (err2: unknown) {
+          Swal.fire({
+            icon: "error",
+            title: t("common.error"),
+            text: (err2 as Error).message,
+            background: "var(--color-bg-card)",
+            color: "var(--color-text-primary)",
+          });
         }
-        Swal.fire({
-          icon: "success",
-          title: t("filtros.deleted"),
-          timer: 1500,
-          showConfirmButton: false,
-          background: "#1c2333",
-          color: "#e6edf3",
-        });
-      } catch (err: unknown) {
-        Swal.fire({
-          icon: "error",
-          title: t("common.error"),
-          text: (err as Error).message,
-          background: "#1c2333",
-          color: "#e6edf3",
-        });
+        return;
       }
+      Swal.fire({
+        icon: "error",
+        title: t("common.error"),
+        text: (err as Error).message,
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
+      });
     }
   }
 

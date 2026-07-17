@@ -18,6 +18,8 @@ import {
   FileBarChart,
   ChevronsLeft,
   ChevronsRight,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
 import { getUserFromCookie } from "@/utils/cookies";
@@ -25,6 +27,7 @@ import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import type { TranslationKey } from "@/i18n/types";
 import LanguageSelector from "@/components/i18n/LanguageSelector";
+import { useTheme } from "@/theme/ThemeProvider";
 
 type Cargo = "Administrador" | "Supervisor" | "Trabajador";
 
@@ -45,7 +48,7 @@ const navItems: NavItem[] = [
   { href: "/visualizacion", labelKey: "sidebar.visualizacion", icon: Eye, roles: ALL_ROLES },
   { href: "/trabajadores", labelKey: "sidebar.trabajadores", icon: UserCog, roles: ADMIN_ONLY },
   { href: "/umbrales", labelKey: "sidebar.umbrales", icon: Sliders, roles: ADMIN_ONLY },
-  { href: "/filtros", labelKey: "sidebar.filtros", icon: Wind, roles: ALL_ROLES },
+  { href: "/filtros", labelKey: "sidebar.filtros", icon: Wind, roles: ADMIN_ONLY },
   { href: "/vida-util-filtros", labelKey: "sidebar.vidaUtilFiltros", icon: Timer, roles: ALL_ROLES },
   { href: "/reportes", labelKey: "sidebar.reportes", icon: FileBarChart, roles: ALL_ROLES },
   { href: "/roles-ubicaciones", labelKey: "sidebar.rolesUbicaciones", icon: MapPin, roles: ADMIN_ONLY },
@@ -62,6 +65,7 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const t = useT();
+  const { theme, toggleTheme } = useTheme();
   const [userCargo, setUserCargo] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -143,6 +147,22 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
               <LanguageSelector variant="compact" />
             </div>
           )}
+          {/* Theme toggle (claro / oscuro) */}
+          <button
+            onClick={toggleTheme}
+            className="sidebar-link"
+            style={{
+              width: "100%",
+              background: "none",
+              border: "none",
+              justifyContent: isCollapsed ? "center" : undefined,
+              marginBottom: "0.25rem",
+            }}
+            title={theme === "dark" ? t("sidebar.themeLight") : t("sidebar.themeDark")}
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            {!isCollapsed && <span>{theme === "dark" ? t("sidebar.themeLight") : t("sidebar.themeDark")}</span>}
+          </button>
           {/* Collapse toggle (hidden on mobile) */}
           <button
             onClick={onToggleCollapse}
@@ -168,8 +188,8 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
                 showCancelButton: true,
                 confirmButtonText: t("sidebar.logoutConfirmYes"),
                 cancelButtonText: t("common.cancel"),
-                background: "#1c2333",
-                color: "#e6edf3",
+                background: "var(--color-bg-card)",
+                color: "var(--color-text-primary)",
                 confirmButtonColor: "#f97316",
               });
               if (result.isConfirmed) {

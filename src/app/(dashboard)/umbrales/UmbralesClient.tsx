@@ -41,7 +41,6 @@ export default function UmbralesClient() {
     alrtFiltrBajo: "",
     alrtBateAlto: "",
     alrtBateMedio: "",
-    alrtBateBajo: "",
   });
   const [form, setForm] = useState({
     rutTrabajador: "",
@@ -52,7 +51,6 @@ export default function UmbralesClient() {
     alrtFiltrBajo: "",
     alrtBateAlto: "",
     alrtBateMedio: "",
-    alrtBateBajo: "",
   });
 
   async function cargarDatos() {
@@ -104,7 +102,6 @@ export default function UmbralesClient() {
       alrtFiltrBajo: "",
       alrtBateAlto: "",
       alrtBateMedio: "",
-      alrtBateBajo: "",
     });
     setShowForm(true);
   }
@@ -120,7 +117,6 @@ export default function UmbralesClient() {
       alrtFiltrBajo: u.alrtFiltrBajo?.toString() || "",
       alrtBateAlto: u.alrtBateAlto?.toString() || "",
       alrtBateMedio: u.alrtBateMedio?.toString() || "",
-      alrtBateBajo: u.alrtBateBajo?.toString() || "",
     });
     setShowForm(true);
   }
@@ -136,7 +132,6 @@ export default function UmbralesClient() {
     const respBajo = form.alrtRespBajo ? Number(form.alrtRespBajo) : null;
     const bateAlto = form.alrtBateAlto ? Number(form.alrtBateAlto) : null;
     const bateMedio = form.alrtBateMedio ? Number(form.alrtBateMedio) : null;
-    const bateBajo = form.alrtBateBajo ? Number(form.alrtBateBajo) : null;
 
     if (filtrAlto != null && filtrBajo != null && filtrAlto >= filtrBajo) {
       errors.push(t("umbrales.validation.filtroOrder"));
@@ -147,17 +142,14 @@ export default function UmbralesClient() {
     if (bateAlto != null && bateMedio != null && bateAlto >= bateMedio) {
       errors.push(t("umbrales.validation.bateAltoOrder"));
     }
-    if (bateMedio != null && bateBajo != null && bateMedio >= bateBajo) {
-      errors.push(t("umbrales.validation.bateMedioOrder"));
-    }
 
     if (errors.length > 0) {
       await Swal.fire({
         icon: "error",
         title: t("umbrales.validation.errorTitle"),
         html: errors.map((e) => `• ${e}`).join("<br/>"),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
       return;
     }
@@ -169,8 +161,8 @@ export default function UmbralesClient() {
       showCancelButton: true,
       confirmButtonText: t("umbrales.confirm.saveBtn"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#f97316",
     });
     if (!confirmResult.isConfirmed) return;
@@ -183,7 +175,6 @@ export default function UmbralesClient() {
       alrtFiltrBajo: form.alrtFiltrBajo ? Number(form.alrtFiltrBajo) : undefined,
       alrtBateAlto: form.alrtBateAlto ? Number(form.alrtBateAlto) : undefined,
       alrtBateMedio: form.alrtBateMedio ? Number(form.alrtBateMedio) : undefined,
-      alrtBateBajo: form.alrtBateBajo ? Number(form.alrtBateBajo) : undefined,
     };
 
     try {
@@ -195,8 +186,8 @@ export default function UmbralesClient() {
       Swal.fire({
         icon: "success",
         title: editando ? t("umbrales.toast.updated") : t("umbrales.toast.created"),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
         timer: 1500,
         showConfirmButton: false,
       });
@@ -207,8 +198,8 @@ export default function UmbralesClient() {
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     }
   }
@@ -221,8 +212,8 @@ export default function UmbralesClient() {
       showCancelButton: true,
       confirmButtonText: t("common.delete"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#ef4444",
     });
     if (!result.isConfirmed) return;
@@ -234,8 +225,8 @@ export default function UmbralesClient() {
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     }
   }
@@ -276,7 +267,6 @@ export default function UmbralesClient() {
       alrtFiltrBajo: "",
       alrtBateAlto: "",
       alrtBateMedio: "",
-      alrtBateBajo: "",
     });
     setShowBulkForm(true);
   }
@@ -290,7 +280,6 @@ export default function UmbralesClient() {
       alrtFiltrBajo: String(DEFAULT_THRESHOLDS.thClogLow),
       alrtBateAlto: String(DEFAULT_THRESHOLDS.bateAlto),
       alrtBateMedio: String(DEFAULT_THRESHOLDS.bateMedio),
-      alrtBateBajo: String(DEFAULT_THRESHOLDS.bateBajo),
     });
   }
 
@@ -302,8 +291,8 @@ export default function UmbralesClient() {
         icon: "warning",
         title: t("umbrales.bulk.noWorkersTitle"),
         text: t("umbrales.bulk.noWorkersText"),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
       return;
     }
@@ -316,7 +305,6 @@ export default function UmbralesClient() {
     const respBajo = bulkForm.alrtRespBajo ? Number(bulkForm.alrtRespBajo) : null;
     const bateAlto = bulkForm.alrtBateAlto ? Number(bulkForm.alrtBateAlto) : null;
     const bateMedio = bulkForm.alrtBateMedio ? Number(bulkForm.alrtBateMedio) : null;
-    const bateBajo = bulkForm.alrtBateBajo ? Number(bulkForm.alrtBateBajo) : null;
 
     if (filtrAlto != null && filtrBajo != null && filtrAlto >= filtrBajo) {
       errors.push(t("umbrales.validation.filtroOrder"));
@@ -327,17 +315,14 @@ export default function UmbralesClient() {
     if (bateAlto != null && bateMedio != null && bateAlto >= bateMedio) {
       errors.push(t("umbrales.validation.bateAltoOrder"));
     }
-    if (bateMedio != null && bateBajo != null && bateMedio >= bateBajo) {
-      errors.push(t("umbrales.validation.bateMedioOrder"));
-    }
 
     if (errors.length > 0) {
       await Swal.fire({
         icon: "error",
         title: t("umbrales.validation.errorTitle"),
         html: errors.map((e) => `• ${e}`).join("<br/>"),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
       return;
     }
@@ -349,8 +334,8 @@ export default function UmbralesClient() {
       showCancelButton: true,
       confirmButtonText: t("umbrales.bulk.applyBtn"),
       cancelButtonText: t("common.cancel"),
-      background: "#1c2333",
-      color: "#e6edf3",
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
       confirmButtonColor: "#f97316",
     });
     if (!confirmResult.isConfirmed) return;
@@ -363,7 +348,6 @@ export default function UmbralesClient() {
       alrtFiltrBajo: bulkForm.alrtFiltrBajo ? Number(bulkForm.alrtFiltrBajo) : undefined,
       alrtBateAlto: bulkForm.alrtBateAlto ? Number(bulkForm.alrtBateAlto) : undefined,
       alrtBateMedio: bulkForm.alrtBateMedio ? Number(bulkForm.alrtBateMedio) : undefined,
-      alrtBateBajo: bulkForm.alrtBateBajo ? Number(bulkForm.alrtBateBajo) : undefined,
     };
 
     try {
@@ -372,8 +356,8 @@ export default function UmbralesClient() {
         icon: "success",
         title: t("umbrales.bulk.successTitle"),
         text: t("umbrales.bulk.successText", { count: selectedRuts.length }),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
         timer: 2000,
         showConfirmButton: false,
       });
@@ -384,8 +368,8 @@ export default function UmbralesClient() {
         icon: "error",
         title: t("common.error"),
         text: (err as Error).message,
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     }
   }
@@ -398,7 +382,6 @@ export default function UmbralesClient() {
     { key: "alrtFiltrBajo", label: t("umbrales.fields.filtrBajo"), unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thClogLow, help: t("umbrales.help.filtrBajo") },
     { key: "alrtBateAlto", label: t("umbrales.fields.bateAlto"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateAlto, help: t("umbrales.help.bateAlto") },
     { key: "alrtBateMedio", label: t("umbrales.fields.bateMedio"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateMedio, help: t("umbrales.help.bateMedio") },
-    { key: "alrtBateBajo", label: t("umbrales.fields.bateBajo"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateBajo, help: t("umbrales.help.bateBajo") },
   ] as const;
 
   function fillDefaults() {
@@ -411,7 +394,6 @@ export default function UmbralesClient() {
       alrtFiltrBajo: String(DEFAULT_THRESHOLDS.thClogLow),
       alrtBateAlto: String(DEFAULT_THRESHOLDS.bateAlto),
       alrtBateMedio: String(DEFAULT_THRESHOLDS.bateMedio),
-      alrtBateBajo: String(DEFAULT_THRESHOLDS.bateBajo),
     });
   }
 
@@ -668,7 +650,7 @@ export default function UmbralesClient() {
                 <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: "0.5rem", paddingBottom: "0.375rem", borderBottom: "1px solid var(--color-border)" }}>
                   {t("umbrales.sections.bateria")}
                 </p>
-                <div className="umbrales-form-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+                <div className="umbrales-form-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.bateAltoLabel")}</label>
                     <div style={{ position: "relative" }}>
@@ -680,13 +662,6 @@ export default function UmbralesClient() {
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.bateMedioLabel")}</label>
                     <div style={{ position: "relative" }}>
                       <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.bateMedio)} value={bulkForm.alrtBateMedio} onChange={(e) => setBulkForm({ ...bulkForm, alrtBateMedio: e.target.value })} style={{ paddingRight: "2rem" }} />
-                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.bateBajo")}</label>
-                    <div style={{ position: "relative" }}>
-                      <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.bateBajo)} value={bulkForm.alrtBateBajo} onChange={(e) => setBulkForm({ ...bulkForm, alrtBateBajo: e.target.value })} style={{ paddingRight: "2rem" }} />
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
                   </div>
@@ -883,7 +858,7 @@ export default function UmbralesClient() {
                 }}>
                   {t("umbrales.sections.bateria")}
                 </p>
-                <div className="umbrales-form-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+                <div className="umbrales-form-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                       {t("umbrales.fields.bateAltoLabel")}
@@ -919,24 +894,6 @@ export default function UmbralesClient() {
                       <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
                     <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.bateMedio")}</p>
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
-                      {t("umbrales.fields.bateBajo")}
-                    </label>
-                    <div style={{ position: "relative" }}>
-                      <input
-                        className="input-field"
-                        type="number"
-                        step="any"
-                        placeholder={String(DEFAULT_THRESHOLDS.bateBajo)}
-                        value={form.alrtBateBajo}
-                        onChange={(e) => setForm({ ...form, alrtBateBajo: e.target.value })}
-                        style={{ paddingRight: "2rem" }}
-                      />
-                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
-                    </div>
-                    <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.bateBajo")}</p>
                   </div>
                 </div>
               </div>

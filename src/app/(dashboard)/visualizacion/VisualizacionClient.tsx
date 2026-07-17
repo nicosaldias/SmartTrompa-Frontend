@@ -116,8 +116,8 @@ export default function VisualizacionClient({ trabajadores }: Props) {
         icon: "error",
         title: t("common.error"),
         text: t("visualizacion.errorLoadHistory"),
-        background: "#1c2333",
-        color: "#e6edf3",
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
       });
     } finally {
       setLoading(false);
@@ -291,7 +291,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
                   height: 12,
                   borderRadius: "50%",
                   backgroundColor: alertColor(a.nivel),
-                  border: "2px solid var(--color-bg-card, #1c2333)",
+                  border: "2px solid var(--color-bg-card, var(--color-bg-card))",
                   cursor: "pointer",
                   padding: 0,
                   boxShadow: "0 0 0 1px rgba(0,0,0,0.4)",

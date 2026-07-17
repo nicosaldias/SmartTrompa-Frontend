@@ -46,6 +46,8 @@
     "relAlertas": "{count} alertas",
     "relOtros": "{count} otros registros asociados",
     "relGeneric": "registros en jornadas, mediciones y/o alertas",
+    "countsMayVary": "Los conteos son referenciales y pueden variar si hay actividad simultánea en la plataforma.",
+    "scopeSupervisorNote": "Incluye las jornadas donde actuó como supervisor, junto con las mediciones y alertas de otros trabajadores en esas jornadas.",
     "confirmTitle": "Confirma el nombre para eliminar",
     "confirmText": "Para confirmar el borrado permanente en cascada, escribe exactamente:",
     "confirmPlaceholder": "Escribe el nombre aquí",

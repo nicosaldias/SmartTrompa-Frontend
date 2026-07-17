@@ -315,6 +315,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
             nombre,
             fetchRelaciones: () => api.trabajadores.relaciones(trab.rut),
             cascadeDelete: () => api.trabajadores.deleteCascade(trab.rut),
+            notaAlcance: t("cascade.scopeSupervisorNote"),
             t,
           });
           if (deleted) {

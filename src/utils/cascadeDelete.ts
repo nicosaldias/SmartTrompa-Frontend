@@ -12,6 +12,8 @@ interface CascadeDeleteArgs {
   fetchRelaciones: () => Promise<RelacionesResumen>;
   /** Ejecuta el borrado en cascada en el backend. */
   cascadeDelete: () => Promise<void>;
+  /** Nota adicional (ya traducida) sobre el alcance del borrado, ej. jornadas supervisadas. */
+  notaAlcance?: string;
   t: TFunc;
 }
 
@@ -56,6 +58,7 @@ export async function confirmCascadeDelete({
   nombre,
   fetchRelaciones,
   cascadeDelete,
+  notaAlcance,
   t,
 }: CascadeDeleteArgs): Promise<boolean> {
   let rel: RelacionesResumen | null = null;
@@ -67,12 +70,21 @@ export async function confirmCascadeDelete({
 
   const nombreSeguro = escapeHtml(nombre);
 
+  // Entre la advertencia y la confirmación puede entrar actividad nueva (TOCTOU):
+  // se avisa que los conteos son referenciales.
+  const notas =
+    (notaAlcance
+      ? `<p style="margin-top:.5rem;font-size:.8rem;text-align:left">${escapeHtml(notaAlcance)}</p>`
+      : "") +
+    `<p style="margin-top:.5rem;font-size:.75rem;text-align:left;opacity:.75">${t("cascade.countsMayVary")}</p>`;
+
   const warn = await Swal.fire({
     icon: "warning",
     title: t("cascade.warnTitle"),
     html:
       `<p>${t("cascade.warnText", { name: nombreSeguro })}</p>` +
       listaRelaciones(rel, t) +
+      notas +
       `<p style="margin-top:.75rem">${t("cascade.warnQuestion")}</p>`,
     showCancelButton: true,
     confirmButtonText: t("cascade.warnConfirm"),

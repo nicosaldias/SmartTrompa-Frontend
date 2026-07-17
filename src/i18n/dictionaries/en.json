@@ -46,6 +46,8 @@
     "relAlertas": "{count} alerts",
     "relOtros": "{count} other related records",
     "relGeneric": "records in shifts, measurements and/or alerts",
+    "countsMayVary": "Counts are indicative and may change if there is concurrent activity on the platform.",
+    "scopeSupervisorNote": "Includes shifts where they acted as supervisor, along with other workers' measurements and alerts in those shifts.",
     "confirmTitle": "Confirm the name to delete",
     "confirmText": "To confirm permanent cascade deletion, type exactly:",
     "confirmPlaceholder": "Type the name here",

@@ -10,8 +10,10 @@ export default async function FiltrosPage() {
   if (!cookieHeader) redirect("/login");
 
   // Página solo-Admin: ocultar el link del sidebar no basta si navegan directo.
+  // Tokens válidos sin st_user = estado inconsistente → re-login lo repara.
   const user = await getCurrentUser();
-  if (user?.cargo !== "Administrador") redirect("/resumen");
+  if (!user) redirect("/login");
+  if (user.cargo !== "Administrador") redirect("/resumen");
 
   const [filtros, respiradores] = await Promise.all([
     api.tipoFiltros.listWithImages(cookieHeader),

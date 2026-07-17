@@ -308,8 +308,22 @@ export default function TrabajadoresClient({ initialPage }: Props) {
         color: "var(--color-text-primary)",
       });
     } catch (err: unknown) {
-      // 409 = tiene registros relacionados: ofrecer borrado en cascada con confirmación del nombre.
       if (err instanceof ApiError && err.status === 409) {
+        // Solo el 409 por FK ("...registros relacionados...", detail fijo del
+        // GlobalExceptionHandler) debe ofrecer cascada. El guard anti-lockout
+        // (propia cuenta / único Administrador) también responde 409: ahí se
+        // muestra el motivo directo, sin flujo destructivo condenado a fallar.
+        const esPorRelaciones = (err.detail ?? err.message ?? "").includes("registros relacionados");
+        if (!esPorRelaciones) {
+          Swal.fire({
+            icon: "error",
+            title: t("common.error"),
+            text: err.message,
+            background: "var(--color-bg-card)",
+            color: "var(--color-text-primary)",
+          });
+          return;
+        }
         try {
           const deleted = await confirmCascadeDelete({
             nombre,

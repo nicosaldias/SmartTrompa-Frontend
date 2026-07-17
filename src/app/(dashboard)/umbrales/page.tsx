@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCookieHeader } from "@/actions/auth";
+import { getCookieHeader, getCurrentUser } from "@/actions/auth";
 import UmbralesClient from "./UmbralesClient";
 
 export const metadata = {
@@ -9,6 +9,10 @@ export const metadata = {
 export default async function UmbralesPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
+
+  // Página solo-Admin: ocultar el link del sidebar no basta si navegan directo.
+  const user = await getCurrentUser();
+  if (user?.cargo !== "Administrador") redirect("/resumen");
 
   return <UmbralesClient />;
 }

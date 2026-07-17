@@ -451,10 +451,6 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
             grid-template-columns: repeat(3, 1fr) !important;
             gap: 0.75rem !important;
           }
-          .resumen-sensor-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 0.75rem !important;
-          }
           .resumen-alert-card {
             padding: 1.25rem 0.75rem !important;
           }
@@ -478,16 +474,6 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
           }
           .resumen-alert-count {
             font-size: 1.75rem !important;
-          }
-          .resumen-sensor-grid {
-            grid-template-columns: 1fr !important;
-            gap: 0.5rem !important;
-          }
-          .resumen-sensor-card {
-            padding: 1rem 0.75rem !important;
-          }
-          .resumen-sensor-value {
-            font-size: 1.5rem !important;
           }
         }
       `}</style>

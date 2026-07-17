@@ -116,6 +116,29 @@ export default function ResumenJornadaActual({ jornadas, medicionesMap, marginBo
           <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("resumen.average")}</p>
         </div>
       </div>
+
+      {/* Responsive del bloque compartido: vive aquí para aplicar en TODAS las
+          páginas que lo usan (Resumen y Estado de Cuadrilla), no solo en una. */}
+      <style>{`
+        @media (max-width: 1024px) {
+          .resumen-sensor-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .resumen-sensor-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.5rem !important;
+          }
+          .resumen-sensor-card {
+            padding: 1rem 0.75rem !important;
+          }
+          .resumen-sensor-value {
+            font-size: 1.5rem !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

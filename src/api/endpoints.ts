@@ -44,8 +44,9 @@ export const ubicacionEndpoints = {
 
 export const tipoFiltroEndpoints = {
   all: () => `${API_BASE_URL}/tipo-filtro/`,
-  withImages: () => `${API_BASE_URL}/tipo-filtro/images/`,
   byId: (id: number) => `${API_BASE_URL}/tipo-filtro/${id}/`,
+  // Imagen binaria por id (la lista ya no embebe base64).
+  imagen: (id: number) => `${API_BASE_URL}/tipo-filtro/${id}/imagen/`,
   toggleHabilitado: (id: number) => `${API_BASE_URL}/tipo-filtro/${id}/habilitado/`,
   relaciones: (id: number) => `${API_BASE_URL}/tipo-filtro/${id}/relaciones/`,
   deleteCascade: (id: number) => `${API_BASE_URL}/tipo-filtro/${id}/cascada/`,
@@ -53,8 +54,9 @@ export const tipoFiltroEndpoints = {
 
 export const tipoRespiradorEndpoints = {
   all: () => `${API_BASE_URL}/tipo-respirador/`,
-  withImages: () => `${API_BASE_URL}/tipo-respirador/images/`,
   byId: (id: number) => `${API_BASE_URL}/tipo-respirador/${id}/`,
+  // Imagen binaria por id (la lista ya no embebe base64).
+  imagen: (id: number) => `${API_BASE_URL}/tipo-respirador/${id}/imagen/`,
   toggleHabilitado: (id: number) => `${API_BASE_URL}/tipo-respirador/${id}/habilitado/`,
   relaciones: (id: number) => `${API_BASE_URL}/tipo-respirador/${id}/relaciones/`,
   deleteCascade: (id: number) => `${API_BASE_URL}/tipo-respirador/${id}/cascada/`,

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { api, ApiError } from "@/api/client";
+import { tipoFiltroEndpoints, tipoRespiradorEndpoints } from "@/api/endpoints";
 import { TipoFiltro, TipoRespirador } from "@/types";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Image as ImageIcon, Upload } from "lucide-react";
 import Swal from "sweetalert2";
@@ -70,7 +71,22 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  // Cache-buster por item: al reemplazar una foto, la URL cambia y el navegador
+  // no sirve la versión vieja cacheada (Cache-Control del backend).
+  const [imgVersion, setImgVersion] = useState<Record<string, number>>({});
 
+  // Las imágenes ya no viajan en base64 dentro del JSON (bloqueaban el render
+  // completo de la vista con conexiones lentas): se piden por URL y lazy.
+  function imagenSrc(tab: ActiveTab, item: TipoFiltro | TipoRespirador): string {
+    const base =
+      tab === "filtros" ? tipoFiltroEndpoints.imagen(item.id) : tipoRespiradorEndpoints.imagen(item.id);
+    const v = imgVersion[`${tab}-${item.id}`];
+    return v ? `${base}?v=${v}` : base;
+  }
+
+  function bumpImgVersion(tab: ActiveTab, id: number) {
+    setImgVersion((prev) => ({ ...prev, [`${tab}-${id}`]: (prev[`${tab}-${id}`] ?? 0) + 1 }));
+  }
 
   const currentItems = activeTab === "filtros" ? filtros : respiradores;
 
@@ -100,7 +116,8 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       fechaHomologacion: toDateInputValue(item.fechaHomologacion),
     });
     setImageFile(null);
-    setImagePreview("");
+    // Mostrar la foto actual como preview (por URL; ya no viene en el JSON).
+    setImagePreview(item.tieneImagen ? imagenSrc(activeTab, item) : "");
     setShowModal(true);
   }
 
@@ -151,7 +168,7 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       });
       return;
     }
-    if (editingItem && !editingItem.imagen && !imageFile) {
+    if (editingItem && !editingItem.tieneImagen && !imageFile) {
       Swal.fire({
         icon: "warning",
         title: t("filtros.imageRequired"),
@@ -190,25 +207,28 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
         formData.append("imagen", imageFile);
       }
 
-      // Guardamos y actualizamos SOLO el item afectado en el estado local con la
-      // entidad que devuelve el backend. Antes se llamaba refreshLists(), que
-      // re-descargaba AMBOS catálogos completos con sus imágenes en base64
-      // (varios MB) y bloqueaba el modal de éxito ~30s. Con la actualización
-      // local el feedback es inmediato.
+      // Guardamos y actualizamos SOLO el item afectado en el estado local
+      // (feedback inmediato, sin re-descargar catálogos). El backend no
+      // recalcula tieneImagen en la entidad que devuelve el save (@Formula se
+      // evalúa al leer), así que lo derivamos acá si se subió archivo.
       if (modalTab === "filtros") {
         const saved = editingItem
           ? await api.tipoFiltros.update(editingItem.id, formData)
           : await api.tipoFiltros.create(formData);
+        const merged = { ...saved, tieneImagen: saved.tieneImagen || !!imageFile };
         setFiltros((prev) =>
-          editingItem ? prev.map((f) => (f.id === saved.id ? saved : f)) : [saved, ...prev]
+          editingItem ? prev.map((f) => (f.id === merged.id ? merged : f)) : [merged, ...prev]
         );
+        if (imageFile) bumpImgVersion("filtros", merged.id);
       } else {
         const saved = editingItem
           ? await api.tipoRespiradores.update(editingItem.id, formData)
           : await api.tipoRespiradores.create(formData);
+        const merged = { ...saved, tieneImagen: saved.tieneImagen || !!imageFile };
         setRespiradores((prev) =>
-          editingItem ? prev.map((r) => (r.id === saved.id ? saved : r)) : [saved, ...prev]
+          editingItem ? prev.map((r) => (r.id === merged.id ? merged : r)) : [merged, ...prev]
         );
+        if (imageFile) bumpImgVersion("respiradores", merged.id);
       }
 
       setShowModal(false);
@@ -537,10 +557,11 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
                   position: "relative",
                 }}
               >
-                {item.imagen && typeof item.imagen === "string" && item.imagen.length > 0 ? (
+                {item.tieneImagen ? (
                   <img
-                    src={`data:image/png;base64,${item.imagen}`}
+                    src={imagenSrc(activeTab, item)}
                     alt={getDisplayName(item)}
+                    loading="lazy"
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   />
                 ) : (

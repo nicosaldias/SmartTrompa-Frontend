@@ -372,8 +372,6 @@ export const api = {
   tipoFiltros: {
     list: (cookieHeader?: string) =>
       request<TipoFiltro[]>(tipoFiltroEndpoints.all(), { cookieHeader }),
-    listWithImages: (cookieHeader?: string) =>
-      request<TipoFiltro[]>(tipoFiltroEndpoints.withImages(), { cookieHeader }),
     byId: (id: number, cookieHeader?: string) =>
       request<TipoFiltro>(tipoFiltroEndpoints.byId(id), { cookieHeader }),
     create: (formData: FormData, cookieHeader?: string) =>
@@ -404,8 +402,6 @@ export const api = {
   tipoRespiradores: {
     list: (cookieHeader?: string) =>
       request<TipoRespirador[]>(tipoRespiradorEndpoints.all(), { cookieHeader }),
-    listWithImages: (cookieHeader?: string) =>
-      request<TipoRespirador[]>(tipoRespiradorEndpoints.withImages(), { cookieHeader }),
     byId: (id: number, cookieHeader?: string) =>
       request<TipoRespirador>(tipoRespiradorEndpoints.byId(id), { cookieHeader }),
     create: (formData: FormData, cookieHeader?: string) =>

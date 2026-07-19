@@ -15,9 +15,11 @@ export default async function FiltrosPage() {
   if (!user) redirect("/login");
   if (user.cargo !== "Administrador") redirect("/resumen");
 
+  // Lista liviana: las imágenes ya no viajan en el JSON (el cliente las pide
+  // por URL con lazy loading), así la vista renderiza aunque la conexión sea lenta.
   const [filtros, respiradores] = await Promise.all([
-    api.tipoFiltros.listWithImages(cookieHeader),
-    api.tipoRespiradores.listWithImages(cookieHeader),
+    api.tipoFiltros.list(cookieHeader),
+    api.tipoRespiradores.list(cookieHeader),
   ]);
   return <FiltrosClient initialFiltros={filtros} initialRespiradores={respiradores} />;
 }

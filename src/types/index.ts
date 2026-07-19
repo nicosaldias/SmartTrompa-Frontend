@@ -121,7 +121,9 @@ export interface TipoFiltro {
   fechaHomologacion?: string;
   habilitado: boolean;
   descripcion?: string;
-  imagen?: string | null;
+  // La imagen ya no viaja en el JSON; se sirve por GET /{id}/imagen/ y este
+  // flag (calculado en BD) indica si existe.
+  tieneImagen?: boolean;
   vidaUtilHoras?: number;
 }
 
@@ -144,7 +146,9 @@ export interface TipoRespirador {
   fechaHomologacion?: string;
   habilitado: boolean;
   descripcion?: string;
-  imagen?: string | null;
+  // La imagen ya no viaja en el JSON; se sirve por GET /{id}/imagen/ y este
+  // flag (calculado en BD) indica si existe.
+  tieneImagen?: boolean;
 }
 
 export interface Rol {

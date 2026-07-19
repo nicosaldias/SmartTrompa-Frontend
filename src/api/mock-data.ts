@@ -46,16 +46,16 @@ export const MOCK_TRABAJADORES: Trabajador[] = [
 
 // ===== TIPO FILTRO =====
 export const MOCK_TIPO_FILTROS: TipoFiltro[] = [
-  { id: 1, nombre: '3M 2091', marca: '3M', modelo: '2091 P100', fechaHomologacion: '2024-03-15T00:00:00Z', habilitado: true, descripcion: 'Filtro de partículas P100', imagen: null, vidaUtilHoras: 200 },
-  { id: 2, nombre: '3M 6003', marca: '3M', modelo: '6003', fechaHomologacion: '2024-01-20T00:00:00Z', habilitado: true, descripcion: 'Cartucho vapores orgánicos y gases ácidos', imagen: null, vidaUtilHoras: 200 },
-  { id: 3, nombre: 'MSA Advantage', marca: 'MSA', modelo: 'Advantage GME', fechaHomologacion: '2023-11-10T00:00:00Z', habilitado: true, descripcion: 'Cartucho multigas industrial', imagen: null, vidaUtilHoras: 150 },
+  { id: 1, nombre: '3M 2091', marca: '3M', modelo: '2091 P100', fechaHomologacion: '2024-03-15T00:00:00Z', habilitado: true, descripcion: 'Filtro de partículas P100', tieneImagen: false, vidaUtilHoras: 200 },
+  { id: 2, nombre: '3M 6003', marca: '3M', modelo: '6003', fechaHomologacion: '2024-01-20T00:00:00Z', habilitado: true, descripcion: 'Cartucho vapores orgánicos y gases ácidos', tieneImagen: false, vidaUtilHoras: 200 },
+  { id: 3, nombre: 'MSA Advantage', marca: 'MSA', modelo: 'Advantage GME', fechaHomologacion: '2023-11-10T00:00:00Z', habilitado: true, descripcion: 'Cartucho multigas industrial', tieneImagen: false, vidaUtilHoras: 150 },
 ];
 
 // ===== TIPO RESPIRADOR =====
 export const MOCK_TIPO_RESPIRADORES: TipoRespirador[] = [
-  { id: 1, nombre: '3M 6800', marca: '3M', modelo: '6800', fechaHomologacion: '2024-02-01T00:00:00Z', habilitado: true, descripcion: 'Respirador cara completa serie 6000', imagen: null },
-  { id: 2, nombre: '3M 7502', marca: '3M', modelo: '7502', fechaHomologacion: '2024-01-15T00:00:00Z', habilitado: true, descripcion: 'Respirador media cara serie 7500', imagen: null },
-  { id: 3, nombre: 'MSA Advantage 3200', marca: 'MSA', modelo: 'Advantage 3200', fechaHomologacion: '2023-10-01T00:00:00Z', habilitado: true, descripcion: 'Respirador cara completa doble cartucho', imagen: null },
+  { id: 1, nombre: '3M 6800', marca: '3M', modelo: '6800', fechaHomologacion: '2024-02-01T00:00:00Z', habilitado: true, descripcion: 'Respirador cara completa serie 6000', tieneImagen: false },
+  { id: 2, nombre: '3M 7502', marca: '3M', modelo: '7502', fechaHomologacion: '2024-01-15T00:00:00Z', habilitado: true, descripcion: 'Respirador media cara serie 7500', tieneImagen: false },
+  { id: 3, nombre: 'MSA Advantage 3200', marca: 'MSA', modelo: 'Advantage 3200', fechaHomologacion: '2023-10-01T00:00:00Z', habilitado: true, descripcion: 'Respirador cara completa doble cartucho', tieneImagen: false },
 ];
 
 // ===== JORNADAS =====

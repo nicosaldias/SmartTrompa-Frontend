@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginAction, forgotPasswordAction } from "@/actions/auth";
-import { Wind, Eye, EyeOff, ArrowLeft, Shield, Users, Clock } from "lucide-react";
+import { Wind, Eye, EyeOff, ArrowLeft, Shield, Users, Clock, Sun, Moon } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import LanguageSelector from "@/components/i18n/LanguageSelector";
+import { useTheme } from "@/theme/ThemeProvider";
 
 function formatRut(value: string) {
   const clean = value.replace(/[^0-9kK]/g, "").toLowerCase();
@@ -29,6 +30,7 @@ const labelStyle: React.CSSProperties = {
 export default function LoginPage() {
   const router = useRouter();
   const { lang, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const [rut, setRut] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -285,8 +287,39 @@ export default function LoginPage() {
         }}
         className="login-right-panel"
       >
-        {/* Language selector: esquina superior derecha */}
-        <div style={{ position: "absolute", top: "1.25rem", right: "1.25rem", zIndex: 2 }}>
+        {/* Tema + idioma: esquina superior derecha */}
+        <div
+          style={{
+            position: "absolute",
+            top: "1.25rem",
+            right: "1.25rem",
+            zIndex: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+          }}
+        >
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? t("sidebar.themeLight") : t("sidebar.themeDark")}
+            title={theme === "dark" ? t("sidebar.themeLight") : t("sidebar.themeDark")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 30,
+              height: 30,
+              borderRadius: 999,
+              background: "var(--color-bg-primary)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text-secondary)",
+              cursor: "pointer",
+              transition: "color 0.15s ease, border-color 0.15s ease",
+            }}
+          >
+            {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
           <LanguageSelector variant="compact" />
         </div>
         <div style={{ width: "100%", maxWidth: 420 }}>
@@ -552,19 +585,24 @@ export default function LoginPage() {
           >
             {t("login.footerNote")}
           </p>
-          {/* Número de versión de la plataforma */}
-          <p
-            style={{
-              textAlign: "center",
-              color: "var(--color-text-secondary)",
-              fontSize: "0.7rem",
-              marginTop: "0.5rem",
-              opacity: 0.7,
-            }}
-          >
-            v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0"}
-          </p>
         </div>
+
+        {/* Número de versión: anclado al fondo del panel */}
+        <p
+          style={{
+            position: "absolute",
+            bottom: "1rem",
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            color: "var(--color-text-secondary)",
+            fontSize: "0.8rem",
+            opacity: 0.8,
+            pointerEvents: "none",
+          }}
+        >
+          v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0"}
+        </p>
       </div>
 
       {/* ==================== RESPONSIVE STYLES ==================== */}

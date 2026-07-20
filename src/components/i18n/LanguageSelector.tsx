@@ -29,8 +29,8 @@ export default function LanguageSelector({
     gap: variant === "compact" ? 2 : 4,
     padding: 4,
     borderRadius: 999,
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: "var(--color-bg-primary)",
+    border: "1px solid var(--color-border)",
     ...style,
   };
 
@@ -61,7 +61,7 @@ export default function LanguageSelector({
               border: "none",
               cursor: isActive ? "default" : "pointer",
               background: isActive ? "var(--color-accent, #f97316)" : "transparent",
-              color: isActive ? "#fff" : "rgba(255,255,255,0.65)",
+              color: isActive ? "#fff" : "var(--color-text-secondary)",
               transition: "background 0.15s ease, color 0.15s ease",
             }}
           >

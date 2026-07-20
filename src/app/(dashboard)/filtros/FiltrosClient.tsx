@@ -8,7 +8,7 @@ import { Plus, Pencil, Trash2, Eye, EyeOff, Image as ImageIcon, Upload } from "l
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import { abrirCalendario } from "@/utils/datePicker";
-import { confirmCascadeDelete } from "@/utils/cascadeDelete";
+import { confirmCascadeDelete, confirmDeleteWithImpact } from "@/utils/cascadeDelete";
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const pct = current / max;
@@ -295,71 +295,62 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
       if (esFiltro) setFiltros((prev) => prev.filter((f) => f.id !== item.id));
       else setRespiradores((prev) => prev.filter((r) => r.id !== item.id));
     };
-
-    const result = await Swal.fire({
-      title: esFiltro ? t("filtros.deleteFilterTitle") : t("filtros.deleteRespiratorTitle"),
-      text: t("filtros.deleteText", { name: nombre }),
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: t("filtros.yesDelete"),
-      cancelButtonText: t("common.cancel"),
-      background: "var(--color-bg-card)",
-      color: "var(--color-text-primary)",
-      confirmButtonColor: "#ef4444",
-    });
-    if (!result.isConfirmed) return;
-    try {
-      if (esFiltro) await api.tipoFiltros.delete(item.id);
-      else await api.tipoRespiradores.delete(item.id);
+    const fetchRelaciones = () =>
+      esFiltro ? api.tipoFiltros.relaciones(item.id) : api.tipoRespiradores.relaciones(item.id);
+    const cascadeDelete = () =>
+      esFiltro ? api.tipoFiltros.deleteCascade(item.id) : api.tipoRespiradores.deleteCascade(item.id);
+    const exitoCascada = () => {
       quitarDeLista();
       Swal.fire({
         icon: "success",
-        title: t("filtros.deleted"),
-        timer: 1500,
-        showConfirmButton: false,
+        title: t("cascade.deletedTitle"),
+        text: t("cascade.deletedText", { name: nombre }),
         background: "var(--color-bg-card)",
         color: "var(--color-text-primary)",
       });
-    } catch (err: unknown) {
-      // 409 = el equipo está en uso en jornadas: ofrecer borrado en cascada confirmando el nombre.
-      if (err instanceof ApiError && err.status === 409) {
-        try {
-          const deleted = await confirmCascadeDelete({
-            nombre,
-            fetchRelaciones: () =>
-              esFiltro ? api.tipoFiltros.relaciones(item.id) : api.tipoRespiradores.relaciones(item.id),
-            cascadeDelete: () =>
-              esFiltro ? api.tipoFiltros.deleteCascade(item.id) : api.tipoRespiradores.deleteCascade(item.id),
-            t,
-          });
-          if (deleted) {
-            quitarDeLista();
-            Swal.fire({
-              icon: "success",
-              title: t("cascade.deletedTitle"),
-              text: t("cascade.deletedText", { name: nombre }),
-              background: "var(--color-bg-card)",
-              color: "var(--color-text-primary)",
-            });
-          }
-        } catch (err2: unknown) {
-          Swal.fire({
-            icon: "error",
-            title: t("common.error"),
-            text: (err2 as Error).message,
-            background: "var(--color-bg-card)",
-            color: "var(--color-text-primary)",
-          });
-        }
-        return;
-      }
+    };
+    const mostrarError = (msg: string) =>
       Swal.fire({
         icon: "error",
         title: t("common.error"),
-        text: (err as Error).message,
+        text: msg,
         background: "var(--color-bg-card)",
         color: "var(--color-text-primary)",
       });
+
+    // Vista previa de impacto SIEMPRE antes de borrar: muestra a qué afecta.
+    const decision = await confirmDeleteWithImpact({ nombre, fetchRelaciones, t });
+    if (decision === "cancel") return;
+    try {
+      if (decision === "cascade") {
+        await cascadeDelete();
+        exitoCascada();
+      } else {
+        if (esFiltro) await api.tipoFiltros.delete(item.id);
+        else await api.tipoRespiradores.delete(item.id);
+        quitarDeLista();
+        Swal.fire({
+          icon: "success",
+          title: t("filtros.deleted"),
+          timer: 1500,
+          showConfirmButton: false,
+          background: "var(--color-bg-card)",
+          color: "var(--color-text-primary)",
+        });
+      }
+    } catch (err: unknown) {
+      // TOCTOU: entre la vista previa y el borrado aparecieron relaciones (409).
+      // Se ofrece el borrado en cascada confirmando el nombre.
+      if (decision === "simple" && err instanceof ApiError && err.status === 409) {
+        try {
+          const deleted = await confirmCascadeDelete({ nombre, fetchRelaciones, cascadeDelete, t });
+          if (deleted) exitoCascada();
+        } catch (err2: unknown) {
+          mostrarError((err2 as Error).message);
+        }
+        return;
+      }
+      mostrarError((err as Error).message);
     }
   }
 

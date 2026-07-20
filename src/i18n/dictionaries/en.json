@@ -54,7 +54,12 @@
     "confirmDelete": "Delete in cascade",
     "nameMismatch": "The name does not match. Type it exactly to confirm.",
     "deletedTitle": "Deleted in cascade",
-    "deletedText": "\"{name}\" and its related records were deleted."
+    "deletedText": "\"{name}\" and its related records were deleted.",
+    "simpleTitle": "Delete record",
+    "simpleText": "Delete \"{name}\"?",
+    "simpleNoImpact": "It has no related records: only this record will be deleted, without affecting shifts, measurements or alerts.",
+    "simpleConfirm": "Yes, delete",
+    "countUnavailable": "The impact could not be verified right now. If you continue, it will be deleted along with any related records."
   },
   "login": {
     "title": "Sign in",

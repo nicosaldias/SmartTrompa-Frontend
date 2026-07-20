@@ -8,7 +8,7 @@ import { Plus, Pencil, Trash2, Search, Eye, EyeOff, Upload } from "lucide-react"
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import type { TranslationKey } from "@/i18n/types";
-import { confirmCascadeDelete } from "@/utils/cascadeDelete";
+import { confirmCascadeDelete, confirmDeleteWithImpact } from "@/utils/cascadeDelete";
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const pct = current / max;
@@ -284,82 +284,68 @@ export default function TrabajadoresClient({ initialPage }: Props) {
 
   async function handleDelete(trab: Trabajador) {
     const nombre = `${trab.nombre} ${trab.apellidoPaterno}`;
-    const result = await Swal.fire({
-      title: t("trabajadores.deleteTitle"),
-      text: t("trabajadores.deleteText", { name: nombre }),
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: t("trabajadores.yesDelete"),
-      cancelButtonText: t("common.cancel"),
-      background: "var(--color-bg-card)",
-      color: "var(--color-text-primary)",
-      confirmButtonColor: "#ef4444",
-    });
-    if (!result.isConfirmed) return;
-    try {
-      await api.trabajadores.delete(trab.rut);
+    const fetchRelaciones = () => api.trabajadores.relaciones(trab.rut);
+    const cascadeDelete = () => api.trabajadores.deleteCascade(trab.rut);
+    const notaAlcance = t("cascade.scopeSupervisorNote");
+    const exitoCascada = async () => {
       await refreshList();
       Swal.fire({
         icon: "success",
-        title: t("trabajadores.deleted"),
-        timer: 1500,
-        showConfirmButton: false,
+        title: t("cascade.deletedTitle"),
+        text: t("cascade.deletedText", { name: nombre }),
         background: "var(--color-bg-card)",
         color: "var(--color-text-primary)",
       });
-    } catch (err: unknown) {
-      if (err instanceof ApiError && err.status === 409) {
-        // Solo el 409 por FK ("...registros relacionados...", detail fijo del
-        // GlobalExceptionHandler) debe ofrecer cascada. El guard anti-lockout
-        // (propia cuenta / único Administrador) también responde 409: ahí se
-        // muestra el motivo directo, sin flujo destructivo condenado a fallar.
-        const esPorRelaciones = (err.detail ?? err.message ?? "").includes("registros relacionados");
-        if (!esPorRelaciones) {
-          Swal.fire({
-            icon: "error",
-            title: t("common.error"),
-            text: err.message,
-            background: "var(--color-bg-card)",
-            color: "var(--color-text-primary)",
-          });
-          return;
-        }
-        try {
-          const deleted = await confirmCascadeDelete({
-            nombre,
-            fetchRelaciones: () => api.trabajadores.relaciones(trab.rut),
-            cascadeDelete: () => api.trabajadores.deleteCascade(trab.rut),
-            notaAlcance: t("cascade.scopeSupervisorNote"),
-            t,
-          });
-          if (deleted) {
-            await refreshList();
-            Swal.fire({
-              icon: "success",
-              title: t("cascade.deletedTitle"),
-              text: t("cascade.deletedText", { name: nombre }),
-              background: "var(--color-bg-card)",
-              color: "var(--color-text-primary)",
-            });
-          }
-        } catch (err2: unknown) {
-          Swal.fire({
-            icon: "error",
-            title: t("common.error"),
-            text: (err2 as Error).message,
-            background: "var(--color-bg-card)",
-            color: "var(--color-text-primary)",
-          });
-        }
-        return;
-      }
+    };
+    const mostrarError = (msg: string) =>
       Swal.fire({
         icon: "error",
         title: t("common.error"),
-        text: (err as Error).message,
+        text: msg,
         background: "var(--color-bg-card)",
         color: "var(--color-text-primary)",
       });
+
+    // Vista previa de impacto SIEMPRE antes de borrar: muestra a qué afecta
+    // (incluidas las jornadas supervisadas). No ejecuta el borrado.
+    const decision = await confirmDeleteWithImpact({ nombre, fetchRelaciones, notaAlcance, t });
+    if (decision === "cancel") return;
+    try {
+      if (decision === "cascade") {
+        await cascadeDelete();
+        await exitoCascada();
+      } else {
+        await api.trabajadores.delete(trab.rut);
+        await refreshList();
+        Swal.fire({
+          icon: "success",
+          title: t("trabajadores.deleted"),
+          timer: 1500,
+          showConfirmButton: false,
+          background: "var(--color-bg-card)",
+          color: "var(--color-text-primary)",
+        });
+      }
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 409) {
+        // El guard anti-lockout (propia cuenta / único Administrador) responde 409
+        // con un detail distinto al de FK ("...registros relacionados...", fijo del
+        // GlobalExceptionHandler): ahí se muestra el motivo directo, sin cascada.
+        const esPorRelaciones = (err.detail ?? err.message ?? "").includes("registros relacionados");
+        if (!esPorRelaciones) {
+          mostrarError(err.message);
+          return;
+        }
+        // TOCTOU en el camino simple: aparecieron relaciones → ofrecer cascada.
+        try {
+          const deleted = await confirmCascadeDelete({ nombre, fetchRelaciones, cascadeDelete, notaAlcance, t });
+          if (deleted) await exitoCascada();
+        } catch (err2: unknown) {
+          mostrarError((err2 as Error).message);
+        }
+        return;
+      }
+      mostrarError((err as Error).message);
     }
   }
 

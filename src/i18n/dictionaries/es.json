@@ -54,7 +54,12 @@
     "confirmDelete": "Eliminar en cascada",
     "nameMismatch": "El nombre no coincide. Escríbelo tal cual para confirmar.",
     "deletedTitle": "Eliminado en cascada",
-    "deletedText": "\"{name}\" y sus registros relacionados fueron eliminados."
+    "deletedText": "\"{name}\" y sus registros relacionados fueron eliminados.",
+    "simpleTitle": "Eliminar registro",
+    "simpleText": "¿Eliminar \"{name}\"?",
+    "simpleNoImpact": "No tiene registros relacionados: solo se eliminará este registro, sin afectar jornadas, mediciones ni alertas.",
+    "simpleConfirm": "Sí, eliminar",
+    "countUnavailable": "No se pudo verificar el impacto en este momento. Si continúas, se eliminará junto con cualquier registro relacionado."
   },
   "login": {
     "title": "Iniciar sesión",

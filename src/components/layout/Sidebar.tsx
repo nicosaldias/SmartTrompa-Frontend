@@ -139,30 +139,43 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
           })}
         </nav>
 
-        {/* Bottom: language + collapse toggle + logout */}
+        {/* Bottom: tema + idioma (misma fila), colapsar, salir, versión */}
         <div style={{ padding: "0.5rem", borderTop: "1px solid var(--color-border)" }}>
-          {/* Language selector */}
-          {!isCollapsed && (
-            <div style={{ display: "flex", justifyContent: "center", padding: "0.25rem 0 0.5rem" }}>
-              <LanguageSelector variant="compact" />
-            </div>
-          )}
-          {/* Theme toggle (claro / oscuro) */}
-          <button
-            onClick={toggleTheme}
-            className="sidebar-link"
+          {/* Fila centrada: toggle de tema (claro/oscuro) + selector de idioma (ES/EN) */}
+          <div
             style={{
-              width: "100%",
-              background: "none",
-              border: "none",
-              justifyContent: isCollapsed ? "center" : undefined,
-              marginBottom: "0.25rem",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "0.5rem",
+              flexWrap: "wrap",
+              padding: "0.25rem 0 0.5rem",
             }}
-            title={theme === "dark" ? t("sidebar.themeLight") : t("sidebar.themeDark")}
           >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-            {!isCollapsed && <span>{theme === "dark" ? t("sidebar.themeLight") : t("sidebar.themeDark")}</span>}
-          </button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? t("sidebar.themeLight") : t("sidebar.themeDark")}
+              title={theme === "dark" ? t("sidebar.themeLight") : t("sidebar.themeDark")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 32,
+                height: 32,
+                borderRadius: 999,
+                background: "var(--color-bg-primary)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text-secondary)",
+                cursor: "pointer",
+                transition: "color 0.15s ease, border-color 0.15s ease",
+                flexShrink: 0,
+              }}
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            {!isCollapsed && <LanguageSelector variant="compact" />}
+          </div>
           {/* Collapse toggle (hidden on mobile) */}
           <button
             onClick={onToggleCollapse}
@@ -171,7 +184,7 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
               width: "100%",
               background: "none",
               border: "none",
-              justifyContent: isCollapsed ? "center" : undefined,
+              justifyContent: "center",
               marginBottom: "0.25rem",
             }}
             title={isCollapsed ? t("sidebar.expandMenu") : t("sidebar.collapseMenu")}
@@ -201,13 +214,28 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
               width: "100%",
               background: "none",
               border: "none",
-              justifyContent: isCollapsed ? "center" : undefined,
+              justifyContent: "center",
             }}
             title={isCollapsed ? t("sidebar.logout") : undefined}
           >
             <LogOut size={18} />
             {!isCollapsed && <span>{t("sidebar.logout")}</span>}
           </button>
+          {/* Versión del software */}
+          {!isCollapsed && (
+            <p
+              style={{
+                textAlign: "center",
+                color: "var(--color-text-secondary)",
+                fontSize: "0.72rem",
+                opacity: 0.7,
+                marginTop: "0.5rem",
+                pointerEvents: "none",
+              }}
+            >
+              v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0"}
+            </p>
+          )}
         </div>
       </aside>
       <style>{`
@@ -230,16 +258,16 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
           width: 72px;
         }
         .sidebar-logo {
-          padding: 1.5rem 1rem;
+          padding: 1.25rem 1rem;
           border-bottom: 1px solid var(--color-border);
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 0.75rem;
-          min-height: 73px;
+          gap: 0.5rem;
+          text-align: center;
         }
         .sidebar-collapsed .sidebar-logo {
-          justify-content: center;
-          padding: 1.5rem 0.5rem;
+          padding: 1.25rem 0.5rem;
         }
         .sidebar-collapse-btn {
           display: flex;

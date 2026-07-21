@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { api } from "@/api/client";
 import { FilterStatus } from "@/types";
 import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
@@ -41,7 +41,7 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
     return () => clearInterval(interval);
   }, []);
 
-  async function handleRefresh() {
+  const handleRefresh = useCallback(async () => {
     setLoading(true);
     try {
       const updated = await api.filterLifecycle.estado();
@@ -51,7 +51,9 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  const handleCloseModal = useCallback(() => setSelectedRut(null), []);
 
   const filtered = useMemo(() => {
     let result = data;
@@ -376,7 +378,7 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
         <DesgloseFiltroModal
           rut={selectedRut}
           isAdmin={isAdmin}
-          onClose={() => setSelectedRut(null)}
+          onClose={handleCloseModal}
           onChanged={handleRefresh}
         />
       )}

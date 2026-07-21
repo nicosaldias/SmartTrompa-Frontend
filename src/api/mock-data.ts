@@ -126,9 +126,9 @@ export const MOCK_TICKETS: Ticket[] = [
 
 // ===== FILTER STATUS =====
 export const MOCK_FILTER_STATUS: FilterStatus[] = [
-  { trabajadorRut: '15.678.901-2', trabajadorNombre: 'Pedro Soto Villanueva', tipoFiltro: '3M 2091 P100', tipoFiltroId: 1, horasUsadas: 145, horasMaximas: 200, porcentajeUso: 72.5, nivelAlerta: 'OK' },
-  { trabajadorRut: '16.789.012-3', trabajadorNombre: 'Ana López Fuentes', tipoFiltro: '3M 6003', tipoFiltroId: 2, horasUsadas: 180, horasMaximas: 200, porcentajeUso: 90, nivelAlerta: 'ADVERTENCIA' },
-  { trabajadorRut: '17.890.123-4', trabajadorNombre: 'Luis Martínez Bravo', tipoFiltro: 'MSA Advantage GME', tipoFiltroId: 3, horasUsadas: 195, horasMaximas: 200, porcentajeUso: 97.5, nivelAlerta: 'CRITICO' },
+  { trabajadorRut: '15.678.901-2', trabajadorNombre: 'Pedro Soto Villanueva', tipoFiltro: '3M 2091 P100', tipoFiltroId: 1, horasUsadas: 145, horasMaximas: 200, porcentajeUso: 72.5, nivelAlerta: 'OK', tieneImagen: false },
+  { trabajadorRut: '16.789.012-3', trabajadorNombre: 'Ana López Fuentes', tipoFiltro: '3M 6003', tipoFiltroId: 2, horasUsadas: 180, horasMaximas: 200, porcentajeUso: 90, nivelAlerta: 'ADVERTENCIA', tieneImagen: false },
+  { trabajadorRut: '17.890.123-4', trabajadorNombre: 'Luis Martínez Bravo', tipoFiltro: 'MSA Advantage GME', tipoFiltroId: 3, horasUsadas: 195, horasMaximas: 200, porcentajeUso: 97.5, nivelAlerta: 'CRITICO', tieneImagen: false },
 ];
 
 // ===== TRABAJADOR-ROL =====
@@ -311,6 +311,29 @@ export function getMockResponse(url: string, method: string, body?: BodyInit | n
     return MOCK_FILTER_STATUS.find(f => f.trabajadorRut === rut) || MOCK_FILTER_STATUS[0];
   }
   if (path === '/filtros/proximos-vencer') return MOCK_FILTER_STATUS.filter(f => f.nivelAlerta !== 'OK');
+  if (path.match(/^\/filtros\/desglose\/.+$/)) {
+    const rut = decodeURIComponent(path.split('/')[3]);
+    const base = MOCK_FILTER_STATUS.find(f => f.trabajadorRut === rut) || MOCK_FILTER_STATUS[0];
+    const ahora = Date.now();
+    return {
+      trabajadorRut: base.trabajadorRut,
+      trabajadorNombre: base.trabajadorNombre,
+      tipoFiltro: base.tipoFiltro,
+      tipoFiltroId: base.tipoFiltroId,
+      horasUsadas: base.horasUsadas,
+      horasMaximas: base.horasMaximas,
+      porcentajeUso: base.porcentajeUso,
+      nivelAlerta: base.nivelAlerta,
+      tieneImagen: false,
+      tandas: [
+        { jornadaId: 1, inicio: new Date(ahora - 3 * 86400000).toISOString(), fin: new Date(ahora - 3 * 86400000 + 4 * 3600000).toISOString(), horasReales: 4, excluida: false, motivoExclusion: null, excluidoPor: null, excluidoEn: null, activa: false },
+        { jornadaId: 2, inicio: new Date(ahora - 2 * 86400000).toISOString(), fin: new Date(ahora - 2 * 86400000 + 4 * 3600000).toISOString(), horasReales: 4, excluida: false, motivoExclusion: null, excluidoPor: null, excluidoEn: null, activa: false },
+      ],
+    };
+  }
+  if (path.match(/^\/filtros\/jornada\/\d+\/excluir\/?$/)) {
+    return undefined; // POST/DELETE en demo: no-op
+  }
 
   // Trabajador-rol / Trabajador-ubicacion
   if (path === '/trabajador-rol') return MOCK_TRABAJADOR_ROLES;

@@ -1,6 +1,41 @@
 // Mapeos y utilidades para datos de sensores — alineados con la app movil (Flutter BLE)
-import type { TipoAlerta } from "@/types";
+import type { AlertaHistorial, JornadaTrabajo, NivelAlerta, TipoAlerta } from "@/types";
 import { fmtNum } from "@/utils/format";
+
+// --- Nivel de alerta activa por trabajador y tipo ---
+// Regla unica compartida por la tabla de Estado de Cuadrilla y el bloque
+// Resumen Jornada Actual: entre todas las alertas que coinciden con rut+tipo
+// gana la MAS SEVERA (el backend puede acumular varias activas del mismo tipo
+// sin resolver las viejas — una OK antigua no debe ocultar un CRITICO vigente);
+// sin alerta = OK.
+const SEVERIDAD_NIVEL: Record<NivelAlerta, number> = { OK: 0, ALERTA: 1, CRITICO: 2 };
+
+export function getAlertNivel(alertas: AlertaHistorial[], rut: string, tipo: TipoAlerta): NivelAlerta {
+  let peor: NivelAlerta | null = null;
+  for (const a of alertas) {
+    if (a.rutTrabajador !== rut || a.tipo !== tipo) continue;
+    if (peor === null || SEVERIDAD_NIVEL[a.nivel] > SEVERIDAD_NIVEL[peor]) peor = a.nivel;
+  }
+  return peor ?? "OK";
+}
+
+// Conteo de trabajadores activos por severidad de su alerta FILTRO, para la
+// tarjeta "Saturacion filtro". Debe coincidir 1:1 con la columna Filtro de la
+// tabla de Estado de Cuadrilla (misma fuente: alertas activas, via getAlertNivel);
+// el nivelAtollo del sensor NO participa aqui.
+export function contarNivelesFiltro(
+  jornadas: JornadaTrabajo[],
+  alertas: AlertaHistorial[]
+): { bajo: number; medio: number; alto: number } {
+  const counts = { bajo: 0, medio: 0, alto: 0 };
+  for (const j of jornadas) {
+    const nivel = getAlertNivel(alertas, j.rutUsuario, "FILTRO");
+    if (nivel === "CRITICO") counts.alto++;
+    else if (nivel === "ALERTA") counts.medio++;
+    else counts.bajo++;
+  }
+  return counts;
+}
 
 // --- Nivel de Ajuste ---
 // La app movil calcula: presion minima > thFit → Desajustado, sino Ajustado

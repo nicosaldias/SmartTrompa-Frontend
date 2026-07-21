@@ -2,11 +2,13 @@
 
 import { Activity } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
-import type { JornadaTrabajo, MedicionesAmbientales } from "@/types";
+import { contarNivelesFiltro } from "@/utils/sensorMappings";
+import type { AlertaHistorial, JornadaTrabajo, MedicionesAmbientales } from "@/types";
 
 interface Props {
   jornadas: JornadaTrabajo[];
   medicionesMap: Record<string, MedicionesAmbientales | null>;
+  alertas: AlertaHistorial[];
   /** Margen inferior; se puede anular por página. */
   marginBottom?: string;
 }
@@ -16,7 +18,7 @@ interface Props {
  * Resumen y Estado de Cuadrilla, para que ambas muestren lo mismo:
  * Trabajadores Activos, Frec. Respiratoria, Desajustes, Saturación filtro, Batería.
  */
-export default function ResumenJornadaActual({ jornadas, medicionesMap, marginBottom = "2rem" }: Props) {
+export default function ResumenJornadaActual({ jornadas, medicionesMap, alertas, marginBottom = "2rem" }: Props) {
   const t = useT();
 
   const medValues = Object.values(medicionesMap).filter(
@@ -30,11 +32,10 @@ export default function ResumenJornadaActual({ jornadas, medicionesMap, marginBo
 
   const desajusteCount = medValues.filter((m) => m.nivelAjuste === 1).length;
 
-  const atolloCounts = {
-    bajo: medValues.filter((m) => m.nivelAtollo === 0 || m.nivelAtollo == null).length,
-    medio: medValues.filter((m) => m.nivelAtollo === 1).length,
-    alto: medValues.filter((m) => m.nivelAtollo === 2).length,
-  };
+  // Misma fuente que la columna Filtro de la tabla (alertas activas), para que
+  // esta tarjeta nunca contradiga esa columna. Ojo: "Desajustes" sigue contando
+  // mediciones (nivelAjuste) — patron de dos fuentes pendiente de unificar.
+  const filtroCounts = contarNivelesFiltro(jornadas, alertas);
 
   const bateriaValues = medValues.filter((m) => m.bateria != null).map((m) => m.bateria!);
   const avgBateria = bateriaValues.length > 0
@@ -100,9 +101,9 @@ export default function ResumenJornadaActual({ jornadas, medicionesMap, marginBo
         <div className="card resumen-sensor-card" style={cardStyle}>
           <p style={labelStyle}>{t("resumen.filterSaturation")}</p>
           <div style={{ display: "flex", justifyContent: "center", gap: "0.75rem", fontSize: "1.1rem", fontWeight: 700, paddingTop: "0.35rem" }}>
-            <span style={{ color: "#22c55e" }}>{atolloCounts.bajo}</span>
-            <span style={{ color: "#f59e0b" }}>{atolloCounts.medio}</span>
-            <span style={{ color: "#ef4444" }}>{atolloCounts.alto}</span>
+            <span style={{ color: "#22c55e" }}>{filtroCounts.bajo}</span>
+            <span style={{ color: "#f59e0b" }}>{filtroCounts.medio}</span>
+            <span style={{ color: "#ef4444" }}>{filtroCounts.alto}</span>
           </div>
           <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("resumen.saturationLevels")}</p>
         </div>

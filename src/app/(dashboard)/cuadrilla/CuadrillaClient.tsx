@@ -5,7 +5,7 @@ import api from "@/api/client";
 import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAlerta, MedicionesAmbientales, Ajustes } from "@/types";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BINARY_ALERT_TYPES } from "@/types";
-import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime, DEFAULT_THRESHOLDS } from "@/utils/sensorMappings";
+import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime, DEFAULT_THRESHOLDS, getAlertNivel } from "@/utils/sensorMappings";
 import { fmtNum } from "@/utils/format";
 import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
@@ -34,11 +34,6 @@ function nivelColor(nivel: NivelAlerta): string {
   if (nivel === "OK") return "var(--color-green)";
   if (nivel === "ALERTA") return "var(--color-yellow)";
   return "var(--color-red)";
-}
-
-function getAlertNivel(alertas: AlertaHistorial[], rut: string, tipo: TipoAlerta): NivelAlerta {
-  const match = alertas.find((a) => a.rutTrabajador === rut && a.tipo === tipo);
-  return match ? match.nivel : "OK";
 }
 
 export default function CuadrillaClient({ initialJornadas, initialAlertas, trabajadores, initialMediciones, initialAjustes }: Props) {
@@ -822,7 +817,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
       </div>
 
       {/* Resumen Jornada Actual (mismo bloque que la página Resumen, lo más arriba) */}
-      <ResumenJornadaActual jornadas={jornadas} medicionesMap={medicionesMap} />
+      <ResumenJornadaActual jornadas={jornadas} medicionesMap={medicionesMap} alertas={alertas} />
 
       {/* Polling failure warning */}
       {pollFailures >= 3 && (

@@ -185,7 +185,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
       )}
 
       {/* Resumen Jornada Actual (bloque compartido con Estado de Cuadrilla) */}
-      <ResumenJornadaActual jornadas={jornadas} medicionesMap={medicionesMap} />
+      <ResumenJornadaActual jornadas={jornadas} medicionesMap={medicionesMap} alertas={alertas} />
 
       {/* Alertas activas - header */}
       <h2

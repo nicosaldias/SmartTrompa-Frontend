@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/api/client";
 import type { Trabajador, JornadaTrabajo, AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
-import { Wind, Wrench, Activity, Battery, Wifi, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Wind, Wrench, Activity, Battery, Wifi, ChevronLeft, ChevronRight } from "lucide-react";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
 import { abrirCalendario } from "@/utils/datePicker";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const ALERTA_TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
+const FILTER_DEBOUNCE_MS = 350;
 
 const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
   RESPIRATORIA: <Wind size={13} />,
@@ -69,6 +71,14 @@ export default function VisualizacionClient({ trabajadores }: Props) {
   const findTrabajador = (rut: string): Trabajador | undefined =>
     trabajadores.find((t) => t.rut === rut);
 
+  // Ref al traductor: mantiene `fetchData` con identidad estable (deps []), así
+  // cambiar el idioma NO recrea fetchData ni re-dispara el efecto de auto-aplicado
+  // (que reseteaba la paginación a la página 0 sin que el usuario tocara nada).
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+
   const fetchData = useCallback(async (page: number, sup?: string, desde?: string, hasta?: string) => {
     setLoading(true);
     try {
@@ -114,30 +124,36 @@ export default function VisualizacionClient({ trabajadores }: Props) {
       console.error("Error:", err);
       Swal.fire({
         icon: "error",
-        title: t("common.error"),
-        text: t("visualizacion.errorLoadHistory"),
+        title: tRef.current("common.error"),
+        text: tRef.current("visualizacion.errorLoadHistory"),
         background: "var(--color-bg-card)",
         color: "var(--color-text-primary)",
       });
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
-  // Load initial data on mount
+  // Filtros de servidor (supervisor + rango de fechas), auto-aplicados sin botón.
+  const serverFilters = useMemo(
+    () => ({ filterSupervisor, fechaDesde, fechaHasta }),
+    [filterSupervisor, fechaDesde, fechaHasta]
+  );
+  const debouncedFilters = useDebouncedValue(serverFilters, FILTER_DEBOUNCE_MS);
+
+  // Carga inicial (filtros vacíos) y re-consulta al cambiarlos. El debounce agrupa
+  // la edición del rango de fechas para no consultar por cada tecla.
   useEffect(() => {
-    fetchData(0);
-  }, [fetchData]);
-
-  function handleSearch() {
-    fetchData(0, filterSupervisor, fechaDesde, fechaHasta);
-  }
+    const { filterSupervisor: sup, fechaDesde: fd, fechaHasta: fh } = debouncedFilters;
+    // Rango inválido (desde >= hasta): espera a que sea coherente, sin errorar.
+    if (fd && fh && new Date(fd) >= new Date(fh)) return;
+    fetchData(0, sup, fd, fh);
+  }, [debouncedFilters, fetchData]);
 
   function handleClear() {
     setFilterSupervisor("");
     setFechaDesde("");
     setFechaHasta("");
-    fetchData(0);
   }
 
   // Build worker alert summaries from jornadas and alerts.
@@ -555,21 +571,13 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             style={{ cursor: "pointer" }}
           />
         </div>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button
-            className="btn-primary"
-            onClick={handleSearch}
-            disabled={loading}
-            style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}
-          >
-            <Search size={15} /> {t("common.search")}
-          </button>
-          {(filterSupervisor || fechaDesde || fechaHasta) && (
+        {(filterSupervisor || fechaDesde || fechaHasta) && (
+          <div style={{ display: "flex", alignItems: "flex-end" }}>
             <button className="btn-secondary" onClick={handleClear} style={{ fontSize: "0.8rem" }}>
               {t("visualizacion.clear")}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Results */}

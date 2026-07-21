@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, Suspense } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/api/client";
-import Swal from "sweetalert2";
 import type { AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
-import { Search, ChevronDown, ChevronUp, X } from "lucide-react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { abrirCalendario } from "@/utils/datePicker";
 import { formatValorAlerta } from "@/utils/sensorMappings";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface Props {
   initialPage: PageResponse<AlertaHistorial>;
@@ -17,6 +17,7 @@ interface Props {
 const TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
 const NIVELES: NivelAlerta[] = ["OK", "ALERTA", "CRITICO"];
 const PAGE_SIZE = 20;
+const FILTER_DEBOUNCE_MS = 350;
 
 function nivelBadgeClass(nivel: NivelAlerta): string {
   if (nivel === "CRITICO") return "badge-red";
@@ -57,13 +58,13 @@ function HistorialAlertasInner({ initialPage }: Props) {
   const [tipo, setTipo] = useState<TipoAlerta | "">("");
   const [nivel, setNivel] = useState<NivelAlerta | "">("");
 
-  async function fetchPage(page: number, params?: Record<string, string>) {
+  const runFetch = useCallback(async (page: number, tipoVal: string, desdeVal: string, hastaVal: string) => {
     setLoading(true);
     try {
-      const serverParams: Record<string, string> = { ...params };
-      if (tipo) serverParams.tipo = tipo;
-      if (fechaDesde) serverParams.inicio = new Date(fechaDesde).toISOString();
-      if (fechaHasta) serverParams.fin = new Date(fechaHasta).toISOString();
+      const serverParams: Record<string, string> = {};
+      if (tipoVal) serverParams.tipo = tipoVal;
+      if (desdeVal) serverParams.inicio = new Date(desdeVal).toISOString();
+      if (hastaVal) serverParams.fin = new Date(hastaVal).toISOString();
 
       const result = await api.alertas.listPaged(page, PAGE_SIZE, serverParams);
       setAlertas(result.content);
@@ -75,20 +76,33 @@ function HistorialAlertasInner({ initialPage }: Props) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function handleBuscar() {
-    if (fechaDesde && fechaHasta && new Date(fechaDesde) >= new Date(fechaHasta)) {
-      Swal.fire({
-        icon: "error",
-        title: t("historialAlertas.invalidDateRangeTitle"),
-        text: t("historialAlertas.invalidDateRangeText"),
-        background: "var(--color-bg-card)",
-        color: "var(--color-text-primary)",
-      });
+  // Filtros de servidor (tipo + rango de fechas). `nivel` y `trabajadorSearch`
+  // se filtran client-side (useMemo más abajo) y no disparan consultas.
+  const serverFilters = useMemo(
+    () => ({ tipo, fechaDesde, fechaHasta }),
+    [tipo, fechaDesde, fechaHasta]
+  );
+  const debouncedFilters = useDebouncedValue(serverFilters, FILTER_DEBOUNCE_MS);
+
+  // Auto-aplica los filtros al cambiarlos (sin botón "Buscar"). Se salta la
+  // primera corrida porque `initialPage` ya viene del server sin filtros.
+  const isFirstRun = useRef(true);
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
       return;
     }
-    await fetchPage(0);
+    const { tipo: tp, fechaDesde: fd, fechaHasta: fh } = debouncedFilters;
+    // Rango inválido (desde >= hasta): espera a que sea coherente, sin errorar.
+    if (fd && fh && new Date(fd) >= new Date(fh)) return;
+    runFetch(0, tp, fd, fh);
+  }, [debouncedFilters, runFetch]);
+
+  function handlePageChange(page: number) {
+    const { tipo: tp, fechaDesde: fd, fechaHasta: fh } = debouncedFilters;
+    runFetch(page, tp, fd, fh);
   }
 
   function handleLimpiar() {
@@ -97,26 +111,12 @@ function HistorialAlertasInner({ initialPage }: Props) {
     setTrabajadorSearch("");
     setTipo("");
     setNivel("");
-    setCurrentPage(0);
-    // Re-fetch unfiltered from first page
-    setLoading(true);
-    api.alertas.listPaged(0, PAGE_SIZE, {})
-      .then((result) => {
-        setAlertas(result.content);
-        setTotalElements(result.totalElements);
-        setServerTotalPages(result.totalPages);
-        setCurrentPage(result.number);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    // El efecto de auto-aplicado refetchea sin filtros de servidor si hacía falta.
   }
 
-  function handlePageChange(page: number) {
-    fetchPage(page);
-  }
-
-  // Aplica el filtro por tipo recibido vía query param `?tipo=` (contrato con el dashboard).
-  // Valores esperados: enum TipoAlerta en MAYÚSCULAS (RESPIRATORIA|AJUSTE|FILTRO|BATERIA|DESCONEXION).
+  // Aplica el filtro por tipo recibido vía query param `?tipo=` (contrato con el
+  // dashboard). Solo setea el estado; el efecto de auto-aplicado hace el fetch.
+  // Valores esperados: enum TipoAlerta en MAYÚSCULAS.
   const queryTipoApplied = useRef(false);
   useEffect(() => {
     if (queryTipoApplied.current) return;
@@ -128,38 +128,10 @@ function HistorialAlertasInner({ initialPage }: Props) {
     queryTipoApplied.current = true;
     setTipo(candidate);
     setFiltersOpen(true);
-
-    // Fetch del lado del servidor con el tipo forzado (el estado aún no está sincronizado).
-    setLoading(true);
-    api.alertas
-      .listPaged(0, PAGE_SIZE, { tipo: candidate })
-      .then((result) => {
-        setAlertas(result.content);
-        setTotalElements(result.totalElements);
-        setServerTotalPages(result.totalPages);
-        setCurrentPage(result.number);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
   }, [searchParams]);
 
   function handleLimpiarTipoChip() {
     setTipo("");
-    setCurrentPage(0);
-    setLoading(true);
-    const serverParams: Record<string, string> = {};
-    if (fechaDesde) serverParams.inicio = new Date(fechaDesde).toISOString();
-    if (fechaHasta) serverParams.fin = new Date(fechaHasta).toISOString();
-    api.alertas
-      .listPaged(0, PAGE_SIZE, serverParams)
-      .then((result) => {
-        setAlertas(result.content);
-        setTotalElements(result.totalElements);
-        setServerTotalPages(result.totalPages);
-        setCurrentPage(result.number);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
   }
 
   // Client-side filtering for text search and nivel (nivel is not a server param)
@@ -400,27 +372,20 @@ function HistorialAlertasInner({ initialPage }: Props) {
                   ))}
                 </select>
               </div>
-            </div>
 
-            {/* Action buttons */}
-            <div className="historial-filtros-actions" style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
-              <button
-                className="btn-secondary"
-                onClick={handleLimpiar}
-                style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}
-              >
-                <X size={15} />
-                {t("historialAlertas.clearFilters")}
-              </button>
-              <button
-                className="btn-primary"
-                onClick={handleBuscar}
-                disabled={loading}
-                style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}
-              >
-                <Search size={15} />
-                {loading ? t("historialAlertas.searching") : t("common.search")}
-              </button>
+              {/* Limpiar — en la misma fila que los filtros, alineado abajo a la derecha */}
+              {(tipo || fechaDesde || fechaHasta || nivel || trabajadorSearch) && (
+                <div style={{ display: "flex", alignItems: "flex-end" }}>
+                  <button
+                    className="btn-secondary"
+                    onClick={handleLimpiar}
+                    style={{ display: "flex", alignItems: "center", gap: "0.375rem", whiteSpace: "nowrap" }}
+                  >
+                    <X size={15} />
+                    {t("historialAlertas.clearFilters")}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -572,14 +537,6 @@ function HistorialAlertasInner({ initialPage }: Props) {
           .historial-filtros-grid {
             grid-template-columns: 1fr !important;
             gap: 0.625rem !important;
-          }
-          .historial-filtros-actions {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .historial-filtros-actions button {
-            width: 100% !important;
-            justify-content: center !important;
           }
           .historial-table-wrap {
             overflow-x: auto !important;

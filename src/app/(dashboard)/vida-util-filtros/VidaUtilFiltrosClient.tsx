@@ -5,6 +5,14 @@ import { api } from "@/api/client";
 import { FilterStatus } from "@/types";
 import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
+import { API_BASE_URL } from "@/api/endpoints";
+
+function getInitials(nombreCompleto: string): string {
+  const parts = nombreCompleto.trim().split(/\s+/);
+  const a = parts[0]?.charAt(0) ?? "";
+  const b = parts[1]?.charAt(0) ?? "";
+  return `${a}${b}`.toUpperCase();
+}
 
 interface Props {
   initialData: FilterStatus[];
@@ -254,7 +262,34 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
                       }
                     >
                       <td style={tdStyleLeft}>
-                        <span style={{ fontWeight: 600 }}>{item.trabajadorNombre}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                          {item.tieneImagen ? (
+                            <img
+                              src={`${API_BASE_URL}/trabajador/${item.trabajadorRut}/imagen/`}
+                              alt=""
+                              style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: "50%",
+                                background: "linear-gradient(135deg, #f97316, #ea580c)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "white",
+                                fontWeight: 700,
+                                fontSize: "0.8rem",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {getInitials(item.trabajadorNombre)}
+                            </div>
+                          )}
+                          <span style={{ fontWeight: 600 }}>{item.trabajadorNombre}</span>
+                        </div>
                       </td>
                       <td style={tdStyle}>
                         <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>

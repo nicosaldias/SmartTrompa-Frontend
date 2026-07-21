@@ -6,6 +6,7 @@ import { FilterStatus } from "@/types";
 import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL } from "@/api/endpoints";
+import DesgloseFiltroModal from "./DesgloseFiltroModal";
 
 function getInitials(nombreCompleto: string): string {
   const parts = nombreCompleto.trim().split(/\s+/);
@@ -16,14 +17,16 @@ function getInitials(nombreCompleto: string): string {
 
 interface Props {
   initialData: FilterStatus[];
+  isAdmin: boolean;
 }
 
-export default function VidaUtilFiltrosClient({ initialData }: Props) {
+export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
   const t = useT();
   const [data, setData] = useState<FilterStatus[]>(initialData);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLevel, setFilterLevel] = useState<string>("TODOS");
+  const [selectedRut, setSelectedRut] = useState<string | null>(null);
 
   // Polling every 30s
   useEffect(() => {
@@ -250,9 +253,11 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
                   return (
                     <tr
                       key={item.trabajadorRut}
+                      onClick={() => setSelectedRut(item.trabajadorRut)}
                       style={{
                         borderBottom: "1px solid var(--color-border)",
                         transition: "background-color 0.15s",
+                        cursor: "pointer",
                       }}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.backgroundColor = "var(--color-bg-secondary)")
@@ -365,6 +370,15 @@ export default function VidaUtilFiltrosClient({ initialData }: Props) {
             </table>
           </div>
         </div>
+      )}
+
+      {selectedRut && (
+        <DesgloseFiltroModal
+          rut={selectedRut}
+          isAdmin={isAdmin}
+          onClose={() => setSelectedRut(null)}
+          onChanged={handleRefresh}
+        />
       )}
 
       <style>{`

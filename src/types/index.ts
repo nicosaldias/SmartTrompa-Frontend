@@ -136,6 +136,32 @@ export interface FilterStatus {
   horasMaximas: number;
   porcentajeUso: number;
   nivelAlerta: 'OK' | 'ADVERTENCIA' | 'CRITICO' | 'VENCIDO';
+  tieneImagen: boolean;
+}
+
+export interface Tanda {
+  jornadaId: number;
+  inicio: string;
+  fin: string | null;
+  horasReales: number;
+  excluida: boolean;
+  motivoExclusion: string | null;
+  excluidoPor: string | null;
+  excluidoEn: string | null;
+  activa: boolean;
+}
+
+export interface DesgloseFiltro {
+  trabajadorRut: string;
+  trabajadorNombre: string;
+  tipoFiltro: string;
+  tipoFiltroId: number;
+  horasUsadas: number;
+  horasMaximas: number;
+  porcentajeUso: number;
+  nivelAlerta: string;
+  tieneImagen: boolean;
+  tandas: Tanda[];
 }
 
 export interface TipoRespirador {

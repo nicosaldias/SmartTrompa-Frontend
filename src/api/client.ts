@@ -29,6 +29,7 @@ import type {
   Ticket,
   PageResponse,
   FilterStatus,
+  DesgloseFiltro,
   MedicionesAmbientales,
   Ajustes,
   RelacionesResumen,
@@ -467,6 +468,19 @@ export const api = {
       request<FilterStatus>(filterLifecycleEndpoints.estadoByRut(rut), { cookieHeader }),
     proximosVencer: (cookieHeader?: string) =>
       request<FilterStatus[]>(filterLifecycleEndpoints.proximosVencer(), { cookieHeader }),
+    desglose: (rut: string, cookieHeader?: string) =>
+      request<DesgloseFiltro>(filterLifecycleEndpoints.desglose(rut), { cookieHeader }),
+    excluirTanda: (jornadaId: number, motivo: string, cookieHeader?: string) =>
+      request<void>(filterLifecycleEndpoints.excluirTanda(jornadaId), {
+        method: 'POST',
+        body: JSON.stringify({ motivo }),
+        cookieHeader,
+      }),
+    reincluirTanda: (jornadaId: number, cookieHeader?: string) =>
+      request<void>(filterLifecycleEndpoints.reincluirTanda(jornadaId), {
+        method: 'DELETE',
+        cookieHeader,
+      }),
   },
 
   umbrales: {

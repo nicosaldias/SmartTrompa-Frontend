@@ -107,6 +107,9 @@ export const filterLifecycleEndpoints = {
   estado: () => `${API_BASE_URL}/filtros/estado/`,
   estadoByRut: (rut: string) => `${API_BASE_URL}/filtros/estado/${rut}/`,
   proximosVencer: () => `${API_BASE_URL}/filtros/proximos-vencer/`,
+  desglose: (rut: string) => `${API_BASE_URL}/filtros/desglose/${rut}/`,
+  excluirTanda: (jornadaId: number) => `${API_BASE_URL}/filtros/jornada/${jornadaId}/excluir/`,
+  reincluirTanda: (jornadaId: number) => `${API_BASE_URL}/filtros/jornada/${jornadaId}/excluir/`,
 };
 
 export const reporteEndpoints = {

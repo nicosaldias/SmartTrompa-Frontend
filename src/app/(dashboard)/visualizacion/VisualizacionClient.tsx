@@ -79,7 +79,13 @@ export default function VisualizacionClient({ trabajadores }: Props) {
     tRef.current = t;
   }, [t]);
 
+  // Secuencia de peticiones: si dos consultas se solapan (ej. cambiar un filtro y
+  // paginar casi a la vez), solo la última aplica su resultado y apaga el loading.
+  // Evita que una respuesta lenta y vieja pise a una nueva (out-of-order).
+  const fetchSeq = useRef(0);
+
   const fetchData = useCallback(async (page: number, sup?: string, desde?: string, hasta?: string) => {
+    const seq = ++fetchSeq.current;
     setLoading(true);
     try {
       const jornadaParams: { supervisor?: string; inicio?: string; fin?: string } = {};
@@ -116,11 +122,13 @@ export default function VisualizacionClient({ trabajadores }: Props) {
         }
       }
 
+      if (seq !== fetchSeq.current) return; // superada por una consulta más reciente
       setJornadaPage(jornadaData);
       setAlertas(allAlertas);
       setCurrentPage(page);
       setHasSearched(true);
     } catch (err) {
+      if (seq !== fetchSeq.current) return;
       console.error("Error:", err);
       Swal.fire({
         icon: "error",
@@ -130,7 +138,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
         color: "var(--color-text-primary)",
       });
     } finally {
-      setLoading(false);
+      if (seq === fetchSeq.current) setLoading(false);
     }
   }, []);
 
@@ -140,6 +148,11 @@ export default function VisualizacionClient({ trabajadores }: Props) {
     [filterSupervisor, fechaDesde, fechaHasta]
   );
   const debouncedFilters = useDebouncedValue(serverFilters, FILTER_DEBOUNCE_MS);
+
+  // Un cambio de filtro se está "asentando" (esperando su debounce) mientras el
+  // snapshot debounced no coincide con los filtros vivos. Durante ese lapso la
+  // paginación se deshabilita: está por resetear a la página 0.
+  const filtersSettling = serverFilters !== debouncedFilters;
 
   // Carga inicial (filtros vacíos) y re-consulta al cambiarlos. El debounce agrupa
   // la edición del rango de fechas para no consultar por cada tecla.
@@ -675,7 +688,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             }}>
               <button
                 className="btn-secondary"
-                disabled={isFirst}
+                disabled={isFirst || loading || filtersSettling}
                 onClick={() => fetchData(currentPage - 1, filterSupervisor, fechaDesde, fechaHasta)}
                 style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem" }}
               >
@@ -690,7 +703,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
               </span>
               <button
                 className="btn-secondary"
-                disabled={isLast}
+                disabled={isLast || loading || filtersSettling}
                 onClick={() => fetchData(currentPage + 1, filterSupervisor, fechaDesde, fechaHasta)}
                 style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem" }}
               >

@@ -58,7 +58,13 @@ function HistorialAlertasInner({ initialPage }: Props) {
   const [tipo, setTipo] = useState<TipoAlerta | "">("");
   const [nivel, setNivel] = useState<NivelAlerta | "">("");
 
+  // Secuencia de peticiones: si dos consultas se solapan (ej. cambiar un filtro y
+  // paginar casi a la vez), solo la última aplica su resultado y apaga el loading.
+  // Evita que una respuesta lenta y vieja pise a una nueva (out-of-order).
+  const fetchSeq = useRef(0);
+
   const runFetch = useCallback(async (page: number, tipoVal: string, desdeVal: string, hastaVal: string) => {
+    const seq = ++fetchSeq.current;
     setLoading(true);
     try {
       const serverParams: Record<string, string> = {};
@@ -67,6 +73,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
       if (hastaVal) serverParams.fin = new Date(hastaVal).toISOString();
 
       const result = await api.alertas.listPaged(page, PAGE_SIZE, serverParams);
+      if (seq !== fetchSeq.current) return; // superada por una consulta más reciente
       setAlertas(result.content);
       setTotalElements(result.totalElements);
       setServerTotalPages(result.totalPages);
@@ -74,7 +81,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
     } catch {
       // keep current data on error
     } finally {
-      setLoading(false);
+      if (seq === fetchSeq.current) setLoading(false);
     }
   }, []);
 
@@ -85,6 +92,12 @@ function HistorialAlertasInner({ initialPage }: Props) {
     [tipo, fechaDesde, fechaHasta]
   );
   const debouncedFilters = useDebouncedValue(serverFilters, FILTER_DEBOUNCE_MS);
+
+  // Un cambio de filtro se está "asentando" (esperando su debounce) mientras el
+  // snapshot debounced no coincide con los filtros vivos. Durante ese lapso la
+  // paginación se deshabilita: está por resetear a la página 0, así que un clic
+  // de página no debe disparar un fetch con filtros a medio cambiar (parpadeo).
+  const filtersSettling = serverFilters !== debouncedFilters;
 
   // Auto-aplica los filtros al cambiarlos (sin botón "Buscar"). Se salta la
   // primera corrida porque `initialPage` ya viene del server sin filtros.
@@ -101,7 +114,9 @@ function HistorialAlertasInner({ initialPage }: Props) {
   }, [debouncedFilters, runFetch]);
 
   function handlePageChange(page: number) {
-    const { tipo: tp, fechaDesde: fd, fechaHasta: fh } = debouncedFilters;
+    // Usa los filtros vivos: al hacer clic, paginación está habilitada solo cuando
+    // no hay cambios asentándose, por lo que serverFilters === debouncedFilters.
+    const { tipo: tp, fechaDesde: fd, fechaHasta: fh } = serverFilters;
     runFetch(page, tp, fd, fh);
   }
 
@@ -187,7 +202,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
           <button
             className="btn-secondary"
             style={{ padding: "0.375rem 0.625rem", fontSize: "0.8rem" }}
-            disabled={currentPage <= 0}
+            disabled={currentPage <= 0 || loading || filtersSettling}
             onClick={() => handlePageChange(currentPage - 1)}
           >
             {t("common.previous")}
@@ -197,6 +212,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
               key={p}
               className={p === currentPage ? "btn-primary" : "btn-secondary"}
               style={{ padding: "0.375rem 0.625rem", fontSize: "0.8rem", minWidth: "2rem" }}
+              disabled={loading || filtersSettling}
               onClick={() => handlePageChange(p)}
             >
               {p + 1}
@@ -205,7 +221,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
           <button
             className="btn-secondary"
             style={{ padding: "0.375rem 0.625rem", fontSize: "0.8rem" }}
-            disabled={currentPage >= totalPages - 1}
+            disabled={currentPage >= totalPages - 1 || loading || filtersSettling}
             onClick={() => handlePageChange(currentPage + 1)}
           >
             {t("common.next")}

@@ -217,7 +217,9 @@ export function getMockResponse(url: string, method: string, body?: BodyInit | n
 
   // Alertas historial
   if (path === '/alertas-historial') {
-    return params.has('page') ? createPageResponse(MOCK_ALERTAS, +params.get('page')!, +params.get('size')!) : MOCK_ALERTAS;
+    const tipoParam = params.get('tipo');
+    const filtradas = tipoParam ? MOCK_ALERTAS.filter(a => a.tipo === tipoParam) : MOCK_ALERTAS;
+    return params.has('page') ? createPageResponse(filtradas, +params.get('page')!, +params.get('size')!) : filtradas;
   }
   if (path === '/alertas-historial/activas') return MOCK_ALERTAS.filter(a => a.activa);
   if (path.match(/^\/alertas-historial\/trabajador\/.+\/activas$/)) {

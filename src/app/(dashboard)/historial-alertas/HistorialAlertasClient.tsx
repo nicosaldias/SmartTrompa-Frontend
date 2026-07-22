@@ -8,6 +8,7 @@ import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { abrirCalendario } from "@/utils/datePicker";
 import { formatValorAlerta } from "@/utils/sensorMappings";
+import { buildAlertasServerParams, type FiltrosHistorialAlertas } from "@/utils/alertasQuery";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface Props {
@@ -63,16 +64,11 @@ function HistorialAlertasInner({ initialPage }: Props) {
   // Evita que una respuesta lenta y vieja pise a una nueva (out-of-order).
   const fetchSeq = useRef(0);
 
-  const runFetch = useCallback(async (page: number, tipoVal: string, desdeVal: string, hastaVal: string) => {
+  const runFetch = useCallback(async (page: number, filtros: FiltrosHistorialAlertas) => {
     const seq = ++fetchSeq.current;
     setLoading(true);
     try {
-      const serverParams: Record<string, string> = {};
-      if (tipoVal) serverParams.tipo = tipoVal;
-      if (desdeVal) serverParams.inicio = new Date(desdeVal).toISOString();
-      if (hastaVal) serverParams.fin = new Date(hastaVal).toISOString();
-
-      const result = await api.alertas.listPaged(page, PAGE_SIZE, serverParams);
+      const result = await api.alertas.listPaged(page, PAGE_SIZE, buildAlertasServerParams(filtros));
       if (seq !== fetchSeq.current) return; // superada por una consulta más reciente
       setAlertas(result.content);
       setTotalElements(result.totalElements);
@@ -85,11 +81,14 @@ function HistorialAlertasInner({ initialPage }: Props) {
     }
   }, []);
 
-  // Filtros de servidor (tipo + rango de fechas). `nivel` y `trabajadorSearch`
-  // se filtran client-side (useMemo más abajo) y no disparan consultas.
-  const serverFilters = useMemo(
-    () => ({ tipo, fechaDesde, fechaHasta }),
-    [tipo, fechaDesde, fechaHasta]
+  // TODOS los filtros son de servidor: el total y totalPages de la respuesta se
+  // calculan sobre el conjunto filtrado completo, así que el contador y la
+  // paginación nunca pueden contradecir las filas de la tabla. (Antes nivel y
+  // trabajadorSearch se filtraban client-side sobre la página actual y el pie
+  // podía decir "N de 800" con la tabla vacía.)
+  const serverFilters = useMemo<FiltrosHistorialAlertas>(
+    () => ({ tipo, nivel, fechaDesde, fechaHasta, trabajadorSearch }),
+    [tipo, nivel, fechaDesde, fechaHasta, trabajadorSearch]
   );
   const debouncedFilters = useDebouncedValue(serverFilters, FILTER_DEBOUNCE_MS);
 
@@ -107,17 +106,16 @@ function HistorialAlertasInner({ initialPage }: Props) {
       isFirstRun.current = false;
       return;
     }
-    const { tipo: tp, fechaDesde: fd, fechaHasta: fh } = debouncedFilters;
+    const { fechaDesde: fd, fechaHasta: fh } = debouncedFilters;
     // Rango inválido (desde >= hasta): espera a que sea coherente, sin errorar.
     if (fd && fh && new Date(fd) >= new Date(fh)) return;
-    runFetch(0, tp, fd, fh);
+    runFetch(0, debouncedFilters);
   }, [debouncedFilters, runFetch]);
 
   function handlePageChange(page: number) {
     // Usa los filtros vivos: al hacer clic, paginación está habilitada solo cuando
     // no hay cambios asentándose, por lo que serverFilters === debouncedFilters.
-    const { tipo: tp, fechaDesde: fd, fechaHasta: fh } = serverFilters;
-    runFetch(page, tp, fd, fh);
+    runFetch(page, serverFilters);
   }
 
   function handleLimpiar() {
@@ -149,32 +147,9 @@ function HistorialAlertasInner({ initialPage }: Props) {
     setTipo("");
   }
 
-  // Client-side filtering for text search and nivel (nivel is not a server param)
-  const filteredAlertas = useMemo(() => {
-    let result = alertas;
-
-    // Filter by nivel (client-side)
-    if (nivel) {
-      result = result.filter((a) => a.nivel === nivel);
-    }
-
-    // Filter by trabajador text search (client-side)
-    if (trabajadorSearch.trim()) {
-      const q = trabajadorSearch.trim().toLowerCase();
-      result = result.filter((a) => {
-        const nombre = a.trabajador
-          ? `${a.trabajador.nombre} ${a.trabajador.apellidoPaterno} ${a.trabajador.apellidoMaterno}`.toLowerCase()
-          : "";
-        const rut = a.rutTrabajador.toLowerCase();
-        return nombre.includes(q) || rut.includes(q);
-      });
-    }
-
-    return result;
-  }, [alertas, nivel, trabajadorSearch]);
-
-  // Pagination
-  const pageData = filteredAlertas;
+  // Sin filtrado client-side: la página llega ya filtrada del servidor, la misma
+  // consulta que calcula totalElements/totalPages.
+  const pageData = alertas;
   const totalPages = serverTotalPages;
 
   function renderPagination() {

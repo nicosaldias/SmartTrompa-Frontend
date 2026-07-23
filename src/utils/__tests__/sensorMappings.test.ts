@@ -17,19 +17,19 @@ function mkJornada(rut: string, id = 1): JornadaTrabajo {
   return { id, rutUsuario: rut, idSupervisor: "sup-1", inicio: "2026-07-20T08:00:00Z", terminada: false };
 }
 
+// Convencion D3 (la de la app movil): 1 = Ajustado, 0 = Desajustado.
 describe("sensorMappings - interpretNivelAjuste", () => {
   it("retorna '--' cuando el valor es null o undefined", () => {
     expect(interpretNivelAjuste(null)).toBe("--");
     expect(interpretNivelAjuste(undefined)).toBe("--");
   });
 
-  it("retorna 'Ajustado' cuando el valor es 0", () => {
-    expect(interpretNivelAjuste(0)).toBe("Ajustado");
+  it("retorna 'Desajustado' cuando el valor es 0", () => {
+    expect(interpretNivelAjuste(0)).toBe("Desajustado");
   });
 
-  it("retorna 'Desajustado' para cualquier valor distinto de 0", () => {
-    expect(interpretNivelAjuste(1)).toBe("Desajustado");
-    expect(interpretNivelAjuste(2)).toBe("Desajustado");
+  it("retorna 'Ajustado' cuando el valor es 1", () => {
+    expect(interpretNivelAjuste(1)).toBe("Ajustado");
   });
 });
 
@@ -38,34 +38,45 @@ describe("sensorMappings - nivelAjusteColor", () => {
     expect(nivelAjusteColor(null)).toContain("text-secondary");
   });
 
-  it("retorna verde cuando está ajustado (0) y rojo cuando no", () => {
-    expect(nivelAjusteColor(0)).toBe("#22c55e");
-    expect(nivelAjusteColor(1)).toBe("#ef4444");
+  it("retorna rojo cuando está desajustado (0) y verde cuando está ajustado (1)", () => {
+    expect(nivelAjusteColor(0)).toBe("#ef4444");
+    expect(nivelAjusteColor(1)).toBe("#22c55e");
   });
 });
 
+// Convencion D4: prediccion ML continua 0-100; -1/null = sin dato; cortes 60/80.
 describe("sensorMappings - interpretNivelAtollo", () => {
   it.each([
     [0, "Baja"],
-    [1, "Media"],
-    [2, "Alta"],
-    [99, "Alta"],
-  ])("interpreta nivel %s como '%s'", (input, expected) => {
+    [45, "Baja"],
+    [60, "Baja"],
+    [61, "Media"],
+    [80, "Media"],
+    [81, "Alta"],
+    [100, "Alta"],
+  ])("interpreta prediccion %s%% como '%s'", (input, expected) => {
     expect(interpretNivelAtollo(input)).toBe(expected);
   });
 
-  it("retorna '--' cuando el valor falta", () => {
+  it("retorna '--' cuando el valor falta o es -1 (sin dato aun)", () => {
     expect(interpretNivelAtollo(null)).toBe("--");
+    expect(interpretNivelAtollo(undefined)).toBe("--");
+    expect(interpretNivelAtollo(-1)).toBe("--");
   });
 });
 
 describe("sensorMappings - nivelAtolloColor", () => {
   it.each([
-    [0, "#22c55e"],
-    [1, "#f59e0b"],
-    [2, "#ef4444"],
-  ])("color para nivel %s es %s", (input, expected) => {
+    [30, "#22c55e"],
+    [70, "#f59e0b"],
+    [90, "#ef4444"],
+  ])("color para prediccion %s%% es %s", (input, expected) => {
     expect(nivelAtolloColor(input)).toBe(expected);
+  });
+
+  it("usa el color secundario para -1/null (sin dato)", () => {
+    expect(nivelAtolloColor(-1)).toContain("text-secondary");
+    expect(nivelAtolloColor(null)).toContain("text-secondary");
   });
 });
 

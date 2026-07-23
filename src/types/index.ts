@@ -95,8 +95,9 @@ export interface AlertaHistorial {
  * - humedad: % (sensor BLE bytes 8-11)
  * - bateria: % (sensor BLE caracteristica 1)
  * - frecuenciaRespiratoria: bpm (calculado por peak detection en presion)
- * - nivelAjuste: 0=Ajustado, 1=Desajustado (presion vs thFit 101740 Pa)
- * - nivelAtollo: 0=Bajo, 1=Medio, 2=Alto (presion vs thClogLow/thClogHigh)
+ * - nivelAjuste: 1=Ajustado, 0=Desajustado (convencion D3, la de la app movil)
+ * - nivelAtollo: % de saturacion 0-100 predicho por ML on-device (D4);
+ *   -1/null = sin dato (primeros ~10 min de jornada). Cortes visuales 60/80.
  * - counter: acumulador de desajuste (contDisj de la app movil)
  */
 export interface MedicionesAmbientales {

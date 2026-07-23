@@ -103,10 +103,12 @@ function genMediciones(jornadaId: number, count: number, cfg: { temp: number; hu
   }));
 }
 
+// Convenciones D3/D4: ajuste 1=ajustado 0=desajustado; atollo = % prediccion
+// ML 0–100 (jornada 1 sana, jornada 2 desajustada, jornada 3 filtro medio).
 const MOCK_MEDICIONES: Record<number, MedicionesAmbientales[]> = {
-  1: genMediciones(1, 20, { temp: 23, hum: 57, bat: 75, resp: 18, ajuste: 0, atollo: 0 }),
-  2: genMediciones(2, 20, { temp: 26, hum: 63, bat: 45, resp: 20, ajuste: 1, atollo: 0 }),
-  3: genMediciones(3, 20, { temp: 31, hum: 42, bat: 8, resp: 22, ajuste: 0, atollo: 1 }),
+  1: genMediciones(1, 20, { temp: 23, hum: 57, bat: 75, resp: 18, ajuste: 1, atollo: 24 }),
+  2: genMediciones(2, 20, { temp: 26, hum: 63, bat: 45, resp: 20, ajuste: 0, atollo: 41 }),
+  3: genMediciones(3, 20, { temp: 31, hum: 42, bat: 8, resp: 22, ajuste: 1, atollo: 72 }),
 };
 
 // ===== UMBRALES =====

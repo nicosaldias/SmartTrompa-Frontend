@@ -133,7 +133,7 @@ export default function UmbralesClient() {
     const bateAlto = form.alrtBateAlto ? Number(form.alrtBateAlto) : null;
     const bateMedio = form.alrtBateMedio ? Number(form.alrtBateMedio) : null;
 
-    if (filtrAlto != null && filtrBajo != null && filtrAlto >= filtrBajo) {
+    if (filtrAlto != null && filtrBajo != null && filtrAlto <= filtrBajo) {
       errors.push(t("umbrales.validation.filtroOrder"));
     }
     if (respBajo != null && respAlto != null && respBajo >= respAlto) {
@@ -275,9 +275,9 @@ export default function UmbralesClient() {
     setBulkForm({
       alrtRespAlto: String(DEFAULT_THRESHOLDS.respAlto),
       alrtRespBajo: String(DEFAULT_THRESHOLDS.respBajo),
-      alrtAjus: String(DEFAULT_THRESHOLDS.thFit),
-      alrtFiltrAlto: String(DEFAULT_THRESHOLDS.thClogHigh),
-      alrtFiltrBajo: String(DEFAULT_THRESHOLDS.thClogLow),
+      alrtAjus: String(DEFAULT_THRESHOLDS.ajuste),
+      alrtFiltrAlto: String(DEFAULT_THRESHOLDS.filtroAlto),
+      alrtFiltrBajo: String(DEFAULT_THRESHOLDS.filtroMedio),
       alrtBateAlto: String(DEFAULT_THRESHOLDS.bateAlto),
       alrtBateMedio: String(DEFAULT_THRESHOLDS.bateMedio),
     });
@@ -306,7 +306,7 @@ export default function UmbralesClient() {
     const bateAlto = bulkForm.alrtBateAlto ? Number(bulkForm.alrtBateAlto) : null;
     const bateMedio = bulkForm.alrtBateMedio ? Number(bulkForm.alrtBateMedio) : null;
 
-    if (filtrAlto != null && filtrBajo != null && filtrAlto >= filtrBajo) {
+    if (filtrAlto != null && filtrBajo != null && filtrAlto <= filtrBajo) {
       errors.push(t("umbrales.validation.filtroOrder"));
     }
     if (respBajo != null && respAlto != null && respBajo >= respAlto) {
@@ -377,9 +377,9 @@ export default function UmbralesClient() {
   const CAMPOS_UMBRAL = [
     { key: "alrtRespAlto", label: t("umbrales.fields.respAlto"), unit: "bpm", defaultVal: DEFAULT_THRESHOLDS.respAlto, help: t("umbrales.help.respAlto") },
     { key: "alrtRespBajo", label: t("umbrales.fields.respBajo"), unit: "bpm", defaultVal: DEFAULT_THRESHOLDS.respBajo, help: t("umbrales.help.respBajo") },
-    { key: "alrtAjus", label: t("umbrales.fields.ajuste"), unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thFit, help: t("umbrales.help.ajuste") },
-    { key: "alrtFiltrAlto", label: t("umbrales.fields.filtrAlto"), unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thClogHigh, help: t("umbrales.help.filtrAlto") },
-    { key: "alrtFiltrBajo", label: t("umbrales.fields.filtrBajo"), unit: "Pa", defaultVal: DEFAULT_THRESHOLDS.thClogLow, help: t("umbrales.help.filtrBajo") },
+    { key: "alrtAjus", label: t("umbrales.fields.ajuste"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.ajuste, help: t("umbrales.help.ajuste") },
+    { key: "alrtFiltrAlto", label: t("umbrales.fields.filtrAlto"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.filtroAlto, help: t("umbrales.help.filtrAlto") },
+    { key: "alrtFiltrBajo", label: t("umbrales.fields.filtrBajo"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.filtroMedio, help: t("umbrales.help.filtrBajo") },
     { key: "alrtBateAlto", label: t("umbrales.fields.bateAlto"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateAlto, help: t("umbrales.help.bateAlto") },
     { key: "alrtBateMedio", label: t("umbrales.fields.bateMedio"), unit: "%", defaultVal: DEFAULT_THRESHOLDS.bateMedio, help: t("umbrales.help.bateMedio") },
   ] as const;
@@ -389,9 +389,9 @@ export default function UmbralesClient() {
       ...form,
       alrtRespAlto: String(DEFAULT_THRESHOLDS.respAlto),
       alrtRespBajo: String(DEFAULT_THRESHOLDS.respBajo),
-      alrtAjus: String(DEFAULT_THRESHOLDS.thFit),
-      alrtFiltrAlto: String(DEFAULT_THRESHOLDS.thClogHigh),
-      alrtFiltrBajo: String(DEFAULT_THRESHOLDS.thClogLow),
+      alrtAjus: String(DEFAULT_THRESHOLDS.ajuste),
+      alrtFiltrAlto: String(DEFAULT_THRESHOLDS.filtroAlto),
+      alrtFiltrBajo: String(DEFAULT_THRESHOLDS.filtroMedio),
       alrtBateAlto: String(DEFAULT_THRESHOLDS.bateAlto),
       alrtBateMedio: String(DEFAULT_THRESHOLDS.bateMedio),
     });
@@ -631,15 +631,15 @@ export default function UmbralesClient() {
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.filtrAltoLabel")}</label>
                     <div style={{ position: "relative" }}>
-                      <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.thClogHigh)} value={bulkForm.alrtFiltrAlto} onChange={(e) => setBulkForm({ ...bulkForm, alrtFiltrAlto: e.target.value })} style={{ paddingRight: "2.5rem" }} />
-                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
+                      <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.filtroAlto)} value={bulkForm.alrtFiltrAlto} onChange={(e) => setBulkForm({ ...bulkForm, alrtFiltrAlto: e.target.value })} style={{ paddingRight: "2.5rem" }} />
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.filtrBajoLabel")}</label>
                     <div style={{ position: "relative" }}>
-                      <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.thClogLow)} value={bulkForm.alrtFiltrBajo} onChange={(e) => setBulkForm({ ...bulkForm, alrtFiltrBajo: e.target.value })} style={{ paddingRight: "2.5rem" }} />
-                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
+                      <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.filtroMedio)} value={bulkForm.alrtFiltrBajo} onChange={(e) => setBulkForm({ ...bulkForm, alrtFiltrBajo: e.target.value })} style={{ paddingRight: "2.5rem" }} />
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
                   </div>
                 </div>
@@ -676,8 +676,8 @@ export default function UmbralesClient() {
                 <div>
                   <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>{t("umbrales.fields.ajusteUmbral")}</label>
                   <div style={{ position: "relative" }}>
-                    <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.thFit)} value={bulkForm.alrtAjus} onChange={(e) => setBulkForm({ ...bulkForm, alrtAjus: e.target.value })} style={{ paddingRight: "2.5rem" }} />
-                    <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
+                    <input className="input-field" type="number" step="any" placeholder={String(DEFAULT_THRESHOLDS.ajuste)} value={bulkForm.alrtAjus} onChange={(e) => setBulkForm({ ...bulkForm, alrtAjus: e.target.value })} style={{ paddingRight: "2.5rem" }} />
+                    <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                   </div>
                 </div>
               </div>
@@ -814,12 +814,12 @@ export default function UmbralesClient() {
                         className="input-field"
                         type="number"
                         step="any"
-                        placeholder={String(DEFAULT_THRESHOLDS.thClogHigh)}
+                        placeholder={String(DEFAULT_THRESHOLDS.filtroAlto)}
                         value={form.alrtFiltrAlto}
                         onChange={(e) => setForm({ ...form, alrtFiltrAlto: e.target.value })}
                         style={{ paddingRight: "2.5rem" }}
                       />
-                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
                     <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.filtrAlto")}</p>
                   </div>
@@ -832,12 +832,12 @@ export default function UmbralesClient() {
                         className="input-field"
                         type="number"
                         step="any"
-                        placeholder={String(DEFAULT_THRESHOLDS.thClogLow)}
+                        placeholder={String(DEFAULT_THRESHOLDS.filtroMedio)}
                         value={form.alrtFiltrBajo}
                         onChange={(e) => setForm({ ...form, alrtFiltrBajo: e.target.value })}
                         style={{ paddingRight: "2.5rem" }}
                       />
-                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                     </div>
                     <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.filtrBajo")}</p>
                   </div>
@@ -921,12 +921,12 @@ export default function UmbralesClient() {
                       className="input-field"
                       type="number"
                       step="any"
-                      placeholder={String(DEFAULT_THRESHOLDS.thFit)}
+                      placeholder={String(DEFAULT_THRESHOLDS.ajuste)}
                       value={form.alrtAjus}
                       onChange={(e) => setForm({ ...form, alrtAjus: e.target.value })}
                       style={{ paddingRight: "2.5rem" }}
                     />
-                    <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>Pa</span>
+                    <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.7rem", color: "var(--color-text-secondary)", pointerEvents: "none" }}>%</span>
                   </div>
                   <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("umbrales.help.ajuste")}</p>
                 </div>

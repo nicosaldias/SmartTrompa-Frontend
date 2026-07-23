@@ -30,7 +30,8 @@ export default function ResumenJornadaActual({ jornadas, medicionesMap, alertas,
     ? Math.round(frecValues.reduce((sum, m) => sum + (m.frecuenciaRespiratoria ?? 0), 0) / frecValues.length)
     : null;
 
-  const desajusteCount = medValues.filter((m) => m.nivelAjuste === 1).length;
+  // Convencion D3: 0 = desajustado (la de la app movil).
+  const desajusteCount = medValues.filter((m) => m.nivelAjuste === 0).length;
 
   // Misma fuente que la columna Filtro de la tabla (alertas activas), para que
   // esta tarjeta nunca contradiga esa columna. Ojo: "Desajustes" sigue contando

@@ -468,16 +468,16 @@
     "help": {
       "respAlto": "High respiratory frequency",
       "respBajo": "Low respiratory frequency",
-      "ajuste": "Pressure above which the respirator is considered out of fit",
-      "filtrAlto": "Pressure below which high saturation is detected",
-      "filtrBajo": "Pressure below which medium saturation is detected",
+      "ajuste": "Minimum percentage of samples with the respirator fitted (below it a misfit alert fires)",
+      "filtrAlto": "Saturation prediction (%) above which it is considered high",
+      "filtrBajo": "Saturation prediction (%) above which it is considered medium",
       "bateAlto": "Critical battery level",
       "bateMedio": "Warning battery level",
       "bateBajo": "Low battery level"
     },
     "validation": {
       "errorTitle": "Validation error",
-      "filtroOrder": "Filter High (high saturation) must be less than Filter Low (medium saturation) in Pa",
+      "filtroOrder": "Filter High (high saturation) must be greater than Filter Low (medium saturation) in %",
       "respOrder": "Resp. Low must be less than Resp. High in bpm",
       "bateAltoOrder": "Bat. High (critical) must be less than Bat. Mid (warning) in %",
       "bateMedioOrder": "Bat. Mid (warning) must be less than Bat. Low in %"

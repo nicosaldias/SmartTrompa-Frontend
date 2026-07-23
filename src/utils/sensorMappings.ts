@@ -38,44 +38,48 @@ export function contarNivelesFiltro(
 }
 
 // --- Nivel de Ajuste ---
-// La app movil calcula: presion minima > thFit → Desajustado, sino Ajustado
-export const NIVEL_AJUSTE_MAP = { 0: 'Ajustado', 1: 'Desajustado' } as const;
+// Convencion D3 (2026-07-22): manda la de la APP — 1 = Ajustado, 0 = Desajustado.
+// (La app calcula: presion minima > thFit o amplitud <= 30 → 0/desajustado.)
+export const NIVEL_AJUSTE_MAP = { 1: 'Ajustado', 0: 'Desajustado' } as const;
 export type NivelAjusteLabel = typeof NIVEL_AJUSTE_MAP[keyof typeof NIVEL_AJUSTE_MAP];
 
 export function interpretNivelAjuste(value?: number | null): string {
   if (value === undefined || value === null) return '--';
-  return value === 0 ? 'Ajustado' : 'Desajustado';
+  return value === 0 ? 'Desajustado' : 'Ajustado';
 }
 
 export function nivelAjusteColor(value?: number | null): string {
   if (value === undefined || value === null) return 'var(--color-text-secondary)';
-  return value === 0 ? '#22c55e' : '#ef4444';
+  return value === 0 ? '#ef4444' : '#22c55e';
 }
 
 // --- Nivel de Atollo (saturacion de filtro) ---
-// La app movil calcula: presion min > thClogLow → Bajo, >= thClogHigh → Medio, < thClogHigh → Alto
-export const NIVEL_ATOLLO_MAP = { 0: 'Baja', 1: 'Media', 2: 'Alta' } as const;
-export type NivelAtolloLabel = typeof NIVEL_ATOLLO_MAP[keyof typeof NIVEL_ATOLLO_MAP];
+// Convencion D4 (2026-07-22): prediccion ML CONTINUA 0–100 (%); −1 o null =
+// sin dato (la app emite −1 los primeros ~10 min de jornada). Cortes visuales
+// por defecto: ≤60 Baja, ≤80 Media, >80 Alta — los mismos que usa la app.
+export const ATOLLO_CORTE_MEDIO = 60;
+export const ATOLLO_CORTE_ALTO = 80;
 
 export function interpretNivelAtollo(value?: number | null): string {
-  if (value === undefined || value === null) return '--';
-  if (value === 0) return 'Baja';
-  if (value === 1) return 'Media';
+  if (value === undefined || value === null || value < 0) return '--';
+  if (value <= ATOLLO_CORTE_MEDIO) return 'Baja';
+  if (value <= ATOLLO_CORTE_ALTO) return 'Media';
   return 'Alta';
 }
 
 export function nivelAtolloColor(value?: number | null): string {
-  if (value === undefined || value === null) return 'var(--color-text-secondary)';
-  if (value === 0) return '#22c55e';
-  if (value === 1) return '#f59e0b';
+  if (value === undefined || value === null || value < 0) return 'var(--color-text-secondary)';
+  if (value <= ATOLLO_CORTE_MEDIO) return '#22c55e';
+  if (value <= ATOLLO_CORTE_ALTO) return '#f59e0b';
   return '#ef4444';
 }
 
 // --- Umbrales por defecto de la app movil ---
+// D5: alrtFiltrAlto/Bajo se redefinen como % de la prediccion ML (antes Pa).
 export const DEFAULT_THRESHOLDS = {
-  thFit: 101740,        // Pa — presion sobre la cual = desajustado (alrtAjus)
-  thClogLow: 101600,    // Pa — presion bajo la cual = atollo medio (alrtFiltrBajo)
-  thClogHigh: 101300,   // Pa — presion bajo la cual = atollo critico (alrtFiltrAlto)
+  filtroMedio: ATOLLO_CORTE_MEDIO, // % prediccion — sobre esto = atollo medio (alrtFiltrBajo)
+  filtroAlto: ATOLLO_CORTE_ALTO,   // % prediccion — sobre esto = atollo critico (alrtFiltrAlto)
+  ajuste: 50,           // % minimo de muestras "ajustado" en la ventana (alrtAjus; la app acepta 0–1 o 0–100)
   respAlto: 25,         // bpm — frecuencia respiratoria alta (alrtRespAlto)
   respBajo: 10,         // bpm — frecuencia respiratoria baja (alrtRespBajo)
   bateAlto: 10,         // % — bateria critica (alrtBateAlto)
@@ -84,14 +88,14 @@ export const DEFAULT_THRESHOLDS = {
 } as const;
 
 // --- Mapeo campos backend ↔ app movil ---
-// alrtAjus      ↔ thFit       — umbral de ajuste del respirador
-// alrtFiltrBajo ↔ thClogLow   — umbral de atollo medio
-// alrtFiltrAlto ↔ thClogHigh  — umbral de atollo critico
-// alrtRespAlto  ↔ respAlto    — frec. respiratoria alta
-// alrtRespBajo  ↔ respBajo    — frec. respiratoria baja
-// alrtBateAlto  ↔ bateAlto    — bateria critica
-// alrtBateMedio ↔ bateMedio   — bateria alerta
-// alrtBateBajo  ↔ bateBajo    — bateria baja
+// alrtAjus      ↔ umbral de ajuste (fraccion 0–1 del promedio ajustado)
+// alrtFiltrBajo ↔ filtroMedio  — % prediccion para atollo medio (D5)
+// alrtFiltrAlto ↔ filtroAlto   — % prediccion para atollo critico (D5)
+// alrtRespAlto  ↔ respAlto     — frec. respiratoria alta
+// alrtRespBajo  ↔ respBajo     — frec. respiratoria baja
+// alrtBateAlto  ↔ bateAlto     — bateria critica
+// alrtBateMedio ↔ bateMedio    — bateria alerta
+// alrtBateBajo  ↔ bateBajo     — bateria baja
 
 // --- Valor + unidad por tipo de alerta ---
 // Solo frecuencia respiratoria (bpm) y bateria (%) tienen un valor medido con unidad.

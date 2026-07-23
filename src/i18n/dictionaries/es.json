@@ -468,16 +468,16 @@
     "help": {
       "respAlto": "Frecuencia respiratoria alta",
       "respBajo": "Frecuencia respiratoria baja",
-      "ajuste": "Presión sobre la cual el respirador se considera desajustado",
-      "filtrAlto": "Presión bajo la cual se detecta saturación alta",
-      "filtrBajo": "Presión bajo la cual se detecta saturación media",
+      "ajuste": "Porcentaje mínimo de muestras con el respirador ajustado (bajo eso se alerta desajuste)",
+      "filtrAlto": "Predicción de saturación (%) sobre la cual se considera alta",
+      "filtrBajo": "Predicción de saturación (%) sobre la cual se considera media",
       "bateAlto": "Nivel de batería crítico",
       "bateMedio": "Nivel de batería en alerta",
       "bateBajo": "Nivel de batería bajo"
     },
     "validation": {
       "errorTitle": "Error de validación",
-      "filtroOrder": "Filtro Alto (saturación alta) debe ser menor que Filtro Bajo (saturación media) en Pa",
+      "filtroOrder": "Filtro Alto (saturación alta) debe ser mayor que Filtro Bajo (saturación media) en %",
       "respOrder": "Resp. Bajo debe ser menor que Resp. Alto en bpm",
       "bateAltoOrder": "Bat. Alto (crítico) debe ser menor que Bat. Medio (alerta) en %",
       "bateMedioOrder": "Bat. Medio (alerta) debe ser menor que Bat. Bajo en %"

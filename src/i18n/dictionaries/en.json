@@ -458,11 +458,12 @@
       "filtrBajo": "Filter Low",
       "bateAlto": "Battery low (critical)",
       "bateMedio": "Battery medium (warning)",
-      "bateBajo": "Bat. Low",
+      "bateBajo": "Bat. Low (first notice)",
       "filtrAltoLabel": "Filter High (high saturation)",
       "filtrBajoLabel": "Filter Low (medium saturation)",
       "bateAltoLabel": "Battery low (critical)",
       "bateMedioLabel": "Battery medium (warning)",
+      "bateBajoLabel": "Bat. Low (first notice)",
       "ajusteUmbral": "Fit threshold"
     },
     "help": {
@@ -471,9 +472,9 @@
       "ajuste": "Minimum percentage of samples with the respirator fitted (below it a misfit alert fires)",
       "filtrAlto": "Saturation prediction (%) above which it is considered high",
       "filtrBajo": "Saturation prediction (%) above which it is considered medium",
-      "bateAlto": "Critical battery level",
-      "bateMedio": "Warning battery level",
-      "bateBajo": "Low battery level"
+      "bateAlto": "Critical severity: the lowest of the three charge percentages. High/medium/low names the alert severity, not the charge level.",
+      "bateMedio": "Warning severity: the middle charge percentage, above critical and below the first notice.",
+      "bateBajo": "First notice: the highest of the three charge percentages, the first one to fire as the battery drains."
     },
     "validation": {
       "errorTitle": "Validation error",

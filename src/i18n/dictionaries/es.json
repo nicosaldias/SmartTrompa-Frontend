@@ -458,11 +458,12 @@
       "filtrBajo": "Filtro Bajo",
       "bateAlto": "Bat. baja (crítico)",
       "bateMedio": "Bat. medio (alerta)",
-      "bateBajo": "Bat. Bajo",
+      "bateBajo": "Bat. bajo (primer aviso)",
       "filtrAltoLabel": "Filtro Alto (saturación alta)",
       "filtrBajoLabel": "Filtro Bajo (saturación media)",
       "bateAltoLabel": "Bat. baja (crítico)",
       "bateMedioLabel": "Bat. medio (alerta)",
+      "bateBajoLabel": "Bat. bajo (primer aviso)",
       "ajusteUmbral": "Umbral de ajuste"
     },
     "help": {
@@ -471,9 +472,9 @@
       "ajuste": "Porcentaje mínimo de muestras con el respirador ajustado (bajo eso se alerta desajuste)",
       "filtrAlto": "Predicción de saturación (%) sobre la cual se considera alta",
       "filtrBajo": "Predicción de saturación (%) sobre la cual se considera media",
-      "bateAlto": "Nivel de batería crítico",
-      "bateMedio": "Nivel de batería en alerta",
-      "bateBajo": "Nivel de batería bajo"
+      "bateAlto": "Gravedad crítica: es el % de carga más bajo de los tres. Alto/medio/bajo nombra la gravedad de la alerta, no el nivel de carga.",
+      "bateMedio": "Gravedad de alerta: % de carga intermedio, sobre el crítico y bajo el primer aviso.",
+      "bateBajo": "Primer aviso: es el % de carga más alto de los tres, el que se dispara primero al descargarse la batería."
     },
     "validation": {
       "errorTitle": "Error de validación",

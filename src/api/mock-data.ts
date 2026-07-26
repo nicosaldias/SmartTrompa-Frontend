@@ -113,9 +113,9 @@ const MOCK_MEDICIONES: Record<number, MedicionesAmbientales[]> = {
 
 // ===== UMBRALES =====
 export const MOCK_UMBRALES: AlertasUmbrales[] = [
-  { id: 1, rutTrabajador: '15.678.901-2', alrtRespAlto: 25, alrtRespBajo: 10, alrtAjus: 0.5, alrtFiltrAlto: 0.9, alrtFiltrBajo: 0.3, alrtBateAlto: 80, alrtBateMedio: 40, alrtBateBajo: 15, fechaAlerta: todayAt(0) },
-  { id: 2, rutTrabajador: '16.789.012-3', alrtRespAlto: 25, alrtRespBajo: 10, alrtAjus: 0.5, alrtFiltrAlto: 0.9, alrtFiltrBajo: 0.3, alrtBateAlto: 80, alrtBateMedio: 40, alrtBateBajo: 15, fechaAlerta: todayAt(0) },
-  { id: 3, rutTrabajador: '17.890.123-4', alrtRespAlto: 25, alrtRespBajo: 10, alrtAjus: 0.5, alrtFiltrAlto: 0.9, alrtFiltrBajo: 0.3, alrtBateAlto: 80, alrtBateMedio: 40, alrtBateBajo: 15, fechaAlerta: todayAt(0) },
+  { id: 1, rutTrabajador: '15.678.901-2', alrtRespAlto: 25, alrtRespBajo: 10, alrtAjus: 50, alrtFiltrAlto: 80, alrtFiltrBajo: 60, alrtBateAlto: 10, alrtBateMedio: 20, alrtBateBajo: 30, fechaAlerta: todayAt(0) },
+  { id: 2, rutTrabajador: '16.789.012-3', alrtRespAlto: 25, alrtRespBajo: 10, alrtAjus: 50, alrtFiltrAlto: 80, alrtFiltrBajo: 60, alrtBateAlto: 10, alrtBateMedio: 20, alrtBateBajo: 30, fechaAlerta: todayAt(0) },
+  { id: 3, rutTrabajador: '17.890.123-4', alrtRespAlto: 25, alrtRespBajo: 10, alrtAjus: 50, alrtFiltrAlto: 80, alrtFiltrBajo: 60, alrtBateAlto: 10, alrtBateMedio: 20, alrtBateBajo: 30, fechaAlerta: todayAt(0) },
 ];
 
 // ===== TICKETS =====

@@ -217,10 +217,28 @@ export function getMockResponse(url: string, method: string, body?: BodyInit | n
     return MOCK_JORNADAS.find(j => j.id === id) || MOCK_JORNADAS[0];
   }
 
-  // Alertas historial
+  // Alertas historial — como el backend real: se filtra ANTES de paginar, así
+  // totalElements/totalPages siempre corresponden a las filas que cumplen TODOS
+  // los filtros a la vez.
   if (path === '/alertas-historial') {
     const tipoParam = params.get('tipo');
-    const filtradas = tipoParam ? MOCK_ALERTAS.filter(a => a.tipo === tipoParam) : MOCK_ALERTAS;
+    const nivelParam = params.get('nivel');
+    const inicioParam = params.get('inicio');
+    const finParam = params.get('fin');
+    const qParam = params.get('q')?.trim().toLowerCase();
+    let filtradas = MOCK_ALERTAS;
+    if (tipoParam) filtradas = filtradas.filter(a => a.tipo === tipoParam);
+    if (nivelParam) filtradas = filtradas.filter(a => a.nivel === nivelParam);
+    if (inicioParam) filtradas = filtradas.filter(a => new Date(a.timestamp) >= new Date(inicioParam));
+    if (finParam) filtradas = filtradas.filter(a => new Date(a.timestamp) <= new Date(finParam));
+    if (qParam) {
+      filtradas = filtradas.filter(a => {
+        const nombre = a.trabajador
+          ? `${a.trabajador.nombre} ${a.trabajador.apellidoPaterno} ${a.trabajador.apellidoMaterno}`.toLowerCase()
+          : '';
+        return a.rutTrabajador.toLowerCase().includes(qParam) || nombre.includes(qParam);
+      });
+    }
     return params.has('page') ? createPageResponse(filtradas, +params.get('page')!, +params.get('size')!) : filtradas;
   }
   if (path === '/alertas-historial/activas') return MOCK_ALERTAS.filter(a => a.activa);

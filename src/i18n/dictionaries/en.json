@@ -132,7 +132,11 @@
     "alertsActiveTitle": "{count} active alert(s)",
     "viewActiveAlerts": "View active alerts",
     "userMenu": "User menu",
-    "helpAndSupport": "Help & support"
+    "helpAndSupport": "Help & support",
+    "liveOn": "Live",
+    "liveOff": "Every 30 s",
+    "liveOnTitle": "Real-time connection active: changes appear instantly",
+    "liveOffTitle": "No real-time connection: data refreshes every 30 seconds"
   },
   "roles": {
     "administrator": "Administrator",
@@ -143,6 +147,7 @@
     "title": "Overview",
     "subtitle": "Key real-time system indicators",
     "updatesEvery30s": "UPDATES EVERY 30S",
+    "liveNow": "LIVE",
     "refreshNow": "Refresh now",
     "pollFailureWarning": "Error refreshing data — displayed values may be outdated",
     "activeAlerts": "Active alerts",

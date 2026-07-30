@@ -40,6 +40,10 @@ function contentSecurityPolicy(): string {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   // Solo el origen: la ruta (/api) no aplica en connect-src.
   const apiOrigin = apiUrl ? new URL(apiUrl).origin : "";
+  // El canal en vivo (STOMP en /ws) es el mismo backend con esquema ws/wss.
+  // Se declara explicito: no todos los navegadores aceptan el upgrade
+  // implicito https->wss al matchear sources.
+  const wsOrigin = apiOrigin ? apiOrigin.replace(/^http/, "ws") : "";
   const isDev = process.env.NODE_ENV !== "production";
 
   return [
@@ -51,7 +55,7 @@ function contentSecurityPolicy(): string {
     // ApexCharts puede instanciar workers desde blob:; sin esto caerian en
     // default-src y los graficos dejarian de renderizar.
     "worker-src 'self' blob:",
-    `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ""}`,
+    `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ""}${wsOrigin ? ` ${wsOrigin}` : ""}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

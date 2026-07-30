@@ -5,6 +5,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { Menu } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
+import { RealtimeProvider } from "@/realtime/RealtimeProvider";
 
 class ErrorBoundary extends Component<
   { children: ReactNode; messages: { title: string; body: string; reload: string } },
@@ -52,6 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
+    <RealtimeProvider>
     <div className="dashboard-root">
       {/* Overlay for mobile drawer */}
       {sidebarOpen && (
@@ -144,5 +146,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       `}</style>
     </div>
+    </RealtimeProvider>
   );
 }

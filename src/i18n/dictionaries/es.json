@@ -132,7 +132,11 @@
     "alertsActiveTitle": "{count} alerta(s) activa(s)",
     "viewActiveAlerts": "Ver alertas activas",
     "userMenu": "Menú de usuario",
-    "helpAndSupport": "Ayuda y soporte"
+    "helpAndSupport": "Ayuda y soporte",
+    "liveOn": "En vivo",
+    "liveOff": "Cada 30 s",
+    "liveOnTitle": "Conectado en tiempo real: los cambios aparecen al instante",
+    "liveOffTitle": "Sin conexión en tiempo real: los datos se actualizan cada 30 segundos"
   },
   "roles": {
     "administrator": "Administrador",
@@ -143,6 +147,7 @@
     "title": "Resumen",
     "subtitle": "Indicadores clave del sistema en tiempo real",
     "updatesEvery30s": "ACTUALIZACIÓN CADA 30S",
+    "liveNow": "EN VIVO",
     "refreshNow": "Actualizar ahora",
     "pollFailureWarning": "Error al actualizar datos — los valores mostrados pueden estar desactualizados",
     "activeAlerts": "Alertas activas",

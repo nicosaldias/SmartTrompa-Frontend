@@ -7,6 +7,8 @@ import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-re
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL } from "@/api/endpoints";
 import DesgloseFiltroModal from "./DesgloseFiltroModal";
+import { useRealtime } from "@/realtime/RealtimeProvider";
+import type { AlertaEventMsg } from "@/realtime/events";
 
 function getInitials(nombreCompleto: string): string {
   const parts = nombreCompleto.trim().split(/\s+/);
@@ -40,6 +42,12 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
     }, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // En vivo: el job horario del backend emite las alertas de FILTRO al crearlas.
+  useRealtime<AlertaEventMsg>("alertas", (e) => {
+    if (e?.tipoAlerta !== "FILTRO") return;
+    api.filterLifecycle.estado().then(setData).catch(() => {});
+  });
 
   const handleRefresh = useCallback(async () => {
     setLoading(true);

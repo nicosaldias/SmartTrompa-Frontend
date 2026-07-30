@@ -11,6 +11,8 @@ import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw } f
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
 import ResumenJornadaActual from "@/components/ResumenJornadaActual";
+import { useRealtime } from "@/realtime/RealtimeProvider";
+import type { MedicionesEventMsg } from "@/realtime/events";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
@@ -124,6 +126,16 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     const interval = setInterval(poll, 30_000);
     return () => clearInterval(interval);
   }, [poll]);
+
+  // En vivo: jornadas/alertas refetchean todo (dona de ajustes incluida);
+  // la última medición de cada tarjeta se mergea directo del evento.
+  useRealtime("jornadas", poll);
+  useRealtime("alertas", poll);
+  useRealtime<MedicionesEventMsg>("mediciones", (e) => {
+    if (e?.jornadaId != null && e.ultima) {
+      setMedicionesMap((prev) => ({ ...prev, [String(e.jornadaId)]: e.ultima ?? null }));
+    }
+  });
 
   // Derived data
   const findTrabajador = (rut: string): Trabajador | undefined =>

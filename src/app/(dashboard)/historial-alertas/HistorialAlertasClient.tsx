@@ -10,6 +10,7 @@ import { abrirCalendario } from "@/utils/datePicker";
 import { formatValorAlerta } from "@/utils/sensorMappings";
 import { buildAlertasServerParams, type FiltrosHistorialAlertas } from "@/utils/alertasQuery";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useRealtime } from "@/realtime/RealtimeProvider";
 
 interface Props {
   initialPage: PageResponse<AlertaHistorial>;
@@ -111,6 +112,12 @@ function HistorialAlertasInner({ initialPage }: Props) {
     if (fd && fh && new Date(fd) >= new Date(fh)) return;
     runFetch(0, debouncedFilters);
   }, [debouncedFilters, runFetch]);
+
+  // En vivo: una alerta nueva o resuelta refresca la página vigente con los
+  // filtros vigentes; fetchSeq ya descarta respuestas fuera de orden.
+  useRealtime("alertas", () => {
+    if (!filtersSettling) runFetch(currentPage, debouncedFilters);
+  });
 
   function handlePageChange(page: number) {
     // Usa los filtros vivos: al hacer clic, paginación está habilitada solo cuando

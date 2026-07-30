@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@stomp/stompjs": "^7.3.0",
     "@tailwindcss/forms": "^0.5.11",
     "apexcharts": "^5.10.3",
     "embla-carousel-react": "^8.6.0",

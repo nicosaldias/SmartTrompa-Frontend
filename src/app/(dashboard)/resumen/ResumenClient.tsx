@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { api } from "@/api/client";
 import type { JornadaTrabajo, AlertaHistorial, TipoAlerta, NivelAlerta, MedicionesAmbientales } from "@/types";
-import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock, RefreshCw, ChevronRight } from "lucide-react";
+import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock, RefreshCw, ChevronRight, Radio } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import ResumenJornadaActual from "@/components/ResumenJornadaActual";
+import { useRealtime, useRealtimeStatus } from "@/realtime/RealtimeProvider";
+import type { MedicionesEventMsg } from "@/realtime/events";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
@@ -66,7 +68,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
   const [loading] = useState(false);
   const [pollFailures, setPollFailures] = useState(0);
 
-  async function poll() {
+  const poll = useCallback(async () => {
     try {
       const [newJornadas, newAlertas] = await Promise.all([
         api.jornadas.activas(),
@@ -87,14 +89,25 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
     } catch {
       setPollFailures((prev) => prev + 1);
     }
-  }
+  }, []);
 
-  // Polling cada 30 segundos
+  // Polling cada 30 segundos (fallback permanente del canal en vivo)
   useEffect(() => {
     const interval = setInterval(poll, 30_000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [poll]);
+
+  // En vivo: jornadas y alertas refetchean; las mediciones llegan en el
+  // propio evento y se mergean sin pedir nada (adiós al N+1 en caliente).
+  const realtimeStatus = useRealtimeStatus();
+  useRealtime("jornadas", poll);
+  useRealtime("alertas", poll);
+  useRealtime<MedicionesEventMsg>("mediciones", (e) => {
+    if (e?.jornadaId != null && e.ultima) {
+      setMedicionesMap((prev) => ({ ...prev, [String(e.jornadaId)]: e.ultima ?? null }));
+    }
+  });
 
   const countByTipo = (tipo: TipoAlerta) =>
     alertas.filter((a) => a.tipo === tipo).length;
@@ -134,16 +147,16 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
             gap: "0.375rem",
             fontSize: "0.7rem",
             fontWeight: 600,
-            color: "var(--color-text-secondary)",
-            background: "rgba(139,148,158,0.1)",
-            border: "1px solid rgba(139,148,158,0.2)",
+            color: realtimeStatus === "live" ? "#22c55e" : "var(--color-text-secondary)",
+            background: realtimeStatus === "live" ? "rgba(34,197,94,0.12)" : "rgba(139,148,158,0.1)",
+            border: realtimeStatus === "live" ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(139,148,158,0.2)",
             borderRadius: "9999px",
             padding: "0.25rem 0.75rem",
             letterSpacing: "0.025em",
           }}
         >
-          <Clock size={12} />
-          {t("resumen.updatesEvery30s")}
+          {realtimeStatus === "live" ? <Radio size={12} /> : <Clock size={12} />}
+          {realtimeStatus === "live" ? t("resumen.liveNow") : t("resumen.updatesEvery30s")}
           <button onClick={poll} style={{
             background: "none", border: "none", cursor: "pointer",
             color: "var(--color-text-secondary)", padding: "0.25rem",

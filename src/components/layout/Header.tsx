@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, LogOut, User, AlertTriangle, Clock } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/api/client";
 import { API_BASE_URL } from "@/api/endpoints";
@@ -11,6 +11,7 @@ import { logoutAction } from "@/actions/auth";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import type { TranslationKey } from "@/i18n/types";
+import { useRealtime, useRealtimeStatus } from "@/realtime/RealtimeProvider";
 
 const ROLE_KEYS: Record<string, TranslationKey> = {
   Administrador: "roles.administrator",
@@ -34,25 +35,29 @@ export default function Header() {
   const [logoError, setLogoError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const fetchData = useCallback(async () => {
+    try {
+      const [filtros, alertas] = await Promise.all([
+        api.filterLifecycle.proximosVencer().catch(() => [] as FilterStatus[]),
+        api.alertas.activas().catch(() => [] as AlertaHistorial[]),
+      ]);
+      setFiltrosEnRiesgo(filtros.length);
+      setAlertasActivas(alertas.length);
+    } catch {
+      // silently fail
+    }
+  }, []);
+
   useEffect(() => {
     setUser(getUserFromCookie());
-
-    async function fetchData() {
-      try {
-        const [filtros, alertas] = await Promise.all([
-          api.filterLifecycle.proximosVencer().catch(() => [] as FilterStatus[]),
-          api.alertas.activas().catch(() => [] as AlertaHistorial[]),
-        ]);
-        setFiltrosEnRiesgo(filtros.length);
-        setAlertasActivas(alertas.length);
-      } catch {
-        // silently fail
-      }
-    }
     fetchData();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
+
+  // En vivo: el badge de la campana reacciona al instante a cada alerta.
+  useRealtime("alertas", fetchData);
+  const realtimeStatus = useRealtimeStatus();
 
   // Session expiry warning timer
   useEffect(() => {
@@ -124,6 +129,49 @@ export default function Header() {
         </span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        {/* Estado del canal en vivo (solo roles que reciben el stream) */}
+        {user?.cargo && user.cargo !== "Trabajador" && (
+          <span
+            title={realtimeStatus === "live" ? t("header.liveOnTitle") : t("header.liveOffTitle")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.375rem",
+              padding: "0.25rem 0.625rem",
+              borderRadius: "9999px",
+              fontSize: "0.7rem",
+              fontWeight: 600,
+              border: realtimeStatus === "live"
+                ? "1px solid rgba(34,197,94,0.3)"
+                : "1px solid rgba(139,148,158,0.25)",
+              backgroundColor: realtimeStatus === "live"
+                ? "rgba(34,197,94,0.12)"
+                : "rgba(139,148,158,0.1)",
+              color: realtimeStatus === "live" ? "#22c55e" : "var(--color-text-secondary)",
+            }}
+          >
+            <span
+              className={realtimeStatus === "live" ? "live-dot-pulse" : undefined}
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                backgroundColor: realtimeStatus === "live" ? "#22c55e" : "var(--color-text-secondary)",
+              }}
+            />
+            <span className="header-hide-mobile">
+              {realtimeStatus === "live" ? t("header.liveOn") : t("header.liveOff")}
+            </span>
+            <style>{`
+              .live-dot-pulse { animation: live-dot-pulse 2s ease-in-out infinite; }
+              @keyframes live-dot-pulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.45); }
+                50% { box-shadow: 0 0 0 5px rgba(34,197,94,0); }
+              }
+            `}</style>
+          </span>
+        )}
+
         {/* Filter lifecycle warning */}
         {filtrosEnRiesgo > 0 && (
           <Link

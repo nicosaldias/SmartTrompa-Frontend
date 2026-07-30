@@ -10,8 +10,11 @@ services:
     ports:
       - "10801:3000"
     environment:
-      # Debe coincidir con el JWT_SECRET del backend.
-      JWT_SECRET: ${JWT_SECRET}
+      # Sin JWT_SECRET a propósito. El middleware ya no verifica la firma del token
+      # (lo hace el backend en cada request, que es donde vive la autorización real).
+      # Tener acá el secreto de firma significaba que un compromiso del frontend
+      # permitía emitir tokens válidos de cualquier usuario, incluido Administrador.
+      # Ver src/middleware.ts.
       # Dominio raíz compartido para que la cookie viaje entre subdominios
       # (rfs.c4i-udec.cl ↔ udec.c4i-udec.cl). En local queda sin definir → host-only.
       COOKIE_DOMAIN: ".c4i-udec.cl"

@@ -24,10 +24,46 @@ function imageRemotePatterns(): NonNullable<NextConfig["images"]>["remotePattern
   ];
 }
 
+/**
+ * CSP pensada para no romper la app.
+ *
+ * `script-src` lleva 'unsafe-inline' porque Next inyecta los scripts de arranque
+ * e hidratacion sin nonce; quitarlo exige middleware con nonce por request y
+ * romperia el render estatico. 'unsafe-eval' solo en desarrollo (lo pide el
+ * refresh de Turbopack), nunca en el bundle de produccion.
+ *
+ * El valor real de esta politica esta en las directivas que SI son estrictas:
+ * `frame-ancestors`, `base-uri`, `form-action` y `connect-src`, que acotan a
+ * donde puede hablar la app aunque se logre inyectar un script.
+ */
+function contentSecurityPolicy(): string {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  // Solo el origen: la ruta (/api) no aplica en connect-src.
+  const apiOrigin = apiUrl ? new URL(apiUrl).origin : "";
+  const isDev = process.env.NODE_ENV !== "production";
+
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:" + (apiOrigin ? ` ${apiOrigin}` : ""),
+    "font-src 'self' data:",
+    // ApexCharts puede instanciar workers desde blob:; sin esto caerian en
+    // default-src y los graficos dejarian de renderizar.
+    "worker-src 'self' blob:",
+    `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ""}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
+}
+
 const nextConfig: NextConfig = {
   output: "standalone",
-  // JWT_SECRET NO se declara aquí: el bloque `env:` lo inyectaría en bundles cliente.
-  // El middleware (Edge runtime) lo lee via process.env.JWT_SECRET sin necesidad de exponerlo.
+  // El frontend ya no recibe JWT_SECRET en ninguna forma: el middleware no verifica
+  // la firma del token (eso lo hace el backend en cada request), así que un
+  // compromiso del front no habilita forjar sesiones. Ver src/middleware.ts.
   // Solo exponemos el número de versión (público, tomado de package.json) para mostrarlo en el login.
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version,
@@ -44,6 +80,13 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          // 1 año. Sin `preload`: entrar a la lista de precarga es practicamente
+          // irreversible y afecta a todo el dominio raiz, no solo a esta app.
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains",
+          },
+          { key: "Content-Security-Policy", value: contentSecurityPolicy() },
         ],
       },
     ];

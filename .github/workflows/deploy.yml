@@ -15,8 +15,9 @@ jobs:
     runs-on: self-hosted
     # docker compose interpola estos ${VAR} en docker-compose.yml.
     # Vienen de los Secrets del repo (Settings -> Secrets -> Actions).
+    # JWT_SECRET ya no se expone acá: el frontend no verifica firmas de token,
+    # así que no hay motivo para materializar el secreto en el runner.
     env:
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
       NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
     steps:
       - name: Sync + build + up

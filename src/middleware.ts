@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
+import { decodeJwt } from "jose";
 
 const PUBLIC_PATHS = ["/login", "/reset-password"];
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -11,11 +11,27 @@ const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 // Dominio compartido entre subdominios (front rfs.* ↔ back udec.*). Vacío en local.
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
 
-async function verifyToken(token: string, secret: string): Promise<boolean> {
+/**
+ * Decide si el access token sigue vigente leyendo `exp` SIN verificar la firma.
+ *
+ * Este middleware es un guard de UX —decide a quién mandar a /login y cuándo
+ * conviene refrescar—, no la frontera de seguridad. La autorización real la
+ * aplica el backend, que verifica firma, expiración y roles en cada request.
+ *
+ * Verificar la firma acá exigiría tener el JWT_SECRET del backend dentro de este
+ * contenedor. Ese es justamente el riesgo que se quiso eliminar: el frontend es
+ * la superficie más expuesta, y con el secreto de firma un compromiso suyo
+ * permitiría emitir tokens válidos de cualquier usuario, incluido Administrador.
+ *
+ * Consecuencia asumida: alguien puede fabricar una cookie con `exp` futuro y
+ * llegar al layout del dashboard, pero cada llamada a la API le responderá 401,
+ * así que no obtiene datos ni puede ejecutar acciones.
+ */
+function tieneSesionVigente(token: string): boolean {
   try {
-    const key = new Uint8Array(Buffer.from(secret, "base64"));
-    const { payload } = await jwtVerify(token, key);
-    return !!payload.sub;
+    const { exp, sub } = decodeJwt(token);
+    if (!sub) return false;
+    return typeof exp === "number" && exp * 1000 > Date.now();
   } catch {
     return false;
   }
@@ -85,14 +101,10 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get("accessToken")?.value;
   const refreshToken = request.cookies.get("refreshToken")?.value;
-  const jwtSecret = process.env.JWT_SECRET;
 
-  // Si estamos en /login y hay sesion valida, redirigir al dashboard
-  if (isPublicPath && token && jwtSecret) {
-    const isValid = await verifyToken(token, jwtSecret);
-    if (isValid) {
-      return NextResponse.redirect(new URL("/resumen", request.url));
-    }
+  // Si estamos en /login y hay sesion vigente, redirigir al dashboard
+  if (isPublicPath && token && tieneSesionVigente(token)) {
+    return NextResponse.redirect(new URL("/resumen", request.url));
   }
 
   // Rutas publicas: dejar pasar
@@ -105,17 +117,9 @@ export async function middleware(request: NextRequest) {
     return clearSessionAndRedirectToLogin(request);
   }
 
-  // Sin secret JWT: no podemos verificar, limpiar todo
-  if (!jwtSecret) {
-    return clearSessionAndRedirectToLogin(request);
-  }
-
-  // Verificar access token
-  if (token) {
-    const isValid = await verifyToken(token, jwtSecret);
-    if (isValid) {
-      return NextResponse.next();
-    }
+  // Access token vigente: seguir
+  if (token && tieneSesionVigente(token)) {
+    return NextResponse.next();
   }
 
   // Access token expirado o invalido — intentar refresh

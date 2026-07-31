@@ -6,8 +6,27 @@ import {
   nivelAtolloColor,
   getAlertNivel,
   contarNivelesFiltro,
+  esMedicionReciente,
+  SIN_SENAL_MS,
 } from "@/utils/sensorMappings";
 import type { AlertaHistorial, JornadaTrabajo, NivelAlerta, TipoAlerta } from "@/types";
+
+describe("esMedicionReciente", () => {
+  const ahora = new Date("2026-07-30T20:00:00Z").getTime();
+
+  it("una medición dentro del umbral es señal viva; una más vieja no", () => {
+    const dentro = new Date(ahora - SIN_SENAL_MS + 1000).toISOString();
+    const fuera = new Date(ahora - SIN_SENAL_MS - 1000).toISOString();
+    expect(esMedicionReciente(dentro, ahora)).toBe(true);
+    expect(esMedicionReciente(fuera, ahora)).toBe(false);
+  });
+
+  it("sin timestamp o con timestamp inválido no hay señal", () => {
+    expect(esMedicionReciente(undefined, ahora)).toBe(false);
+    expect(esMedicionReciente(null, ahora)).toBe(false);
+    expect(esMedicionReciente("no-es-fecha", ahora)).toBe(false);
+  });
+});
 
 function mkAlerta(rut: string, tipo: TipoAlerta, nivel: NivelAlerta, id = 1): AlertaHistorial {
   return { id, tipo, nivel, rutTrabajador: rut, timestamp: "2026-07-20T10:00:00Z", activa: true };

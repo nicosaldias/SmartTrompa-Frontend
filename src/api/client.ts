@@ -254,6 +254,13 @@ export const api = {
       request<JornadaTrabajo>(jornadaEndpoints.byId(id), { cookieHeader }),
     activas: (cookieHeader?: string) =>
       request<JornadaTrabajo[]>(jornadaEndpoints.activas(), { cookieHeader }),
+    // El backend responde 200 sin body; el mismo endpoint que usa la app móvil.
+    finalizar: (id: number, cookieHeader?: string) =>
+      request<void>(jornadaEndpoints.finalizar(), {
+        method: 'POST',
+        body: JSON.stringify({ id, fin: new Date().toISOString() }),
+        cookieHeader,
+      }),
     byUsuario: (rut: string, cookieHeader?: string) =>
       request<JornadaTrabajo[]>(jornadaEndpoints.byUsuario(rut), { cookieHeader }),
     bySupervisor: (rut: string, params?: { inicio?: string; fin?: string }, cookieHeader?: string) => {

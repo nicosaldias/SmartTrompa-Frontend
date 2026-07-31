@@ -28,6 +28,7 @@ export const jornadaEndpoints = {
   byUsuario: (rut: string) => `${API_BASE_URL}/jornada-trabajo/usuario/${rut}/`,
   bySupervisor: (rut: string) => `${API_BASE_URL}/jornada-trabajo/supervisor/${rut}/`,
   historial: () => `${API_BASE_URL}/jornada-trabajo/historial/`,
+  finalizar: () => `${API_BASE_URL}/jornada-trabajo/finalizar-jornada/`,
 };
 
 export const rolEndpoints = {

@@ -424,12 +424,17 @@
     "tipoFiltro": "Filtro",
     "tipoBateria": "Batería",
     "tipoDesconexion": "Desconexión",
-    "shiftSummary": "RESUMEN DE TURNO",
-    "statActive": "ACTIVOS",
-    "statHealthy": "SIN PROBLEMAS",
-    "statWarnings": "ADVERTENCIAS",
-    "statCritical": "CRÍTICAS",
-    "statOperativity": "OPERATIVIDAD"
+    "sinSenal": "SIN SEÑAL",
+    "inicioLabel": "Inicio",
+    "accionesHeader": "Acciones",
+    "finalizarBtn": "Finalizar",
+    "finalizarTitulo": "¿Finalizar la jornada?",
+    "finalizarMidiendo": "el sensor sigue enviando datos. Al finalizar, el monitoreo de este trabajador se detiene.",
+    "finalizarUltimaSenal": "última señal {rel}. La jornada quedará cerrada.",
+    "finalizarSinSenalTexto": "sin señal del sensor. La jornada quedará cerrada.",
+    "finalizarConfirmar": "Sí, finalizar",
+    "finalizadaOk": "Jornada finalizada",
+    "finalizarError": "No se pudo finalizar la jornada"
   },
   "umbrales": {
     "title": "Gestión de Umbrales",

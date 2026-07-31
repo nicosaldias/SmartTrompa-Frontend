@@ -424,12 +424,17 @@
     "tipoFiltro": "Filter",
     "tipoBateria": "Battery",
     "tipoDesconexion": "Disconnection",
-    "shiftSummary": "SHIFT SUMMARY",
-    "statActive": "ACTIVE",
-    "statHealthy": "HEALTHY",
-    "statWarnings": "WARNINGS",
-    "statCritical": "CRITICAL",
-    "statOperativity": "OPERATIVITY"
+    "sinSenal": "NO SIGNAL",
+    "inicioLabel": "Start",
+    "accionesHeader": "Actions",
+    "finalizarBtn": "End shift",
+    "finalizarTitulo": "End this shift?",
+    "finalizarMidiendo": "the sensor is still reporting. Ending the shift stops monitoring this worker.",
+    "finalizarUltimaSenal": "last signal {rel}. The shift will be closed.",
+    "finalizarSinSenalTexto": "no signal from the sensor. The shift will be closed.",
+    "finalizarConfirmar": "Yes, end it",
+    "finalizadaOk": "Shift ended",
+    "finalizarError": "Could not end the shift"
   },
   "umbrales": {
     "title": "Threshold Management",

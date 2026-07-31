@@ -5,9 +5,10 @@ import api from "@/api/client";
 import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAlerta, MedicionesAmbientales, Ajustes } from "@/types";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BINARY_ALERT_TYPES } from "@/types";
-import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime, DEFAULT_THRESHOLDS, getAlertNivel } from "@/utils/sensorMappings";
+import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime, DEFAULT_THRESHOLDS, getAlertNivel, esMedicionReciente } from "@/utils/sensorMappings";
 import { fmtNum } from "@/utils/format";
-import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw } from "lucide-react";
+import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw, Square } from "lucide-react";
+import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
 import ResumenJornadaActual from "@/components/ResumenJornadaActual";
@@ -137,6 +138,53 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     }
   });
 
+  // Finalizar jornada desde la web (la vista es solo de Admin/Supervisor): el
+  // mismo endpoint que usa la app móvil. El trabajador se entera por su polling
+  // de cierre remoto (≤30 s) y esta vista se refresca sola por el evento STOMP.
+  // Guardarraíl de dominio: si el sensor sigue emitiendo, la confirmación lo
+  // advierte — finalizar apaga el monitoreo de alguien posiblemente expuesto.
+  async function confirmarFinalizar(jornada: JornadaTrabajo, nombre: string) {
+    const medicion = medicionesMap[String(jornada.id)];
+    const midiendo = esMedicionReciente(medicion?.timestamp);
+    const detalle = midiendo
+      ? t("cuadrilla.finalizarMidiendo")
+      : medicion?.timestamp
+        ? t("cuadrilla.finalizarUltimaSenal", { rel: formatRelativeTime(medicion.timestamp) })
+        : t("cuadrilla.finalizarSinSenalTexto");
+    const res = await Swal.fire({
+      title: t("cuadrilla.finalizarTitulo"),
+      text: `${nombre} — ${detalle}`,
+      icon: midiendo ? "warning" : "question",
+      showCancelButton: true,
+      confirmButtonText: t("cuadrilla.finalizarConfirmar"),
+      cancelButtonText: t("common.cancel"),
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
+      confirmButtonColor: "#ef4444",
+    });
+    if (!res.isConfirmed) return;
+    try {
+      await api.jornadas.finalizar(jornada.id);
+      poll();
+      Swal.fire({
+        icon: "success",
+        title: t("cuadrilla.finalizadaOk"),
+        timer: 1600,
+        showConfirmButton: false,
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
+      });
+    } catch (e) {
+      Swal.fire({
+        icon: "error",
+        title: t("cuadrilla.finalizarError"),
+        text: e instanceof Error ? e.message : String(e),
+        background: "var(--color-bg-card)",
+        color: "var(--color-text-primary)",
+      });
+    }
+  }
+
   // Derived data
   const findTrabajador = (rut: string): Trabajador | undefined =>
     trabajadores.find((tr) => tr.rut === rut);
@@ -229,12 +277,17 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "ALERTA");
     const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
     const medicion = medicionesMap[String(jornada.id)];
+    // Sin señal reciente, el "NORMAL" verde sería mentira: el sensor calló.
+    // Una alerta activa sí se sigue mostrando (el silencio no la apaga).
+    const viva = esMedicionReciente(medicion?.timestamp);
+    const sinSenal = !viva && estadoGeneral === "OK";
+    const nombre = tr ? `${tr.nombre} ${tr.apellidoPaterno}` : jornada.rutUsuario;
 
     return (
       <div
         key={jornada.id}
         className="card"
-        style={{ padding: "0.75rem", borderLeft: `3px solid ${alertColor(estadoGeneral)}` }}
+        style={{ padding: "0.75rem", borderLeft: `3px solid ${sinSenal ? "var(--color-border)" : alertColor(estadoGeneral)}`, opacity: viva ? 1 : 0.75 }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.625rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
@@ -260,12 +313,21 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
               </p>
             </div>
           </div>
-          <span className={alertAnimClass(estadoGeneral)} style={{
-            fontSize: "0.6rem", fontWeight: 700, color: alertColor(estadoGeneral),
-            letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
-          }}>
-            {estadoLabel(estadoGeneral)}
-          </span>
+          {sinSenal ? (
+            <span style={{
+              fontSize: "0.6rem", fontWeight: 700, color: "var(--color-text-secondary)",
+              letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
+            }}>
+              {t("cuadrilla.sinSenal")}
+            </span>
+          ) : (
+            <span className={alertAnimClass(estadoGeneral)} style={{
+              fontSize: "0.6rem", fontWeight: 700, color: alertColor(estadoGeneral),
+              letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
+            }}>
+              {estadoLabel(estadoGeneral)}
+            </span>
+          )}
         </div>
         <div className="cuadrilla-alerts-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.25rem" }}>
           {ALERTA_TIPOS.map((tipo) => {
@@ -313,6 +375,20 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             {formatRelativeTime(medicion.timestamp)}
           </p>
         )}
+        <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {t("cuadrilla.inicioLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{new Date(jornada.inicio).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</b>
+            {jornada.dispositivo ? ` · ${jornada.dispositivo}` : ""}
+          </p>
+          <button
+            onClick={() => confirmarFinalizar(jornada, nombre)}
+            className="btn-secondary"
+            style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.7rem", padding: "0.3rem 0.6rem", color: "#ef4444", flexShrink: 0 }}
+          >
+            <Square size={11} />
+            {t("cuadrilla.finalizarBtn")}
+          </button>
+        </div>
       </div>
     );
   }
@@ -333,11 +409,14 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
       const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
       const supJornada = jornadas.find(j => j.rutUsuario === supRut);
       const medicion = supJornada ? medicionesMap[String(supJornada.id)] : null;
+      const viva = esMedicionReciente(medicion?.timestamp);
+      const sinSenal = !viva && estadoGeneral === "OK";
+      const nombre = sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut;
 
       return (
         <div
           className="card"
-          style={{ padding: "0.75rem", borderLeft: `3px solid ${alertColor(estadoGeneral)}`, backgroundColor: "rgba(59,130,246,0.04)" }}
+          style={{ padding: "0.75rem", borderLeft: `3px solid ${sinSenal ? "var(--color-border)" : alertColor(estadoGeneral)}`, backgroundColor: "rgba(59,130,246,0.04)", opacity: viva ? 1 : 0.75 }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.625rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
@@ -415,6 +494,22 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
             <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem", textAlign: "right" }}>
               {formatRelativeTime(medicion.timestamp)}
             </p>
+          )}
+          {supJornada && (
+            <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+              <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {t("cuadrilla.inicioLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{new Date(supJornada.inicio).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</b>
+                {supJornada.dispositivo ? ` · ${supJornada.dispositivo}` : ""}
+              </p>
+              <button
+                onClick={() => confirmarFinalizar(supJornada, nombre)}
+                className="btn-secondary"
+                style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.7rem", padding: "0.3rem 0.6rem", color: "#ef4444", flexShrink: 0 }}
+              >
+                <Square size={11} />
+                {t("cuadrilla.finalizarBtn")}
+              </button>
+            </div>
           )}
         </div>
       );
@@ -567,6 +662,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
               {t("cuadrilla.inactive")}
             </span>
           </td>
+          <td style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>—</td>
         </tr>
       );
     }
@@ -576,6 +672,8 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
     const supJornada = jornadas.find(j => j.rutUsuario === supRut);
     const medicion = supJornada ? medicionesMap[String(supJornada.id)] : null;
+    const sinSenal = !esMedicionReciente(medicion?.timestamp) && estadoGeneral === "OK";
+    const nombre = sup ? `${sup.nombre} ${sup.apellidoPaterno}` : supRut;
 
     return (
       <tr key={`sup-${supRut}`} style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "rgba(59,130,246,0.03)" }}>
@@ -626,12 +724,32 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           {medicion?.bateria != null ? `${fmtNum(medicion.bateria)}%` : '--'}
         </td>
         <td style={{ padding: "0.75rem", textAlign: "center" }}>
-          <span className={alertAnimClass(estadoGeneral)} style={{
-            fontSize: "0.65rem", fontWeight: 700,
-            color: alertColor(estadoGeneral), letterSpacing: "0.05em",
-          }}>
-            {estadoLabel(estadoGeneral)}
-          </span>
+          {sinSenal ? (
+            <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em" }}>
+              {t("cuadrilla.sinSenal")}
+            </span>
+          ) : (
+            <span className={alertAnimClass(estadoGeneral)} style={{
+              fontSize: "0.65rem", fontWeight: 700,
+              color: alertColor(estadoGeneral), letterSpacing: "0.05em",
+            }}>
+              {estadoLabel(estadoGeneral)}
+            </span>
+          )}
+        </td>
+        <td style={{ padding: "0.75rem", textAlign: "center" }}>
+          {supJornada ? (
+            <button
+              onClick={() => confirmarFinalizar(supJornada, nombre)}
+              className="btn-secondary"
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.7rem", padding: "0.3rem 0.6rem", color: "#ef4444" }}
+            >
+              <Square size={11} />
+              {t("cuadrilla.finalizarBtn")}
+            </button>
+          ) : (
+            <span style={{ color: "var(--color-text-secondary)", fontSize: "0.7rem" }}>—</span>
+          )}
         </td>
       </tr>
     );
@@ -695,6 +813,9 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                       <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem" }}>
                         {t("common.status")}
                       </th>
+                      <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--color-text-secondary)", fontWeight: 600, fontSize: "0.75rem" }}>
+                        {t("cuadrilla.accionesHeader")}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -705,6 +826,8 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                       const hasAlerta = ALERTA_TIPOS.some((tipo) => getAlertNivel(alertas, jornada.rutUsuario, tipo) === "ALERTA");
                       const estadoGeneral: NivelAlerta = hasCritico ? "CRITICO" : hasAlerta ? "ALERTA" : "OK";
                       const medicion = medicionesMap[String(jornada.id)];
+                      const sinSenal = !esMedicionReciente(medicion?.timestamp) && estadoGeneral === "OK";
+                      const nombre = tr ? `${tr.nombre} ${tr.apellidoPaterno}` : jornada.rutUsuario;
                       return (
                         <tr key={jornada.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
                           <td style={{ padding: "0.75rem" }}>
@@ -751,12 +874,28 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                             {medicion?.bateria != null ? `${fmtNum(medicion.bateria)}%` : '--'}
                           </td>
                           <td style={{ padding: "0.75rem", textAlign: "center" }}>
-                            <span className={alertAnimClass(estadoGeneral)} style={{
-                              fontSize: "0.65rem", fontWeight: 700,
-                              color: alertColor(estadoGeneral), letterSpacing: "0.05em",
-                            }}>
-                              {estadoLabel(estadoGeneral)}
-                            </span>
+                            {sinSenal ? (
+                              <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em" }}>
+                                {t("cuadrilla.sinSenal")}
+                              </span>
+                            ) : (
+                              <span className={alertAnimClass(estadoGeneral)} style={{
+                                fontSize: "0.65rem", fontWeight: 700,
+                                color: alertColor(estadoGeneral), letterSpacing: "0.05em",
+                              }}>
+                                {estadoLabel(estadoGeneral)}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: "0.75rem", textAlign: "center" }}>
+                            <button
+                              onClick={() => confirmarFinalizar(jornada, nombre)}
+                              className="btn-secondary"
+                              style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.7rem", padding: "0.3rem 0.6rem", color: "#ef4444" }}
+                            >
+                              <Square size={11} />
+                              {t("cuadrilla.finalizarBtn")}
+                            </button>
                           </td>
                         </tr>
                       );

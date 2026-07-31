@@ -112,6 +112,19 @@ export function formatValorAlerta(tipo: TipoAlerta, valor?: number | null): stri
 }
 
 // --- Formato de tiempo relativo ---
+/** Umbral de frescura de señal: la app sube un lote por segundo (y como mucho
+ *  cada 30 s), así que 2 minutos sin mediciones significa sensor callado —
+ *  jornada sin señal, no "todo normal". */
+export const SIN_SENAL_MS = 2 * 60_000;
+
+/** True si la última medición es lo bastante reciente para considerar que el
+ *  sensor sigue emitiendo. Sin timestamp no hay señal. */
+export function esMedicionReciente(timestamp?: string | null, ahora: number = Date.now()): boolean {
+  if (!timestamp) return false;
+  const t = new Date(timestamp).getTime();
+  return Number.isFinite(t) && ahora - t <= SIN_SENAL_MS;
+}
+
 export function formatRelativeTime(timestamp: string): string {
   const diff = Date.now() - new Date(timestamp).getTime();
   if (diff < 0) return 'ahora';

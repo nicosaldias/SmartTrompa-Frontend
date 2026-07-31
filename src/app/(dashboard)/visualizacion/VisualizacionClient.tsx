@@ -10,6 +10,7 @@ import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
 import { abrirCalendario } from "@/utils/datePicker";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useRealtime } from "@/realtime/RealtimeProvider";
 
 const ALERTA_TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
 const FILTER_DEBOUNCE_MS = 350;
@@ -168,6 +169,14 @@ export default function VisualizacionClient({ trabajadores }: Props) {
     setFechaDesde("");
     setFechaHasta("");
   }
+
+  // En vivo: al finalizar una jornada (desde la app o desde Estado de Cuadrilla)
+  // el registro aparece aquí sin recargar. fetchSeq descarta respuestas viejas.
+  useRealtime("jornadas", () => {
+    if (filtersSettling) return;
+    const { filterSupervisor: sup, fechaDesde: fd, fechaHasta: fh } = debouncedFilters;
+    fetchData(currentPage, sup, fd, fh);
+  });
 
   // Build worker alert summaries from jornadas and alerts.
   // Este histórico es solo de jornadas TERMINADAS. El backend ya filtra terminada=true,

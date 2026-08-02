@@ -542,8 +542,8 @@
     "subtitle": "Administra los roles de trabajo y las ubicaciones de los turnos",
     "rolesSection": "Roles de trabajo",
     "ubicacionesSection": "Ubicaciones",
-    "addRolBtn": "AGREGAR ROL",
-    "addUbicacionBtn": "AGREGAR UBICACIÓN",
+    "addRolBtn": "Nuevo rol",
+    "addUbicacionBtn": "Nueva ubicación",
     "activate": "Activar",
     "deactivate": "Desactivar",
     "enable": "Habilitar",
@@ -653,8 +653,8 @@
   "filtros": {
     "title": "Filtros y Respiradores",
     "subtitle": "Gestiona los equipos de protección respiratoria",
-    "addFilter": "Agregar filtro",
-    "addRespirator": "Agregar respirador",
+    "addFilter": "Nuevo filtro",
+    "addRespirator": "Nuevo respirador",
     "tabFilters": "Filtros",
     "tabRespirators": "Respiradores",
     "statsActive": "Activos:",
@@ -682,8 +682,8 @@
     "deleted": "Eliminado",
     "created": "Creado",
     "updated": "Actualizado",
-    "newFilter": "Nuevo Filtro",
-    "newRespirator": "Nuevo Respirador",
+    "newFilter": "Nuevo filtro",
+    "newRespirator": "Nuevo respirador",
     "editFilter": "Editar Filtro",
     "editRespirator": "Editar Respirador",
     "recordWillBeUpdated": "Se actualizará el registro",
@@ -701,5 +701,10 @@
     "brand": "Marca",
     "model": "Modelo",
     "description": "Descripción"
+  },
+  "leyenda": {
+    "ok": "Normal",
+    "alerta": "Atención",
+    "critico": "Crítico"
   }
 }

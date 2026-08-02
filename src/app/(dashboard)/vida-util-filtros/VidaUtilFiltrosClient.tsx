@@ -5,6 +5,7 @@ import { api } from "@/api/client";
 import { FilterStatus } from "@/types";
 import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
+import LeyendaSemaforo from "@/components/LeyendaSemaforo";
 import { API_BASE_URL } from "@/api/endpoints";
 import DesgloseFiltroModal from "./DesgloseFiltroModal";
 import { useRealtime } from "@/realtime/RealtimeProvider";
@@ -153,6 +154,9 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
           >
             {t("vidaUtilFiltros.subtitle")}
           </p>
+          <div style={{ marginTop: "0.5rem" }}>
+            <LeyendaSemaforo />
+          </div>
         </div>
         <button
           className="btn-primary"

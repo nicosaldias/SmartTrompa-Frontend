@@ -10,6 +10,7 @@ import { validarOrdenUmbrales } from "./validacionUmbrales";
 import Swal from "sweetalert2";
 import { Search, Plus, Pencil, Trash2, RotateCcw, Users, Check } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
+import EmptyState from "@/components/EmptyState";
 
 function formatRut(value: string): string {
   const clean = value.replace(/[^0-9kK]/g, "").toLowerCase();
@@ -420,14 +421,10 @@ export default function UmbralesClient() {
           <p style={{ color: "var(--color-text-secondary)" }}>{t("umbrales.loadingThresholds")}</p>
         </div>
       ) : umbralesFiltrados.length === 0 ? (
-        <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.3 }}>📋</div>
-          <p style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "0.375rem" }}>
-            {busqueda ? t("umbrales.empty.notFound") : t("umbrales.empty.none")}
-          </p>
-          <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
-            {busqueda ? t("umbrales.empty.tryOtherTerm") : t("umbrales.empty.addFirst")}
-          </p>
+        <EmptyState
+          title={busqueda ? t("umbrales.empty.notFound") : t("umbrales.empty.none")}
+          hint={busqueda ? t("umbrales.empty.tryOtherTerm") : t("umbrales.empty.addFirst")}
+        >
           {/* Vacío honesto: sin registros el sistema NO deja de evaluar — usa estos
               defaults (los mismos de la app). Ocultarlos hacía indescifrable de
               dónde salían las alertas CRITICO de frecuencia respiratoria. */}
@@ -454,7 +451,7 @@ export default function UmbralesClient() {
               </p>
             </div>
           )}
-        </div>
+        </EmptyState>
       ) : (
         <div className="card umbrales-table-wrap" style={{ padding: 0, overflow: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>

@@ -7,6 +7,7 @@ import { API_BASE_URL } from "@/api/endpoints";
 import { DesgloseFiltro } from "@/types";
 import { useT } from "@/i18n/LanguageProvider";
 import { X } from "lucide-react";
+import { formatFecha, formatHora } from "@/utils/fechas";
 
 interface Props {
   rut: string;
@@ -20,16 +21,14 @@ function getInitials(nombreCompleto: string): string {
   return `${parts[0]?.charAt(0) ?? ""}${parts[1]?.charAt(0) ?? ""}`.toUpperCase();
 }
 
+// Formato central es-CL: toLocaleDateString() SIN locale heredaba el del
+// navegador y en un equipo en-US invertía día y mes.
 function fmtDate(value: string | null): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  return d.toLocaleDateString();
+  return value ? formatFecha(value) : "—";
 }
 
 function fmtTime(value: string | null): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return value ? formatHora(value) : "—";
 }
 
 export default function DesgloseFiltroModal({ rut, isAdmin, onClose, onChanged }: Props) {

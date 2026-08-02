@@ -9,6 +9,7 @@ import { ChevronDown, ChevronUp, ChevronRight, X } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { abrirCalendario } from "@/utils/datePicker";
 import { formatValorAlerta } from "@/utils/sensorMappings";
+import { formatFechaHora } from "@/utils/fechas";
 import { buildAlertasServerParams, type FiltrosHistorialAlertas } from "@/utils/alertasQuery";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useRealtime } from "@/realtime/RealtimeProvider";
@@ -460,7 +461,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
                     >
                       {/* TIMESTAMP */}
                       <td style={{ padding: "0.75rem 0.5rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                        {new Date(a.timestamp).toLocaleString("es-CL")}
+                        {formatFechaHora(a.timestamp)}
                       </td>
 
                       {/* TRABAJADOR — avatar + name + rut */}

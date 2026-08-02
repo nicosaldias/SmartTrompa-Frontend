@@ -9,6 +9,8 @@ import { useT } from "@/i18n/LanguageProvider";
 import ResumenJornadaActual from "@/components/ResumenJornadaActual";
 import { useRealtime, useRealtimeStatus } from "@/realtime/RealtimeProvider";
 import type { MedicionesEventMsg } from "@/realtime/events";
+import { TIPO_COLORS, NIVEL_COLORS } from "@/utils/alertaTokens";
+import { formatFechaCorta } from "@/utils/fechas";
 
 interface Props {
   initialJornadas: JornadaTrabajo[];
@@ -25,21 +27,6 @@ const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
   DESCONEXION: <Wifi size={20} />,
 };
 
-const TIPO_COLORS: Record<TipoAlerta, string> = {
-  RESPIRATORIA: "#ef4444",
-  AJUSTE: "#f97316",
-  FILTRO: "#eab308",
-  FILTRO_VIDA_UTIL: "#8b5cf6",
-  BATERIA: "var(--color-text-secondary)",
-  DESCONEXION: "#8b5cf6",
-};
-
-// Severidad: orden y colores para badge de nivel
-const NIVEL_COLORS: Record<NivelAlerta, string> = {
-  CRITICO: "#ef4444",
-  ALERTA: "#f59e0b",
-  OK: "#22c55e",
-};
 
 const NIVEL_LABELS: Record<NivelAlerta, string> = {
   CRITICO: "CRITICO",
@@ -131,15 +118,9 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
     { tipo: "DESCONEXION", count: workersByTipo("DESCONEXION") },
   ];
 
-  // Con fecha: una alerta activa puede llevar días abierta; solo la hora la
-  // disfraza de reciente.
-  const formatTime = (timestamp: string): string => {
-    const d = new Date(timestamp);
-    return d.toLocaleString("es-CL", {
-      day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
-      hour12: false, timeZone: "America/Santiago",
-    });
-  };
+  // Con fecha (dd-mm hh:mm): una alerta activa puede llevar días abierta; solo
+  // la hora la disfraza de reciente.
+  const formatTime = formatFechaCorta;
 
   // Feed: severidad primero y, dentro de cada severidad, la más reciente; una
   // fila por trabajador (sin esto, 5 CRITICO empatadas del mismo origen ocultan

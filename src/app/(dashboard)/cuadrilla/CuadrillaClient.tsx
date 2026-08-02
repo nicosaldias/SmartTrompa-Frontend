@@ -7,9 +7,11 @@ import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAler
 import { BINARY_ALERT_TYPES } from "@/types";
 import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime, DEFAULT_THRESHOLDS, getAlertNivel, esMedicionReciente } from "@/utils/sensorMappings";
 import { fmtNum } from "@/utils/format";
+import { formatHora } from "@/utils/fechas";
 import { Wind, Wrench, Activity, Battery, Wifi, Hourglass, LayoutGrid, Table, RefreshCw, Square } from "lucide-react";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
+import LeyendaSemaforo from "@/components/LeyendaSemaforo";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
 import ResumenJornadaActual from "@/components/ResumenJornadaActual";
 import { useRealtime } from "@/realtime/RealtimeProvider";
@@ -415,7 +417,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
         )}
         <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
           <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {t("cuadrilla.inicioLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{new Date(jornada.inicio).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</b>
+            {t("cuadrilla.inicioLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{formatHora(jornada.inicio)}</b>
             {jornada.dispositivo ? ` · ${jornada.dispositivo}` : ""}
           </p>
           <button
@@ -536,7 +538,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           {supJornada && (
             <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
               <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {t("cuadrilla.inicioLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{new Date(supJornada.inicio).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</b>
+                {t("cuadrilla.inicioLabel")}: <b style={{ color: "var(--color-text-primary)" }}>{formatHora(supJornada.inicio)}</b>
                 {supJornada.dispositivo ? ` · ${supJornada.dispositivo}` : ""}
               </p>
               <button
@@ -977,6 +979,9 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
           <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
             {t("cuadrilla.subtitle")}
           </p>
+          <div style={{ marginTop: "0.5rem" }}>
+            <LeyendaSemaforo />
+          </div>
         </div>
         <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
           <button onClick={poll} style={{

@@ -10,6 +10,9 @@ import { API_BASE_URL as API_URL } from "@/api/endpoints";
 import { abrirCalendario } from "@/utils/datePicker";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useRealtime } from "@/realtime/RealtimeProvider";
+import { nivelColor } from "@/utils/alertaTokens";
+import { formatFecha, formatHora } from "@/utils/fechas";
+import EmptyState from "@/components/EmptyState";
 
 const ALERTA_TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
 const FILTER_DEBOUNCE_MS = 350;
@@ -23,11 +26,7 @@ const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
   DESCONEXION: <Wifi size={13} />,
 };
 
-function alertColor(nivel: NivelAlerta): string {
-  if (nivel === "OK") return "#22c55e";
-  if (nivel === "ALERTA") return "#f59e0b";
-  return "#ef4444";
-}
+const alertColor = nivelColor;
 
 interface WorkerAlertSummary {
   rut: string;
@@ -259,10 +258,8 @@ export default function VisualizacionClient({ trabajadores }: Props) {
     const span = Math.max(fin - ini, 1); // evitar división por cero
     const jAlertas = alertasDeJornada(j).filter((a) => a.nivel !== "OK");
 
-    const fmtHora = (iso: string) =>
-      new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-    const fmtFecha = (iso: string) =>
-      new Date(iso).toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" });
+    const fmtHora = formatHora;
+    const fmtFecha = formatFecha;
 
     return (
       <div key={j.id} style={{ marginTop: "0.5rem" }}>
@@ -591,12 +588,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
           </button>
         </div>
       ) : !hasSearched ? null : jornadas.length === 0 ? (
-        <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
-          <p style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>{t("visualizacion.noResults")}</p>
-          <p style={{ fontSize: "0.85rem" }}>
-            {t("visualizacion.noShiftsForFilters")}
-          </p>
-        </div>
+        <EmptyState title={t("visualizacion.noResults")} hint={t("visualizacion.noShiftsForFilters")} />
       ) : (
         <>
           {/* Summary stats */}

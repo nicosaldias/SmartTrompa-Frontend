@@ -542,8 +542,8 @@
     "subtitle": "Manage work roles and shift locations",
     "rolesSection": "Work roles",
     "ubicacionesSection": "Locations",
-    "addRolBtn": "ADD ROLE",
-    "addUbicacionBtn": "ADD LOCATION",
+    "addRolBtn": "New role",
+    "addUbicacionBtn": "New location",
     "activate": "Activate",
     "deactivate": "Deactivate",
     "enable": "Enable",
@@ -653,8 +653,8 @@
   "filtros": {
     "title": "Filters and Respirators",
     "subtitle": "Manage the respiratory protection equipment",
-    "addFilter": "Add filter",
-    "addRespirator": "Add respirator",
+    "addFilter": "New filter",
+    "addRespirator": "New respirator",
     "tabFilters": "Filters",
     "tabRespirators": "Respirators",
     "statsActive": "Active:",
@@ -682,8 +682,8 @@
     "deleted": "Deleted",
     "created": "Created",
     "updated": "Updated",
-    "newFilter": "New Filter",
-    "newRespirator": "New Respirator",
+    "newFilter": "New filter",
+    "newRespirator": "New respirator",
     "editFilter": "Edit Filter",
     "editRespirator": "Edit Respirator",
     "recordWillBeUpdated": "The record will be updated",
@@ -701,5 +701,10 @@
     "brand": "Brand",
     "model": "Model",
     "description": "Description"
+  },
+  "leyenda": {
+    "ok": "Normal",
+    "alerta": "Warning",
+    "critico": "Critical"
   }
 }

@@ -9,21 +9,15 @@ import type { AlertaHistorial, TipoAlerta, NivelAlerta } from "@/types";
 import { BINARY_ALERT_TYPES } from "@/types";
 import { fmtNum } from "@/utils/format";
 import { VALOR_UNIDAD } from "@/utils/sensorMappings";
+import { formatFechaHora } from "@/utils/fechas";
+import { tipoColor } from "@/utils/alertaTokens";
 
 interface Props {
   alertaId: number;
 }
 
 function tipoBadgeColor(tipo: TipoAlerta): string {
-  switch (tipo) {
-    case "RESPIRATORIA": return "#3b82f6";
-    case "AJUSTE": return "#8b5cf6";
-    case "FILTRO": return "#f59e0b";
-    case "FILTRO_VIDA_UTIL": return "#8b5cf6";
-    case "BATERIA": return "#ef4444";
-    case "DESCONEXION": return "#6b7280";
-    default: return "#6b7280";
-  }
+  return tipoColor(tipo);
 }
 
 function nivelBadgeStyle(nivel: NivelAlerta): { bg: string; text: string } {
@@ -328,10 +322,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
               Fecha y hora
             </p>
             <p style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--color-text-primary)" }}>
-              {new Date(alerta.timestamp).toLocaleString("es-CL", {
-                dateStyle: "long",
-                timeStyle: "medium",
-              })}
+              {formatFechaHora(alerta.timestamp)}
             </p>
           </div>
 
@@ -358,10 +349,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
               </p>
             ) : alerta.resueltaEn ? (
               <p style={{ fontWeight: 600, fontSize: "0.9rem", color: "#22c55e" }}>
-                {new Date(alerta.resueltaEn).toLocaleString("es-CL", {
-                  dateStyle: "long",
-                  timeStyle: "medium",
-                })}
+                {formatFechaHora(alerta.resueltaEn)}
               </p>
             ) : (
               <p style={{ fontWeight: 600, fontSize: "0.9rem", color: "#22c55e" }}>

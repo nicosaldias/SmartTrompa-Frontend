@@ -305,6 +305,8 @@ export const api = {
       request<AlertaHistorial[]>(alertaHistorialEndpoints.activasByTrabajador(rut), { cookieHeader }),
     byJornada: (id: number, cookieHeader?: string) =>
       request<AlertaHistorial[]>(alertaHistorialEndpoints.byJornada(id), { cookieHeader }),
+    porJornadas: (ids: number[], cookieHeader?: string) =>
+      request<AlertaHistorial[]>(alertaHistorialEndpoints.porJornadas(ids), { cookieHeader }),
     create: (data: Partial<AlertaHistorial>, cookieHeader?: string) =>
       request<AlertaHistorial>(alertaHistorialEndpoints.all(), {
         method: 'POST',

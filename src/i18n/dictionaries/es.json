@@ -33,7 +33,8 @@
     "tryAgain": "Reintentar",
     "unexpectedError": "Error inesperado",
     "reloadPage": "Recargar página",
-    "errorLoadingSection": "Ocurrió un error al cargar esta sección. Intenta recargar la página."
+    "errorLoadingSection": "Ocurrió un error al cargar esta sección. Intenta recargar la página.",
+    "retry": "Reintentar"
   },
   "cascade": {
     "warnTitle": "No se puede eliminar directamente",
@@ -171,7 +172,8 @@
     "tipoAjuste": "Ajuste",
     "tipoFiltro": "Filtro",
     "tipoBateria": "Batería",
-    "tipoDesconexion": "Desconexión"
+    "tipoDesconexion": "Desconexión",
+    "tipoFiltroVidaUtil": "Vida útil filtro"
   },
   "reportes": {
     "title": "Reportes de Seguridad",
@@ -388,7 +390,8 @@
       "ajuste": "Ajuste",
       "filtro": "Filtro",
       "bateria": "Batería",
-      "desconexion": "Desconexión"
+      "desconexion": "Desconexión",
+      "filtroVidaUtil": "Vida útil filtro"
     }
   },
   "cuadrilla": {
@@ -434,7 +437,8 @@
     "finalizarSinSenalTexto": "sin señal del sensor. La jornada quedará cerrada.",
     "finalizarConfirmar": "Sí, finalizar",
     "finalizadaOk": "Jornada finalizada",
-    "finalizarError": "No se pudo finalizar la jornada"
+    "finalizarError": "No se pudo finalizar la jornada",
+    "tipoFiltroVidaUtil": "Vida útil filtro"
   },
   "umbrales": {
     "title": "Gestión de Umbrales",

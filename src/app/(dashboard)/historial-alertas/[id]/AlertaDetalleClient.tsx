@@ -19,6 +19,7 @@ function tipoBadgeColor(tipo: TipoAlerta): string {
     case "RESPIRATORIA": return "#3b82f6";
     case "AJUSTE": return "#8b5cf6";
     case "FILTRO": return "#f59e0b";
+    case "FILTRO_VIDA_UTIL": return "#8b5cf6";
     case "BATERIA": return "#ef4444";
     case "DESCONEXION": return "#6b7280";
     default: return "#6b7280";

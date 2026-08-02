@@ -70,6 +70,7 @@ export const alertaHistorialEndpoints = {
   byTrabajador: (rut: string) => `${API_BASE_URL}/alertas-historial/trabajador/${rut}/`,
   activasByTrabajador: (rut: string) => `${API_BASE_URL}/alertas-historial/trabajador/${rut}/activas/`,
   byJornada: (id: number) => `${API_BASE_URL}/alertas-historial/jornada/${id}/`,
+  porJornadas: (ids: number[]) => `${API_BASE_URL}/alertas-historial/por-jornadas/?ids=${ids.join(',')}`,
   resolver: (id: number) => `${API_BASE_URL}/alertas-historial/${id}/resolver/`,
   detalle: (id: number) => `${API_BASE_URL}/alertas-historial/${id}/detalle/`,
 };

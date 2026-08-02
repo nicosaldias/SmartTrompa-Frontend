@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/api/client";
 import type { Trabajador, JornadaTrabajo, AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
-import { Wind, Wrench, Activity, Battery, Wifi, ChevronLeft, ChevronRight } from "lucide-react";
-import Swal from "sweetalert2";
+import { Wind, Wrench, Activity, Battery, Wifi, Hourglass, ChevronLeft, ChevronRight } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
 import { abrirCalendario } from "@/utils/datePicker";
@@ -19,6 +18,7 @@ const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
   RESPIRATORIA: <Wind size={13} />,
   AJUSTE: <Wrench size={13} />,
   FILTRO: <Activity size={13} />,
+  FILTRO_VIDA_UTIL: <Hourglass size={13} />,
   BATERIA: <Battery size={13} />,
   DESCONEXION: <Wifi size={13} />,
 };
@@ -49,10 +49,12 @@ export default function VisualizacionClient({ trabajadores }: Props) {
     RESPIRATORIA: t("visualizacion.tipo.respiratoria"),
     AJUSTE: t("visualizacion.tipo.ajuste"),
     FILTRO: t("visualizacion.tipo.filtro"),
+    FILTRO_VIDA_UTIL: t("visualizacion.tipo.filtroVidaUtil"),
     BATERIA: t("visualizacion.tipo.bateria"),
     DESCONEXION: t("visualizacion.tipo.desconexion"),
   };
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [filterSupervisor, setFilterSupervisor] = useState("");
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
@@ -72,14 +74,6 @@ export default function VisualizacionClient({ trabajadores }: Props) {
   const findTrabajador = (rut: string): Trabajador | undefined =>
     trabajadores.find((t) => t.rut === rut);
 
-  // Ref al traductor: mantiene `fetchData` con identidad estable (deps []), así
-  // cambiar el idioma NO recrea fetchData ni re-dispara el efecto de auto-aplicado
-  // (que reseteaba la paginación a la página 0 sin que el usuario tocara nada).
-  const tRef = useRef(t);
-  useEffect(() => {
-    tRef.current = t;
-  }, [t]);
-
   // Secuencia de peticiones: si dos consultas se solapan (ej. cambiar un filtro y
   // paginar casi a la vez), solo la última aplica su resultado y apaga el loading.
   // Evita que una respuesta lenta y vieja pise a una nueva (out-of-order).
@@ -88,6 +82,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
   const fetchData = useCallback(async (page: number, sup?: string, desde?: string, hasta?: string) => {
     const seq = ++fetchSeq.current;
     setLoading(true);
+    setLoadError(false);
     try {
       const jornadaParams: { supervisor?: string; inicio?: string; fin?: string } = {};
       if (sup) jornadaParams.supervisor = sup;
@@ -100,28 +95,15 @@ export default function VisualizacionClient({ trabajadores }: Props) {
         Object.keys(jornadaParams).length > 0 ? jornadaParams : undefined
       );
 
-      // Fetch alerts for each unique worker in the jornada results
-      const workerRuts = [...new Set((jornadaData.content || []).map((j) => j.rutUsuario))];
-      let allAlertas: AlertaHistorial[] = [];
-
-      if (workerRuts.length > 0) {
-        // Fetch alerts by worker, filtered by date range if provided
-        const alertPromises = workerRuts.map((rut) =>
-          api.alertas.byTrabajador(rut).catch(() => [] as AlertaHistorial[])
-        );
-        const alertResults = await Promise.all(alertPromises);
-        allAlertas = alertResults.flat();
-
-        // Filter alerts by date range if specified
-        if (desde) {
-          const desdeDate = new Date(desde);
-          allAlertas = allAlertas.filter((a) => new Date(a.timestamp) >= desdeDate);
-        }
-        if (hasta) {
-          const hastaDate = new Date(hasta);
-          allAlertas = allAlertas.filter((a) => new Date(a.timestamp) <= hastaDate);
-        }
-      }
+      // Alertas ligadas a las jornadas de ESTA página, en una sola consulta al
+      // backend. Antes: un GET con el historial completo de cada trabajador
+      // (sin límite ni fechas) — con el volumen real de producción el fan-out
+      // tumbaba la vista completa.
+      const jornadaIds = (jornadaData.content || [])
+        .map((j) => j.id)
+        .filter((id): id is number => id != null);
+      const allAlertas: AlertaHistorial[] =
+        jornadaIds.length > 0 ? await api.alertas.porJornadas(jornadaIds) : [];
 
       if (seq !== fetchSeq.current) return; // superada por una consulta más reciente
       setJornadaPage(jornadaData);
@@ -131,13 +113,8 @@ export default function VisualizacionClient({ trabajadores }: Props) {
     } catch (err) {
       if (seq !== fetchSeq.current) return;
       console.error("Error:", err);
-      Swal.fire({
-        icon: "error",
-        title: tRef.current("common.error"),
-        text: tRef.current("visualizacion.errorLoadHistory"),
-        background: "var(--color-bg-card)",
-        color: "var(--color-text-primary)",
-      });
+      // Error inline (no modal bloqueante): la vista queda usable y ofrece reintentar.
+      setLoadError(true);
     } finally {
       if (seq === fetchSeq.current) setLoading(false);
     }
@@ -269,17 +246,10 @@ export default function VisualizacionClient({ trabajadores }: Props) {
     return counts.alerta + counts.critico;
   }
 
-  // Alertas asociadas a una jornada concreta: por jornadaId si existe; si no, por
-  // trabajador + ventana temporal de la jornada (inicio..fin).
+  // Alertas asociadas a una jornada concreta. El endpoint por-jornadas ya trae
+  // solo alertas ligadas por jornada_id, así que el match es directo.
   function alertasDeJornada(j: JornadaTrabajo): AlertaHistorial[] {
-    const ini = new Date(j.inicio).getTime();
-    const fin = j.fin ? new Date(j.fin).getTime() : Date.now();
-    return alertas.filter((a) => {
-      if (a.rutTrabajador !== j.rutUsuario) return false;
-      if (a.jornadaId != null) return a.jornadaId === j.id;
-      const ts = new Date(a.timestamp).getTime();
-      return ts >= ini && ts <= fin;
-    });
+    return alertas.filter((a) => a.jornadaId === j.id);
   }
 
   // Barra temporal de una jornada terminada con sus alertas posicionadas por timestamp.
@@ -606,6 +576,19 @@ export default function VisualizacionClient({ trabajadores }: Props) {
       {loading ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
           {t("visualizacion.loadingHistory")}
+        </div>
+      ) : loadError ? (
+        <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
+          <p style={{ fontSize: "1rem", fontWeight: 700, color: "#ef4444", marginBottom: "0.5rem" }}>
+            {t("visualizacion.errorLoadHistory")}
+          </p>
+          <button
+            className="btn-secondary"
+            style={{ fontSize: "0.85rem" }}
+            onClick={() => fetchData(currentPage, filterSupervisor, fechaDesde, fechaHasta)}
+          >
+            {t("common.retry")}
+          </button>
         </div>
       ) : !hasSearched ? null : jornadas.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>

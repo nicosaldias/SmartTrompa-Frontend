@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { api } from "@/api/client";
 import type { JornadaTrabajo, AlertaHistorial, TipoAlerta, NivelAlerta, MedicionesAmbientales } from "@/types";
-import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Clock, RefreshCw, ChevronRight, Radio } from "lucide-react";
+import { Activity, AlertTriangle, Battery, Wifi, Wind, Wrench, Hourglass, Clock, RefreshCw, ChevronRight, Radio } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import ResumenJornadaActual from "@/components/ResumenJornadaActual";
 import { useRealtime, useRealtimeStatus } from "@/realtime/RealtimeProvider";
@@ -20,6 +20,7 @@ const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
   RESPIRATORIA: <Wind size={20} />,
   AJUSTE: <Wrench size={20} />,
   FILTRO: <Activity size={20} />,
+  FILTRO_VIDA_UTIL: <Hourglass size={20} />,
   BATERIA: <Battery size={20} />,
   DESCONEXION: <Wifi size={20} />,
 };
@@ -28,6 +29,7 @@ const TIPO_COLORS: Record<TipoAlerta, string> = {
   RESPIRATORIA: "#ef4444",
   AJUSTE: "#f97316",
   FILTRO: "#eab308",
+  FILTRO_VIDA_UTIL: "#8b5cf6",
   BATERIA: "var(--color-text-secondary)",
   DESCONEXION: "#8b5cf6",
 };
@@ -57,6 +59,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
     RESPIRATORIA: t("resumen.tipoRespiratoria"),
     AJUSTE: t("resumen.tipoAjuste"),
     FILTRO: t("resumen.tipoFiltro"),
+    FILTRO_VIDA_UTIL: t("resumen.tipoFiltroVidaUtil"),
     BATERIA: t("resumen.tipoBateria"),
     DESCONEXION: t("resumen.tipoDesconexion"),
   };

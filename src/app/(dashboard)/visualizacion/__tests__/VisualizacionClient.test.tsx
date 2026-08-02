@@ -5,19 +5,18 @@ import { LanguageProvider } from "@/i18n/LanguageProvider";
 import VisualizacionClient from "../VisualizacionClient";
 import type { JornadaTrabajo, Trabajador } from "@/types";
 
-// Swal y el cliente API se doblan; el mock de realtime captura los handlers
+// El cliente API se dobla; el mock de realtime captura los handlers
 // por canal para poder disparar eventos STOMP sintéticos desde los tests.
-const { fireMock, historialMock, realtimeHandlers } = vi.hoisted(() => ({
-  fireMock: vi.fn(),
+const { historialMock, porJornadasMock, realtimeHandlers } = vi.hoisted(() => ({
   historialMock: vi.fn(),
+  porJornadasMock: vi.fn(),
   realtimeHandlers: {} as Record<string, () => void>,
 }));
-vi.mock("sweetalert2", () => ({ default: { fire: fireMock } }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/api/client", () => {
   const api = {
     jornadas: { historial: historialMock },
-    alertas: { byTrabajador: vi.fn().mockResolvedValue([]) },
+    alertas: { porJornadas: porJornadasMock },
   };
   return { default: api, api };
 });
@@ -60,8 +59,8 @@ const TRABAJADORES = [
 ] as Trabajador[];
 
 beforeEach(() => {
-  fireMock.mockReset().mockResolvedValue({ isConfirmed: true });
   historialMock.mockReset().mockResolvedValue(mkPage([mkTerminada()]));
+  porJornadasMock.mockReset().mockResolvedValue([]);
 });
 
 describe("VisualizacionClient — histórico de jornadas terminadas en vivo", () => {
@@ -91,5 +90,21 @@ describe("VisualizacionClient — histórico de jornadas terminadas en vivo", ()
 
     await waitFor(() => expect(historialMock).toHaveBeenCalledTimes(2));
     expect(await screen.findByText(/2 jornada\(s\)/)).toBeTruthy();
+  });
+
+  it("un error de carga muestra error inline con Reintentar (sin modal) y el retry recupera", async () => {
+    historialMock.mockRejectedValueOnce(new Error("500"));
+    render(
+      <LanguageProvider initialLang="es">
+        <VisualizacionClient trabajadores={TRABAJADORES} />
+      </LanguageProvider>
+    );
+    const retry = await screen.findByText("Reintentar");
+
+    await act(async () => {
+      retry.click();
+    });
+
+    expect(await screen.findByText("Ricardo Alarcon")).toBeTruthy();
   });
 });

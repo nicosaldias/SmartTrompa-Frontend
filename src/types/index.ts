@@ -12,7 +12,9 @@ export interface PageResponse<T> {
 }
 
 export type Cargo = 'Supervisor' | 'Trabajador' | 'Administrador';
-export type TipoAlerta = 'RESPIRATORIA' | 'AJUSTE' | 'FILTRO' | 'BATERIA' | 'DESCONEXION';
+// FILTRO = saturación instantánea (sensor, durante la jornada);
+// FILTRO_VIDA_UTIL = desgaste acumulado en horas (job del backend, sin jornada asociada).
+export type TipoAlerta = 'RESPIRATORIA' | 'AJUSTE' | 'FILTRO' | 'FILTRO_VIDA_UTIL' | 'BATERIA' | 'DESCONEXION';
 export type NivelAlerta = 'OK' | 'ALERTA' | 'CRITICO';
 
 // Tipos binarios: solo NORMAL o CRITICO (si hay alerta, siempre es critica)

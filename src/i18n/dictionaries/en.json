@@ -33,7 +33,8 @@
     "tryAgain": "Try again",
     "unexpectedError": "Unexpected error",
     "reloadPage": "Reload page",
-    "errorLoadingSection": "An error occurred loading this section. Try reloading the page."
+    "errorLoadingSection": "An error occurred loading this section. Try reloading the page.",
+    "retry": "Retry"
   },
   "cascade": {
     "warnTitle": "Cannot be deleted directly",
@@ -171,7 +172,8 @@
     "tipoAjuste": "Fit",
     "tipoFiltro": "Filter",
     "tipoBateria": "Battery",
-    "tipoDesconexion": "Disconnection"
+    "tipoDesconexion": "Disconnection",
+    "tipoFiltroVidaUtil": "Filter life"
   },
   "reportes": {
     "title": "Safety Reports",
@@ -388,7 +390,8 @@
       "ajuste": "Fit",
       "filtro": "Filter",
       "bateria": "Battery",
-      "desconexion": "Disconnection"
+      "desconexion": "Disconnection",
+      "filtroVidaUtil": "Filter life"
     }
   },
   "cuadrilla": {
@@ -434,7 +437,8 @@
     "finalizarSinSenalTexto": "no signal from the sensor. The shift will be closed.",
     "finalizarConfirmar": "Yes, end it",
     "finalizadaOk": "Shift ended",
-    "finalizarError": "Could not end the shift"
+    "finalizarError": "Could not end the shift",
+    "tipoFiltroVidaUtil": "Filter life"
   },
   "umbrales": {
     "title": "Threshold Management",

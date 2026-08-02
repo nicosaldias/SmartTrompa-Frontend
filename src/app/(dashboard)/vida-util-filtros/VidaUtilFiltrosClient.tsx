@@ -45,7 +45,9 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
 
   // En vivo: el job horario del backend emite las alertas de FILTRO al crearlas.
   useRealtime<AlertaEventMsg>("alertas", (e) => {
-    if (e?.tipoAlerta !== "FILTRO") return;
+    // FILTRO_VIDA_UTIL: alertas del job horario de desgaste (las de esta vista);
+    // FILTRO: saturación del sensor — se mantiene por si cambia el % de uso mostrado.
+    if (e?.tipoAlerta !== "FILTRO" && e?.tipoAlerta !== "FILTRO_VIDA_UTIL") return;
     api.filterLifecycle.estado().then(setData).catch(() => {});
   });
 

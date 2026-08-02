@@ -7,7 +7,7 @@ import type { JornadaTrabajo, AlertaHistorial, Trabajador, TipoAlerta, NivelAler
 import { BINARY_ALERT_TYPES } from "@/types";
 import { interpretNivelAjuste, interpretNivelAtollo, nivelAjusteColor, nivelAtolloColor, formatRelativeTime, DEFAULT_THRESHOLDS, getAlertNivel, esMedicionReciente } from "@/utils/sensorMappings";
 import { fmtNum } from "@/utils/format";
-import { Wind, Wrench, Activity, Battery, Wifi, LayoutGrid, Table, RefreshCw, Square } from "lucide-react";
+import { Wind, Wrench, Activity, Battery, Wifi, Hourglass, LayoutGrid, Table, RefreshCw, Square } from "lucide-react";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
@@ -29,6 +29,7 @@ const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
   RESPIRATORIA: <Wind size={13} />,
   AJUSTE: <Wrench size={13} />,
   FILTRO: <Activity size={13} />,
+  FILTRO_VIDA_UTIL: <Hourglass size={13} />,
   BATERIA: <Battery size={13} />,
   DESCONEXION: <Wifi size={13} />,
 };
@@ -56,6 +57,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     RESPIRATORIA: t("cuadrilla.tipoRespiratoria"),
     AJUSTE: t("cuadrilla.tipoAjuste"),
     FILTRO: t("cuadrilla.tipoFiltro"),
+    FILTRO_VIDA_UTIL: t("cuadrilla.tipoFiltroVidaUtil"),
     BATERIA: t("cuadrilla.tipoBateria"),
     DESCONEXION: t("cuadrilla.tipoDesconexion"),
   };
@@ -774,6 +776,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
       RESPIRATORIA: <Wind size={14} />,
       AJUSTE: <Wrench size={14} />,
       FILTRO: <Activity size={14} />,
+      FILTRO_VIDA_UTIL: <Hourglass size={14} />,
       BATERIA: <Battery size={14} />,
       DESCONEXION: <Wifi size={14} />,
     };

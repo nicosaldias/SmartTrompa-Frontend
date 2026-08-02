@@ -16,7 +16,7 @@ interface Props {
   initialPage: PageResponse<AlertaHistorial>;
 }
 
-const TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
+const TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "FILTRO_VIDA_UTIL", "BATERIA", "DESCONEXION"];
 const NIVELES: NivelAlerta[] = ["OK", "ALERTA", "CRITICO"];
 const PAGE_SIZE = 20;
 const FILTER_DEBOUNCE_MS = 350;

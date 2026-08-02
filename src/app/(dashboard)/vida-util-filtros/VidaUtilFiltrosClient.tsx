@@ -71,11 +71,26 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
   // registrar el cambio físico. El backend reinicia el acumulado de horas y
   // resuelve la alerta de vida útil activa.
   const registrarCambio = useCallback(async (item: FilterStatus) => {
-    const { value: notas, isConfirmed } = await Swal.fire({
+    // datetime-local en hora local del navegador; max = ahora (el backend re-valida)
+    const ahoraLocal = (() => {
+      const d = new Date();
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      return d.toISOString().slice(0, 16);
+    })();
+    const inputStyle =
+      "width:100%;padding:0.5rem;border-radius:6px;border:1px solid var(--color-border);" +
+      "background:var(--color-bg-secondary);color:var(--color-text-primary);";
+    const { value, isConfirmed } = await Swal.fire<{ fecha: string; notas: string }>({
       title: t("vidaUtilFiltros.confirmCambioTitle"),
-      text: t("vidaUtilFiltros.confirmCambioText", { nombre: item.trabajadorNombre }),
-      input: "text",
-      inputPlaceholder: t("vidaUtilFiltros.notasPlaceholder"),
+      html:
+        `<p style="margin-bottom:0.75rem">${t("vidaUtilFiltros.confirmCambioText", { nombre: item.trabajadorNombre })}</p>` +
+        `<label style="display:block;text-align:left;font-size:0.8rem;margin-bottom:0.25rem">${t("vidaUtilFiltros.fechaCambioLabel")}</label>` +
+        `<input id="swal-fecha-cambio" type="datetime-local" value="${ahoraLocal}" max="${ahoraLocal}" style="${inputStyle}margin-bottom:0.75rem" />` +
+        `<input id="swal-notas-cambio" type="text" placeholder="${t("vidaUtilFiltros.notasPlaceholder")}" style="${inputStyle}" />`,
+      preConfirm: () => ({
+        fecha: (document.getElementById("swal-fecha-cambio") as HTMLInputElement)?.value ?? "",
+        notas: (document.getElementById("swal-notas-cambio") as HTMLInputElement)?.value ?? "",
+      }),
       showCancelButton: true,
       confirmButtonText: t("vidaUtilFiltros.registrarCambio"),
       cancelButtonText: t("common.cancel"),
@@ -84,7 +99,7 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
     });
     if (!isConfirmed) return;
     try {
-      await api.filterLifecycle.registrarCambio(item.trabajadorRut, notas ?? "");
+      await api.filterLifecycle.registrarCambio(item.trabajadorRut, value?.notas ?? "", value?.fecha || undefined);
       await handleRefresh();
       Swal.fire({
         icon: "success", title: t("vidaUtilFiltros.cambioOk"),

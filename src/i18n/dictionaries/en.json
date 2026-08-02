@@ -281,6 +281,7 @@
     "confirmCambioTitle": "Log filter replacement?",
     "confirmCambioText": "The accumulated hours for {nombre}'s filter will reset to zero and the active service-life alert will be resolved.",
     "notasPlaceholder": "Notes (optional): batch, brand, reason…",
+    "fechaCambioLabel": "Change date",
     "cambioOk": "Filter replacement logged",
     "cambioError": "Could not log the filter replacement",
     "excessLabel": "over limit"

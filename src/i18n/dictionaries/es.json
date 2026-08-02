@@ -281,6 +281,7 @@
     "confirmCambioTitle": "¿Registrar cambio de filtro?",
     "confirmCambioText": "El acumulado de horas del filtro de {nombre} volverá a cero y la alerta de vida útil activa quedará resuelta.",
     "notasPlaceholder": "Notas (opcional): lote, marca, motivo…",
+    "fechaCambioLabel": "Fecha del cambio",
     "cambioOk": "Cambio de filtro registrado",
     "cambioError": "No se pudo registrar el cambio de filtro",
     "excessLabel": "de exceso"

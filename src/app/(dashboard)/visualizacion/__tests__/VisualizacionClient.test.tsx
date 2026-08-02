@@ -89,7 +89,10 @@ describe("VisualizacionClient — histórico de jornadas terminadas en vivo", ()
     });
 
     await waitFor(() => expect(historialMock).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText(/2 jornada\(s\)/)).toBeTruthy();
+    // La lista agrupa por día: las 2 jornadas pueden caer en días distintos
+    // según la hora del reloj, así que se asierta por FILAS del trabajador
+    // (una por jornada), no por el conteo del header de día.
+    await waitFor(() => expect(screen.getAllByText("Ricardo Alarcon")).toHaveLength(2));
   });
 
   it("un error de carga muestra error inline con Reintentar (sin modal) y el retry recupera", async () => {

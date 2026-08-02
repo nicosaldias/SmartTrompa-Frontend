@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/api/client";
 import type { Trabajador, JornadaTrabajo, AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
-import { Wind, Wrench, Activity, Battery, Wifi, Hourglass, ChevronLeft, ChevronRight } from "lucide-react";
+import { Wind, Wrench, Activity, Battery, Wifi, Hourglass, ChevronLeft, ChevronRight, List, CalendarDays } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { API_BASE_URL as API_URL } from "@/api/endpoints";
 import { abrirCalendario } from "@/utils/datePicker";
@@ -12,7 +12,18 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useRealtime } from "@/realtime/RealtimeProvider";
 import { nivelColor } from "@/utils/alertaTokens";
 import { formatFecha, formatHora } from "@/utils/fechas";
+import {
+  agruparPorDiaYSupervisor,
+  colorSupervisor,
+  duracionMinutos,
+  formatDuracion,
+  SIN_SUPERVISOR,
+} from "@/utils/historicoCuadrilla";
+import CalendarioSemanal from "./CalendarioSemanal";
 import EmptyState from "@/components/EmptyState";
+
+type VistaHistorico = "lista" | "calendario";
+const VISTA_STORAGE_KEY = "visualizacion.vista";
 
 const ALERTA_TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "BATERIA", "DESCONEXION"];
 const FILTER_DEBOUNCE_MS = 350;
@@ -27,15 +38,6 @@ const TIPO_ICONS: Record<TipoAlerta, React.ReactNode> = {
 };
 
 const alertColor = nivelColor;
-
-interface WorkerAlertSummary {
-  rut: string;
-  counts: Record<TipoAlerta, { ok: number; alerta: number; critico: number }>;
-  worstLevel: NivelAlerta;
-  totalAlertas: number;
-  jornadas: number;
-  jornadaList: JornadaTrabajo[];
-}
 
 interface Props {
   trabajadores: Trabajador[];
@@ -58,6 +60,17 @@ export default function VisualizacionClient({ trabajadores }: Props) {
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Toggle Lista | Calendario, persistido por usuario del navegador.
+  const [vista, setVista] = useState<VistaHistorico>("lista");
+  useEffect(() => {
+    const stored = localStorage.getItem(VISTA_STORAGE_KEY);
+    if (stored === "calendario") setVista("calendario");
+  }, []);
+  function cambiarVista(v: VistaHistorico) {
+    setVista(v);
+    localStorage.setItem(VISTA_STORAGE_KEY, v);
+  }
 
   // Paginated jornada data
   const [jornadaPage, setJornadaPage] = useState<PageResponse<JornadaTrabajo> | null>(null);
@@ -162,88 +175,11 @@ export default function VisualizacionClient({ trabajadores }: Props) {
   // Navega al detalle de una alerta (ruta existente: /historial-alertas/[id]).
   const abrirAlerta = (id: number) => router.push(`/historial-alertas/${id}`);
 
-  // Group jornadas by supervisor
-  const jornadasPorSupervisor: Record<string, JornadaTrabajo[]> = {};
-  for (const j of jornadas) {
-    const key = j.idSupervisor || "sin-supervisor";
-    if (!jornadasPorSupervisor[key]) jornadasPorSupervisor[key] = [];
-    jornadasPorSupervisor[key].push(j);
-  }
-
-  // Build worker summaries within each supervisor group
-  function buildWorkerSummaries(supJornadas: JornadaTrabajo[]): WorkerAlertSummary[] {
-    const workerMap: Record<string, WorkerAlertSummary> = {};
-
-    for (const j of supJornadas) {
-      if (!workerMap[j.rutUsuario]) {
-        const counts = {} as Record<TipoAlerta, { ok: number; alerta: number; critico: number }>;
-        for (const tipo of ALERTA_TIPOS) {
-          counts[tipo] = { ok: 0, alerta: 0, critico: 0 };
-        }
-        workerMap[j.rutUsuario] = {
-          rut: j.rutUsuario,
-          counts,
-          worstLevel: "OK",
-          totalAlertas: 0,
-          jornadas: 0,
-          jornadaList: [],
-        };
-      }
-      workerMap[j.rutUsuario].jornadas++;
-      workerMap[j.rutUsuario].jornadaList.push(j);
-    }
-
-    // Count alerts per worker per type
-    for (const alerta of alertas) {
-      const worker = workerMap[alerta.rutTrabajador];
-      if (!worker) continue;
-      const tipo = alerta.tipo;
-      if (!ALERTA_TIPOS.includes(tipo)) continue;
-
-      if (alerta.nivel === "CRITICO") {
-        worker.counts[tipo].critico++;
-        worker.totalAlertas++;
-      } else if (alerta.nivel === "ALERTA") {
-        worker.counts[tipo].alerta++;
-        worker.totalAlertas++;
-      } else {
-        worker.counts[tipo].ok++;
-      }
-    }
-
-    // Compute worst level per worker
-    for (const worker of Object.values(workerMap)) {
-      let worst: NivelAlerta = "OK";
-      for (const tipo of ALERTA_TIPOS) {
-        if (worker.counts[tipo].critico > 0) {
-          worst = "CRITICO";
-          break;
-        }
-        if (worker.counts[tipo].alerta > 0) {
-          worst = "ALERTA";
-        }
-      }
-      worker.worstLevel = worst;
-    }
-
-    // Sort: CRITICO first, then ALERTA, then OK; within same level by totalAlertas desc
-    const levelOrder: Record<NivelAlerta, number> = { CRITICO: 0, ALERTA: 1, OK: 2 };
-    return Object.values(workerMap).sort((a, b) => {
-      const levelDiff = levelOrder[a.worstLevel] - levelOrder[b.worstLevel];
-      if (levelDiff !== 0) return levelDiff;
-      return b.totalAlertas - a.totalAlertas;
-    });
-  }
-
-  function getTypeWorstLevel(counts: { ok: number; alerta: number; critico: number }): NivelAlerta {
-    if (counts.critico > 0) return "CRITICO";
-    if (counts.alerta > 0) return "ALERTA";
-    return "OK";
-  }
-
-  function getTypeAlertCount(counts: { ok: number; alerta: number; critico: number }): number {
-    return counts.alerta + counts.critico;
-  }
+  // Reorganización 2026-08-02 (pedido de Nico): la lista se agrupa por FECHA y
+  // dentro por supervisor — el modelo mental es "qué pasó tal día con tal
+  // cuadrilla", no "qué acumuló cada trabajador en la página".
+  const grupos = agruparPorDiaYSupervisor(jornadas);
+  const supervisoresCount = new Set(jornadas.map((j) => j.idSupervisor || SIN_SUPERVISOR)).size;
 
   // Alertas asociadas a una jornada concreta. El endpoint por-jornadas ya trae
   // solo alertas ligadas por jornada_id, así que el match es directo.
@@ -309,142 +245,86 @@ export default function VisualizacionClient({ trabajadores }: Props) {
     );
   }
 
-  // Render
-  function renderWorkerCard(summary: WorkerAlertSummary) {
-    const trab = findTrabajador(summary.rut);
-    const borderColor = alertColor(summary.worstLevel);
+  // Fila compacta de UNA jornada: trabajador, horario, duración, badges de los
+  // tipos con alertas de ESA jornada y su línea de tiempo clickeable.
+  function renderJornadaRow(j: JornadaTrabajo, supervisorKey: string) {
+    const trab = findTrabajador(j.rutUsuario);
+    const jAlertas = alertasDeJornada(j).filter((a) => a.nivel !== "OK");
+    const porTipo = new Map<TipoAlerta, { count: number; peor: NivelAlerta }>();
+    for (const a of jAlertas) {
+      const actual = porTipo.get(a.tipo) ?? { count: 0, peor: "ALERTA" as NivelAlerta };
+      actual.count++;
+      if (a.nivel === "CRITICO") actual.peor = "CRITICO";
+      porTipo.set(a.tipo, actual);
+    }
 
     return (
       <div
-        key={summary.rut}
+        key={j.id}
         className="card"
-        style={{ padding: "0.75rem", borderLeft: `3px solid ${borderColor}` }}
+        style={{ padding: "0.625rem 0.75rem", borderLeft: `3px solid ${colorSupervisor(supervisorKey)}` }}
       >
-        {/* Worker info */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.625rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
-            {trab?.tieneImagen ? (
-              <img
-                src={`${API_URL}/trabajador/${trab.rut}/imagen/`}
-                alt=""
-                style={{
-                  width: 32, height: 32, borderRadius: "50%", objectFit: "cover",
-                  flexShrink: 0, border: "1px solid var(--color-border)",
-                }}
-              />
-            ) : (
-              <div style={{
-                width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                background: "linear-gradient(135deg, #f97316, #ea580c)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "white", fontWeight: 700, fontSize: "0.75rem",
-              }}>
-                {trab ? `${trab.nombre.charAt(0)}${trab.apellidoPaterno.charAt(0)}` : "?"}
-              </div>
-            )}
-            <div style={{ minWidth: 0 }}>
-              <p style={{
-                fontWeight: 700, fontSize: "0.85rem",
-                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-              }}>
-                {trab ? `${trab.nombre} ${trab.apellidoPaterno}` : summary.rut}
-              </p>
-              <p style={{ color: "var(--color-text-secondary)", fontSize: "0.65rem" }}>
-                {summary.rut} · {t("visualizacion.shiftsCount", { count: summary.jornadas })}
-              </p>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap" }}>
+          {trab?.tieneImagen ? (
+            <img
+              src={`${API_URL}/trabajador/${trab.rut}/imagen/`}
+              alt=""
+              style={{
+                width: 28, height: 28, borderRadius: "50%", objectFit: "cover",
+                flexShrink: 0, border: "1px solid var(--color-border)",
+              }}
+            />
+          ) : (
+            <div style={{
+              width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+              background: "linear-gradient(135deg, #f97316, #ea580c)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "white", fontWeight: 700, fontSize: "0.65rem",
+            }}>
+              {trab ? `${trab.nombre.charAt(0)}${trab.apellidoPaterno.charAt(0)}` : "?"}
             </div>
-          </div>
-          <span style={{
-            fontSize: "0.6rem", fontWeight: 700, color: alertColor(summary.worstLevel),
-            letterSpacing: "0.05em", flexShrink: 0, marginLeft: "0.5rem",
-          }}>
-            {summary.worstLevel === "OK" ? t("visualizacion.statusNormal") : summary.worstLevel}
-          </span>
-        </div>
-
-        {/* Alert type grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.25rem" }}>
-          {ALERTA_TIPOS.map((tipo) => {
-            const typeLevel = getTypeWorstLevel(summary.counts[tipo]);
-            const count = getTypeAlertCount(summary.counts[tipo]);
-            return (
-              <div
-                key={tipo}
-                style={{
-                  display: "flex", alignItems: "center", gap: "0.25rem",
-                  padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
-                  color: alertColor(typeLevel), fontSize: "0.65rem", fontWeight: 600,
-                }}
-                title={`${TIPO_LABELS[tipo]}: ${t("visualizacion.alertsCount", { count })}`}
-              >
-                {TIPO_ICONS[tipo]}
-                <span>{TIPO_LABELS[tipo]}</span>
-                {count > 0 && (
-                  <span style={{
-                    marginLeft: "auto",
-                    fontSize: "0.6rem",
-                    fontWeight: 800,
-                    backgroundColor: `${alertColor(typeLevel)}15`,
-                    padding: "0.0625rem 0.25rem",
-                    borderRadius: "9999px",
-                    minWidth: "16px",
-                    textAlign: "center",
-                  }}>
-                    {count}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Línea de tiempo: una barra por jornada terminada con sus alertas posicionadas */}
-        {summary.jornadaList.length > 0 && (
-          <div style={{
-            borderTop: "1px solid var(--color-border)",
-            paddingTop: "0.5rem",
-            marginTop: "0.5rem",
-          }}>
+          )}
+          <div style={{ minWidth: 0, flex: "1 1 140px" }}>
             <p style={{
-              fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.05em",
-              color: "var(--color-text-secondary)", marginBottom: "0.25rem",
+              fontWeight: 700, fontSize: "0.82rem",
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
             }}>
-              {t("visualizacion.statShifts").toUpperCase()}
+              {trab ? `${trab.nombre} ${trab.apellidoPaterno}` : j.rutUsuario}
             </p>
-            {summary.jornadaList
-              .slice()
-              .sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime())
-              .map((j) => renderJornadaTimeline(j))}
-            <p style={{
-              fontSize: "0.55rem", color: "var(--color-text-secondary)",
-              marginTop: "0.375rem", fontStyle: "italic",
-            }}>
-              Clic en un punto para ver el detalle de la alerta
+            <p style={{ color: "var(--color-text-secondary)", fontSize: "0.65rem" }}>
+              {j.rutUsuario}
             </p>
           </div>
-        )}
-
-        {/* Total alerts footer */}
-        {summary.totalAlertas > 0 && (
-          <div style={{
-            borderTop: "1px solid var(--color-border)",
-            paddingTop: "0.5rem",
-            marginTop: "0.5rem",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            fontSize: "0.7rem",
-            color: "var(--color-text-secondary)",
-          }}>
-            <span>{t("visualizacion.totalAlertsPeriod")}</span>
-            <span style={{
-              fontWeight: 700,
-              color: alertColor(summary.worstLevel),
-            }}>
-              {summary.totalAlertas}
+          <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>
+            {formatHora(j.inicio)}{j.fin ? ` – ${formatHora(j.fin)}` : ""}
+            <span style={{ marginLeft: "0.375rem", fontWeight: 700, color: "var(--color-text-primary)" }}>
+              {formatDuracion(duracionMinutos(j.inicio, j.fin))}
             </span>
           </div>
-        )}
+          {/* Badges: solo los tipos con alertas en esta jornada */}
+          <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
+            {[...porTipo.entries()].map(([tipo, info]) => (
+              <span
+                key={tipo}
+                title={`${TIPO_LABELS[tipo]}: ${info.count}`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "0.2rem",
+                  padding: "0.125rem 0.375rem", borderRadius: "9999px",
+                  backgroundColor: `${alertColor(info.peor)}18`,
+                  color: alertColor(info.peor), fontSize: "0.62rem", fontWeight: 800,
+                }}
+              >
+                {TIPO_ICONS[tipo]} {info.count}
+              </span>
+            ))}
+            {jAlertas.length === 0 && (
+              <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#22c55e" }}>
+                {t("visualizacion.statusNormal")}
+              </span>
+            )}
+          </div>
+        </div>
+        {renderJornadaTimeline(j)}
       </div>
     );
   }
@@ -499,14 +379,37 @@ export default function VisualizacionClient({ trabajadores }: Props) {
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
-          {t("visualizacion.title")}
-        </h1>
-        <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-          {t("visualizacion.subtitle")}
-        </p>
+      {/* Header + toggle Lista | Calendario */}
+      <div style={{ marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem", flexWrap: "wrap" }}>
+        <div>
+          <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
+            {t("visualizacion.title")}
+          </h1>
+          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+            {t("visualizacion.subtitle")}
+          </p>
+        </div>
+        <div style={{ display: "inline-flex", borderRadius: 8, border: "1px solid var(--color-border)", overflow: "hidden" }}>
+          {([
+            { key: "lista" as const, icon: <List size={15} />, label: t("visualizacion.vistaLista") },
+            { key: "calendario" as const, icon: <CalendarDays size={15} />, label: t("visualizacion.vistaCalendario") },
+          ]).map(({ key, icon, label }) => (
+            <button
+              key={key}
+              onClick={() => cambiarVista(key)}
+              aria-pressed={vista === key}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "0.375rem",
+                padding: "0.45rem 0.875rem", fontSize: "0.8rem", fontWeight: 700,
+                border: "none", cursor: "pointer",
+                backgroundColor: vista === key ? "var(--color-accent)" : "transparent",
+                color: vista === key ? "#fff" : "var(--color-text-secondary)",
+              }}
+            >
+              {icon} {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Filters */}
@@ -532,35 +435,40 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             ))}
           </select>
         </div>
-        <div style={{ flex: "0 1 220px" }}>
-          <label style={{
-            display: "block", fontSize: "0.75rem",
-            color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
-          }}>{t("historialAlertas.from")}</label>
-          <input
-            className="input-field"
-            type="datetime-local"
-            value={fechaDesde}
-            onChange={(e) => setFechaDesde(e.target.value)}
-            onClick={abrirCalendario}
-            style={{ cursor: "pointer" }}
-          />
-        </div>
-        <div style={{ flex: "0 1 220px" }}>
-          <label style={{
-            display: "block", fontSize: "0.75rem",
-            color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
-          }}>{t("historialAlertas.to")}</label>
-          <input
-            className="input-field"
-            type="datetime-local"
-            value={fechaHasta}
-            onChange={(e) => setFechaHasta(e.target.value)}
-            onClick={abrirCalendario}
-            style={{ cursor: "pointer" }}
-          />
-        </div>
-        {(filterSupervisor || fechaDesde || fechaHasta) && (
+        {/* En calendario el rango lo maneja la navegación de semana */}
+        {vista === "lista" && (
+          <>
+            <div style={{ flex: "0 1 220px" }}>
+              <label style={{
+                display: "block", fontSize: "0.75rem",
+                color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
+              }}>{t("historialAlertas.from")}</label>
+              <input
+                className="input-field"
+                type="datetime-local"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+                onClick={abrirCalendario}
+                style={{ cursor: "pointer" }}
+              />
+            </div>
+            <div style={{ flex: "0 1 220px" }}>
+              <label style={{
+                display: "block", fontSize: "0.75rem",
+                color: "var(--color-text-secondary)", fontWeight: 600, marginBottom: "0.25rem",
+              }}>{t("historialAlertas.to")}</label>
+              <input
+                className="input-field"
+                type="datetime-local"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+                onClick={abrirCalendario}
+                style={{ cursor: "pointer" }}
+              />
+            </div>
+          </>
+        )}
+        {(filterSupervisor || fechaDesde || fechaHasta) && vista === "lista" && (
           <div style={{ display: "flex", alignItems: "flex-end" }}>
             <button className="btn-secondary" onClick={handleClear} style={{ fontSize: "0.8rem" }}>
               {t("visualizacion.clear")}
@@ -570,7 +478,9 @@ export default function VisualizacionClient({ trabajadores }: Props) {
       </div>
 
       {/* Results */}
-      {loading ? (
+      {vista === "calendario" ? (
+        <CalendarioSemanal trabajadores={trabajadores} filterSupervisor={filterSupervisor} />
+      ) : loading ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
           {t("visualizacion.loadingHistory")}
         </div>
@@ -611,7 +521,7 @@ export default function VisualizacionClient({ trabajadores }: Props) {
               </div>
               <div style={{ padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(59,130,246,0.08)" }}>
                 <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#3b82f6" }}>
-                  {Object.keys(jornadasPorSupervisor).length}
+                  {supervisoresCount}
                 </p>
                 <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("visualizacion.statSupervisors")}</p>
               </div>
@@ -642,23 +552,45 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             </div>
           </div>
 
-          {/* Supervisor groups with worker cards */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            {Object.entries(jornadasPorSupervisor).map(([supRut, supJornadas]) => {
-              const summaries = buildWorkerSummaries(supJornadas);
-              const uniqueWorkers = summaries.length;
-              const groupTotalAlertas = summaries.reduce((sum, s) => sum + s.totalAlertas, 0);
-
+          {/* Días (desc) → supervisores → jornadas compactas */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            {grupos.map((dia) => {
+              const jornadasDelDia = dia.supervisores.reduce((n, s) => n + s.jornadas.length, 0);
               return (
-                <div key={supRut}>
-                  {renderSupervisorHeader(supRut, uniqueWorkers, groupTotalAlertas)}
+                <div key={dia.diaKey}>
+                  {/* Header de día sticky: ancla visual al recorrer el historial */}
                   <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-                    gap: "0.75rem",
+                    position: "sticky", top: 0, zIndex: 5,
+                    backgroundColor: "var(--color-bg-primary)",
+                    padding: "0.5rem 0", marginBottom: "0.375rem",
+                    display: "flex", alignItems: "baseline", gap: "0.5rem",
+                    borderBottom: "2px solid var(--color-border)",
                   }}>
-                    {summaries.map((summary) => renderWorkerCard(summary))}
+                    <h2 style={{ fontSize: "0.95rem", fontWeight: 800, textTransform: "capitalize" }}>
+                      {formatFecha(dia.fecha.toISOString())}
+                    </h2>
+                    <span style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)" }}>
+                      {t("visualizacion.shiftsCount", { count: jornadasDelDia })}
+                    </span>
                   </div>
+                  {dia.supervisores.map((grupo) => {
+                    const trabajadoresUnicos = new Set(grupo.jornadas.map((j) => j.rutUsuario)).size;
+                    const alertasGrupo = grupo.jornadas.reduce(
+                      (n, j) => n + alertasDeJornada(j).filter((a) => a.nivel !== "OK").length, 0
+                    );
+                    return (
+                      <div key={`${dia.diaKey}-${grupo.supervisorRut}`} style={{ marginBottom: "0.75rem" }}>
+                        {renderSupervisorHeader(grupo.supervisorRut, trabajadoresUnicos, alertasGrupo)}
+                        <div style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                          gap: "0.625rem",
+                        }}>
+                          {grupo.jornadas.map((j) => renderJornadaRow(j, grupo.supervisorRut))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}

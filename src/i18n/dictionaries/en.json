@@ -479,7 +479,8 @@
       "respiracion": "Respiratory thresholds",
       "filtro": "Filter thresholds",
       "bateria": "Battery thresholds",
-      "ajuste": "Respirator fit"
+      "ajuste": "Respirator fit",
+      "filtroNota": "Does not govern the app: saturation is decided on the sensor with fixed deltas from the client's specification (Vcal −200/−400 Pa). These fields are informational only."
     },
     "fields": {
       "respAlto": "Resp. High",

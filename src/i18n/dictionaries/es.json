@@ -479,7 +479,8 @@
       "respiracion": "Umbrales de respiración",
       "filtro": "Umbrales de filtro",
       "bateria": "Umbrales de batería",
-      "ajuste": "Ajuste de respirador"
+      "ajuste": "Ajuste de respirador",
+      "filtroNota": "No gobierna la app: la saturación se decide en el sensor con deltas fijos de la especificación del cliente (Vcal −200/−400 Pa). Estos campos son solo informativos."
     },
     "fields": {
       "respAlto": "Resp. Alto",

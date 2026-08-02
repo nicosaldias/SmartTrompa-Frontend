@@ -626,8 +626,14 @@ export default function UmbralesClient() {
 
               {/* Umbrales de filtro */}
               <div>
-                <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: "0.5rem", paddingBottom: "0.375rem", borderBottom: "1px solid var(--color-border)" }}>
+                <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: "0.25rem", paddingBottom: "0.375rem", borderBottom: "1px solid var(--color-border)" }}>
                   {t("umbrales.sections.filtro")}
+                </p>
+                {/* Honestidad de gobernanza (F3): estos dos campos NO gobiernan la
+                    decisión de saturación de la app — son deltas fijos de la spec
+                    del cliente. Fingir configuración es peor que decirlo. */}
+                <p style={{ fontSize: "0.7rem", color: "#f59e0b", marginBottom: "0.5rem" }}>
+                  {t("umbrales.sections.filtroNota")}
                 </p>
                 <div className="umbrales-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div>
@@ -815,6 +821,9 @@ export default function UmbralesClient() {
                   borderBottom: "1px solid var(--color-border)",
                 }}>
                   {t("umbrales.sections.filtro")}
+                </p>
+                <p style={{ fontSize: "0.7rem", color: "#f59e0b", marginBottom: "0.5rem" }}>
+                  {t("umbrales.sections.filtroNota")}
                 </p>
                 <div className="umbrales-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div>

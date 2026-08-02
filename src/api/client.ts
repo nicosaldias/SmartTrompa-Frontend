@@ -309,6 +309,18 @@ export const api = {
       request<AlertaHistorial[]>(alertaHistorialEndpoints.byJornada(id), { cookieHeader }),
     porJornadas: (ids: number[], cookieHeader?: string) =>
       request<AlertaHistorial[]>(alertaHistorialEndpoints.porJornadas(ids), { cookieHeader }),
+    eliminarLote: (ids: number[], cookieHeader?: string) =>
+      request<{ eliminadas: number }>(alertaHistorialEndpoints.eliminarLote(), {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+        cookieHeader,
+      }),
+    eliminarPorFiltro: (body: Record<string, unknown>, cookieHeader?: string) =>
+      request<{ eliminadas: number }>(alertaHistorialEndpoints.eliminarPorFiltro(), {
+        method: 'POST',
+        body: JSON.stringify(body),
+        cookieHeader,
+      }),
     create: (data: Partial<AlertaHistorial>, cookieHeader?: string) =>
       request<AlertaHistorial>(alertaHistorialEndpoints.all(), {
         method: 'POST',

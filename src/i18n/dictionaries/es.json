@@ -34,7 +34,8 @@
     "unexpectedError": "Error inesperado",
     "reloadPage": "Recargar página",
     "errorLoadingSection": "Ocurrió un error al cargar esta sección. Intenta recargar la página.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "pageSize": "Por página"
   },
   "cascade": {
     "warnTitle": "No se puede eliminar directamente",
@@ -86,6 +87,20 @@
     "resetError": "Error: ",
     "backToLogin": "Volver al inicio de sesión"
   },
+  "resetPassword": {
+    "title": "Crear nueva contraseña",
+    "subtitle": "Ingresa y confirma tu nueva contraseña para completar la recuperación.",
+    "newPassword": "Nueva contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "placeholder": "Mínimo 12 caracteres, letras y números",
+    "submit": "GUARDAR CONTRASEÑA",
+    "submitting": "Guardando...",
+    "success": "Contraseña actualizada. Ya puedes iniciar sesión.",
+    "goToLogin": "Ir al inicio de sesión",
+    "errorMismatch": "Las contraseñas no coinciden",
+    "errorPolicy": "La contraseña debe tener entre 12 y 72 caracteres e incluir letras y números",
+    "errorNoToken": "El enlace no es válido o está incompleto. Solicita uno nuevo desde el inicio de sesión."
+  },
   "branding": {
     "appName": "SIMOR",
     "appTagline": "Sistema de Monitoreo para Respiradores",
@@ -116,7 +131,8 @@
     "logoutConfirmText": "¿Estás seguro que deseas cerrar sesión?",
     "logoutConfirmYes": "Sí, cerrar sesión",
     "appSubtitle": "Monitoreo para Respiradores",
-    "auditoria": "Auditoría"
+    "auditoria": "Auditoría",
+    "miHistorial": "Mi historial"
   },
   "language": {
     "label": "Idioma",
@@ -313,7 +329,22 @@
     "soloActivas": "Solo activas",
     "pageOf": "Página {page} de {total}",
     "firstPage": "Primera página",
-    "lastPage": "Última página"
+    "lastPage": "Última página",
+    "estadoFilter": "Estado",
+    "soloResueltas": "Solo resueltas",
+    "selectPage": "Seleccionar página",
+    "selectRow": "Seleccionar alerta",
+    "selectedCount": "{count} seleccionadas",
+    "selectedAllFilter": "Las {count} alertas del filtro seleccionadas",
+    "selectAllFilter": "Seleccionar las {count} alertas que cumplen el filtro",
+    "deleteSelected": "Eliminar",
+    "deleteConfirmTitle": "¿Eliminar alertas?",
+    "deleteConfirmText": "Se eliminarán {count} alertas seleccionadas de forma permanente. Esta acción no se puede deshacer.",
+    "deleteConfirmFilterText": "Se eliminarán las {count} alertas que cumplen el filtro actual (incluidas las que no están en esta página) de forma permanente. Esta acción no se puede deshacer.",
+    "deleteConfirmButton": "Eliminar definitivamente",
+    "deleteOk": "{count} alertas eliminadas",
+    "deleteConflict": "El conjunto cambió desde que se mostró el conteo (pueden haber llegado alertas nuevas). La tabla se actualizó: revisa y reintenta.",
+    "deleteError": "No se pudieron eliminar las alertas. Intenta nuevamente."
   },
   "ayuda": {
     "title": "Ayuda",
@@ -739,5 +770,33 @@
     "colResultado": "Resultado",
     "colOrigen": "Origen",
     "empty": "Sin registros para los filtros seleccionados"
+  },
+  "miHistorial": {
+    "title": "Mi historial",
+    "subtitle": "Sus jornadas, alertas y el estado de su equipo de protección",
+    "filtroTitle": "Estado de mi filtro",
+    "filtroSinDatos": "Sin información de filtro",
+    "filtroHoras": "{usadas} h usadas de {vida} h",
+    "alertasActivasTitle": "Alertas activas",
+    "ultimaJornadaTitle": "Última jornada",
+    "sinJornadaAun": "Sin jornadas aún",
+    "enCurso": "En curso",
+    "terminada": "Terminada",
+    "alertasTitle": "Mis alertas",
+    "sinAlertas": "Sin alertas registradas",
+    "jornadasTitle": "Mis jornadas",
+    "sinJornadas": "Sin jornadas registradas",
+    "colInicio": "Inicio",
+    "colFin": "Fin",
+    "colDispositivo": "Dispositivo",
+    "colEstado": "Estado",
+    "colTipo": "Tipo",
+    "colNivel": "Nivel",
+    "colFecha": "Fecha",
+    "activa": "Activa",
+    "resuelta": "Resuelta",
+    "umbralesTitle": "Mis umbrales vigentes",
+    "sinUmbrales": "Sin umbrales asignados: aplican los valores por defecto del sistema",
+    "mostrandoUltimas": "Mostrando las últimas {n}"
   }
 }

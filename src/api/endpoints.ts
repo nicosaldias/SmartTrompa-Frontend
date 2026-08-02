@@ -73,6 +73,8 @@ export const alertaHistorialEndpoints = {
   porJornadas: (ids: number[]) => `${API_BASE_URL}/alertas-historial/por-jornadas/?ids=${ids.join(',')}`,
   resolver: (id: number) => `${API_BASE_URL}/alertas-historial/${id}/resolver/`,
   detalle: (id: number) => `${API_BASE_URL}/alertas-historial/${id}/detalle/`,
+  eliminarLote: () => `${API_BASE_URL}/alertas-historial/eliminar-lote/`,
+  eliminarPorFiltro: () => `${API_BASE_URL}/alertas-historial/eliminar-por-filtro/`,
 };
 
 export const auditLogEndpoints = {

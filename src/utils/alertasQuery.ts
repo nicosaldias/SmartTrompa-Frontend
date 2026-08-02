@@ -1,5 +1,7 @@
 import type { NivelAlerta, TipoAlerta } from "@/types";
 
+export type EstadoAlertaFiltro = "" | "activas" | "resueltas";
+
 export interface FiltrosHistorialAlertas {
   tipo: TipoAlerta | "";
   nivel: NivelAlerta | "";
@@ -8,8 +10,8 @@ export interface FiltrosHistorialAlertas {
   fechaHasta: string;
   /** Búsqueda libre por nombre o rut; se recorta antes de enviar. */
   trabajadorSearch: string;
-  /** true = solo alertas sin resolver; false = historial completo. */
-  soloActivas: boolean;
+  /** "" = todas; "activas" = sin resolver; "resueltas" = cerradas (purga masiva). */
+  estado: EstadoAlertaFiltro;
 }
 
 // Traduce los filtros de la UI a los query params del endpoint paginado
@@ -26,6 +28,27 @@ export function buildAlertasServerParams(f: FiltrosHistorialAlertas): Record<str
   if (f.fechaHasta) params.fin = new Date(f.fechaHasta).toISOString();
   const q = f.trabajadorSearch.trim();
   if (q) params.q = q;
-  if (f.soloActivas) params.activa = "true";
+  if (f.estado === "activas") params.activa = "true";
+  if (f.estado === "resueltas") params.activa = "false";
   return params;
+}
+
+// Los mismos filtros como body del POST /eliminar-por-filtro/. El contrato del
+// backend exige que borre EXACTAMENTE lo que el listado muestra, por eso parte
+// de los mismos params; `esperadas` es el total que el usuario vio al confirmar
+// (409 si el conjunto cambió en el intertanto).
+export function buildEliminarPorFiltroBody(
+  f: FiltrosHistorialAlertas,
+  esperadas: number
+): Record<string, unknown> {
+  const p = buildAlertasServerParams(f);
+  return {
+    tipo: p.tipo ?? null,
+    nivel: p.nivel ?? null,
+    activa: p.activa === undefined ? null : p.activa === "true",
+    q: p.q ?? null,
+    inicio: p.inicio ?? null,
+    fin: p.fin ?? null,
+    esperadas,
+  };
 }

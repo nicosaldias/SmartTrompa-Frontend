@@ -2,17 +2,25 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import api from "@/api/client";
+import api, { ApiError } from "@/api/client";
 import type { AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronRight, X, Trash2 } from "lucide-react";
+import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import { abrirCalendario } from "@/utils/datePicker";
 import { formatValorAlerta } from "@/utils/sensorMappings";
 import { formatFechaHora } from "@/utils/fechas";
-import { buildAlertasServerParams, type FiltrosHistorialAlertas } from "@/utils/alertasQuery";
+import {
+  buildAlertasServerParams,
+  buildEliminarPorFiltroBody,
+  type EstadoAlertaFiltro,
+  type FiltrosHistorialAlertas,
+} from "@/utils/alertasQuery";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useRealtime } from "@/realtime/RealtimeProvider";
+import { getUserFromCookie } from "@/utils/cookies";
+import PageSizeSelect from "@/components/PageSizeSelect";
 
 interface Props {
   initialPage: PageResponse<AlertaHistorial>;
@@ -20,7 +28,9 @@ interface Props {
 
 const TIPOS: TipoAlerta[] = ["RESPIRATORIA", "AJUSTE", "FILTRO", "FILTRO_VIDA_UTIL", "BATERIA", "DESCONEXION"];
 const NIVELES: NivelAlerta[] = ["OK", "ALERTA", "CRITICO"];
-const PAGE_SIZE = 20;
+const PAGE_SIZE_DEFAULT = 20;
+const PAGE_SIZES = [20, 50, 100, 200];
+const PAGE_SIZE_STORAGE_KEY = "historialAlertas.pageSize";
 const FILTER_DEBOUNCE_MS = 350;
 
 function nivelBadgeClass(nivel: NivelAlerta): string {
@@ -54,6 +64,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
   const [currentPage, setCurrentPage] = useState(initialPage.number);
   const [loading, setLoading] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(true);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT);
 
   // Filter state
   const [fechaDesde, setFechaDesde] = useState("");
@@ -61,23 +72,36 @@ function HistorialAlertasInner({ initialPage }: Props) {
   const [trabajadorSearch, setTrabajadorSearch] = useState("");
   const [tipo, setTipo] = useState<TipoAlerta | "">("");
   const [nivel, setNivel] = useState<NivelAlerta | "">("");
-  const [soloActivas, setSoloActivas] = useState(false);
+  const [estado, setEstado] = useState<EstadoAlertaFiltro>("");
+
+  // Selección para eliminación masiva — solo Administrador (el DELETE del
+  // backend es Admin-only; a un Supervisor la columna ni se le muestra).
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [seleccion, setSeleccion] = useState<Set<number>>(new Set());
+  // true = "todas las N que cumplen el filtro" (más allá de la página visible).
+  const [seleccionTodoFiltro, setSeleccionTodoFiltro] = useState(false);
+  useEffect(() => {
+    setIsAdmin(getUserFromCookie()?.cargo === "Administrador");
+  }, []);
 
   // Secuencia de peticiones: si dos consultas se solapan (ej. cambiar un filtro y
   // paginar casi a la vez), solo la última aplica su resultado y apaga el loading.
   // Evita que una respuesta lenta y vieja pise a una nueva (out-of-order).
   const fetchSeq = useRef(0);
 
-  const runFetch = useCallback(async (page: number, filtros: FiltrosHistorialAlertas) => {
+  const runFetch = useCallback(async (page: number, filtros: FiltrosHistorialAlertas, size: number) => {
     const seq = ++fetchSeq.current;
     setLoading(true);
     try {
-      const result = await api.alertas.listPaged(page, PAGE_SIZE, buildAlertasServerParams(filtros));
+      const result = await api.alertas.listPaged(page, size, buildAlertasServerParams(filtros));
       if (seq !== fetchSeq.current) return; // superada por una consulta más reciente
       setAlertas(result.content);
       setTotalElements(result.totalElements);
       setServerTotalPages(result.totalPages);
       setCurrentPage(result.number);
+      // La selección referencia filas que pueden haber salido del conjunto.
+      setSeleccion(new Set());
+      setSeleccionTodoFiltro(false);
     } catch {
       // keep current data on error
     } finally {
@@ -85,15 +109,39 @@ function HistorialAlertasInner({ initialPage }: Props) {
     }
   }, []);
 
+  // Tamaño de página: se hidrata de localStorage tras montar (SSR-safe) y cada
+  // cambio persiste y refetchea desde la página 0.
+  const pageSizeHydrated = useRef(false);
+  useEffect(() => {
+    const stored = Number(localStorage.getItem(PAGE_SIZE_STORAGE_KEY));
+    pageSizeHydrated.current = true;
+    if (PAGE_SIZES.includes(stored) && stored !== PAGE_SIZE_DEFAULT) {
+      setPageSize(stored);
+    }
+  }, []);
+  const pageSizeFirstRun = useRef(true);
+  useEffect(() => {
+    if (pageSizeFirstRun.current) {
+      pageSizeFirstRun.current = false;
+      return;
+    }
+    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(pageSize));
+    runFetch(0, serverFiltersRef.current, pageSize);
+  }, [pageSize, runFetch]);
+
   // TODOS los filtros son de servidor: el total y totalPages de la respuesta se
   // calculan sobre el conjunto filtrado completo, así que el contador y la
   // paginación nunca pueden contradecir las filas de la tabla. (Antes nivel y
   // trabajadorSearch se filtraban client-side sobre la página actual y el pie
   // podía decir "N de 800" con la tabla vacía.)
   const serverFilters = useMemo<FiltrosHistorialAlertas>(
-    () => ({ tipo, nivel, fechaDesde, fechaHasta, trabajadorSearch, soloActivas }),
-    [tipo, nivel, fechaDesde, fechaHasta, trabajadorSearch, soloActivas]
+    () => ({ tipo, nivel, fechaDesde, fechaHasta, trabajadorSearch, estado }),
+    [tipo, nivel, fechaDesde, fechaHasta, trabajadorSearch, estado]
   );
+  // Ref espejo para efectos que necesitan los filtros vigentes sin re-disparse
+  // al cambiar estos (ej. el refetch por cambio de tamaño de página).
+  const serverFiltersRef = useRef(serverFilters);
+  useEffect(() => { serverFiltersRef.current = serverFilters; }, [serverFilters]);
   const debouncedFilters = useDebouncedValue(serverFilters, FILTER_DEBOUNCE_MS);
 
   // Un cambio de filtro se está "asentando" (esperando su debounce) mientras el
@@ -113,19 +161,21 @@ function HistorialAlertasInner({ initialPage }: Props) {
     const { fechaDesde: fd, fechaHasta: fh } = debouncedFilters;
     // Rango inválido (desde >= hasta): espera a que sea coherente, sin errorar.
     if (fd && fh && new Date(fd) >= new Date(fh)) return;
-    runFetch(0, debouncedFilters);
+    runFetch(0, debouncedFilters, pageSize);
+    // pageSize NO va en deps: su cambio ya refetchea en su propio efecto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedFilters, runFetch]);
 
   // En vivo: una alerta nueva o resuelta refresca la página vigente con los
   // filtros vigentes; fetchSeq ya descarta respuestas fuera de orden.
   useRealtime("alertas", () => {
-    if (!filtersSettling) runFetch(currentPage, debouncedFilters);
+    if (!filtersSettling) runFetch(currentPage, debouncedFilters, pageSize);
   });
 
   function handlePageChange(page: number) {
     // Usa los filtros vivos: al hacer clic, paginación está habilitada solo cuando
     // no hay cambios asentándose, por lo que serverFilters === debouncedFilters.
-    runFetch(page, serverFilters);
+    runFetch(page, serverFilters, pageSize);
   }
 
   function handleLimpiar() {
@@ -134,7 +184,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
     setTrabajadorSearch("");
     setTipo("");
     setNivel("");
-    setSoloActivas(false);
+    setEstado("");
     // El efecto de auto-aplicado refetchea sin filtros de servidor si hacía falta.
   }
 
@@ -158,14 +208,76 @@ function HistorialAlertasInner({ initialPage }: Props) {
     setTipo("");
   }
 
+  // ---- Selección múltiple y eliminación masiva (solo Admin) ----
+
+  const paginaCompletaSeleccionada = alertas.length > 0 && alertas.every((a) => seleccion.has(a.id));
+  const totalSeleccionadas = seleccionTodoFiltro ? totalElements : seleccion.size;
+
+  function toggleFila(id: number, checked: boolean) {
+    setSeleccionTodoFiltro(false);
+    setSeleccion((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function togglePagina(checked: boolean) {
+    setSeleccionTodoFiltro(false);
+    setSeleccion(checked ? new Set(alertas.map((a) => a.id)) : new Set());
+  }
+
+  const swalTheme = { background: "var(--color-bg-card)", color: "var(--color-text-primary)" };
+
+  async function handleEliminarSeleccion() {
+    const esTodoFiltro = seleccionTodoFiltro;
+    const conteo = totalSeleccionadas;
+    const { isConfirmed } = await Swal.fire({
+      icon: "warning",
+      title: t("historialAlertas.deleteConfirmTitle"),
+      text: esTodoFiltro
+        ? t("historialAlertas.deleteConfirmFilterText", { count: String(conteo) })
+        : t("historialAlertas.deleteConfirmText", { count: String(conteo) }),
+      showCancelButton: true,
+      confirmButtonText: t("historialAlertas.deleteConfirmButton"),
+      cancelButtonText: t("common.cancel"),
+      confirmButtonColor: "#ef4444",
+      ...swalTheme,
+    });
+    if (!isConfirmed) return;
+    try {
+      const result = esTodoFiltro
+        ? await api.alertas.eliminarPorFiltro(buildEliminarPorFiltroBody(serverFilters, totalElements))
+        : await api.alertas.eliminarLote([...seleccion]);
+      await runFetch(0, serverFilters, pageSize);
+      Swal.fire({
+        icon: "success",
+        title: t("historialAlertas.deleteOk", { count: String(result.eliminadas) }),
+        timer: 1800, showConfirmButton: false, ...swalTheme,
+      });
+    } catch (err) {
+      // El 409 del backend significa: el conjunto cambió entre el conteo y el
+      // confirm (p. ej. el job creó alertas nuevas) — refrescar y reintentar.
+      const conflicto = err instanceof ApiError && err.status === 409;
+      await runFetch(0, serverFilters, pageSize);
+      Swal.fire({
+        icon: "error",
+        title: t("common.error"),
+        text: conflicto ? t("historialAlertas.deleteConflict") : t("historialAlertas.deleteError"),
+        ...swalTheme,
+      });
+    }
+  }
+
   // Sin filtrado client-side: la página llega ya filtrada del servidor, la misma
   // consulta que calcula totalElements/totalPages.
   const pageData = alertas;
   const totalPages = serverTotalPages;
 
   function renderPagination() {
-    if (totalPages <= 1) return null;
-
+    // Con una sola página igual se muestra la barra: el selector de tamaño
+    // debe estar disponible siempre (es el control que crea/quita páginas).
     const pages: number[] = [];
     const maxButtons = 5;
     let startPage = Math.max(0, currentPage - Math.floor(maxButtons / 2));
@@ -177,15 +289,28 @@ function HistorialAlertasInner({ initialPage }: Props) {
 
     return (
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-        <p style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
-          {t("historialAlertas.showingResults", {
-            from: currentPage * PAGE_SIZE + 1,
-            to: Math.min((currentPage + 1) * PAGE_SIZE, totalElements),
-            total: totalElements,
-          })}
-          {" · "}
-          {t("historialAlertas.pageOf", { page: currentPage + 1, total: totalPages })}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <p style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
+            {totalElements > 0 && (
+              <>
+                {t("historialAlertas.showingResults", {
+                  from: currentPage * pageSize + 1,
+                  to: Math.min((currentPage + 1) * pageSize, totalElements),
+                  total: totalElements,
+                })}
+                {" · "}
+                {t("historialAlertas.pageOf", { page: currentPage + 1, total: totalPages })}
+              </>
+            )}
+          </p>
+          <PageSizeSelect
+            value={pageSize}
+            options={PAGE_SIZES}
+            onChange={setPageSize}
+            disabled={loading || filtersSettling}
+          />
+        </div>
+        {totalPages > 1 && (
         <div style={{ display: "flex", gap: "0.25rem" }}>
           <button
             className="btn-secondary"
@@ -233,6 +358,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
             »
           </button>
         </div>
+        )}
       </div>
     );
   }
@@ -395,25 +521,25 @@ function HistorialAlertasInner({ initialPage }: Props) {
                 </select>
               </div>
 
-              {/* Solo activas: recorta el ruido histórico a lo que sigue abierto */}
-              <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: "0.375rem" }}>
-                <label style={{
-                  display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                  fontSize: "0.8rem", color: "var(--color-text-secondary)",
-                  cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={soloActivas}
-                    onChange={(e) => setSoloActivas(e.target.checked)}
-                    style={{ accentColor: "var(--color-accent)", width: 14, height: 14 }}
-                  />
-                  {t("historialAlertas.soloActivas")}
+              {/* Estado: activas (lo abierto), resueltas (purga masiva) o todas */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.375rem" }}>
+                  {t("historialAlertas.estadoFilter")}
                 </label>
+                <select
+                  className="input-field"
+                  style={{ width: "100%" }}
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value as EstadoAlertaFiltro)}
+                >
+                  <option value="">{t("common.all")}</option>
+                  <option value="activas">{t("historialAlertas.soloActivas")}</option>
+                  <option value="resueltas">{t("historialAlertas.soloResueltas")}</option>
+                </select>
               </div>
 
               {/* Limpiar — en la misma fila que los filtros, alineado abajo a la derecha */}
-              {(tipo || fechaDesde || fechaHasta || nivel || trabajadorSearch) && (
+              {(tipo || fechaDesde || fechaHasta || nivel || trabajadorSearch || estado) && (
                 <div style={{ display: "flex", alignItems: "flex-end" }}>
                   <button
                     className="btn-secondary"
@@ -430,12 +556,64 @@ function HistorialAlertasInner({ initialPage }: Props) {
         )}
       </div>
 
+      {/* Barra de selección (solo Admin, con filas marcadas) */}
+      {isAdmin && totalSeleccionadas > 0 && (
+        <div className="card" style={{ marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap", borderColor: "var(--color-accent)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+              {seleccionTodoFiltro
+                ? t("historialAlertas.selectedAllFilter", { count: String(totalElements) })
+                : t("historialAlertas.selectedCount", { count: String(seleccion.size) })}
+            </span>
+            {/* Patrón Gmail: página completa marcada → ofrecer el conjunto entero
+                del filtro. Solo con algún filtro activo (el backend exige criterio). */}
+            {!seleccionTodoFiltro && paginaCompletaSeleccionada && totalElements > alertas.length
+              && Object.keys(buildAlertasServerParams(serverFilters)).length > 0 && (
+              <button
+                onClick={() => setSeleccionTodoFiltro(true)}
+                style={{ background: "none", border: "none", color: "var(--color-accent)", cursor: "pointer", fontSize: "0.85rem", textDecoration: "underline", padding: 0 }}
+              >
+                {t("historialAlertas.selectAllFilter", { count: String(totalElements) })}
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              className="btn-secondary"
+              style={{ padding: "0.375rem 0.75rem", fontSize: "0.8rem" }}
+              onClick={() => { setSeleccion(new Set()); setSeleccionTodoFiltro(false); }}
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              onClick={handleEliminarSeleccion}
+              disabled={loading}
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.375rem 0.875rem", fontSize: "0.8rem", fontWeight: 600, borderRadius: 6, border: "none", cursor: "pointer", backgroundColor: "#ef4444", color: "#fff" }}
+            >
+              <Trash2 size={14} />
+              {t("historialAlertas.deleteSelected")}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="card">
         <div className="historial-table-wrap" style={{ overflowX: "auto" }}>
           <table className="historial-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
+                {isAdmin && (
+                  <th style={{ padding: "0.75rem 0.5rem", width: 34, textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      aria-label={t("historialAlertas.selectPage")}
+                      checked={paginaCompletaSeleccionada}
+                      onChange={(e) => togglePagina(e.target.checked)}
+                      style={{ accentColor: "var(--color-accent)", width: 15, height: 15, cursor: "pointer" }}
+                    />
+                  </th>
+                )}
                 {[
                   { key: "timestamp", label: t("historialAlertas.colTimestamp"), align: "center" as const },
                   { key: "trabajador", label: t("historialAlertas.colWorker"), align: "left" as const },
@@ -464,13 +642,13 @@ function HistorialAlertasInner({ initialPage }: Props) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
+                  <td colSpan={isAdmin ? 8 : 7} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
                     {t("common.loading")}
                   </td>
                 </tr>
               ) : pageData.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
+                  <td colSpan={isAdmin ? 8 : 7} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
                     {t("historialAlertas.noAlertsMatch")}
                   </td>
                 </tr>
@@ -498,6 +676,24 @@ function HistorialAlertasInner({ initialPage }: Props) {
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.03)")}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                     >
+                      {/* CHECKBOX de selección (solo Admin) — la celda entera frena
+                          la navegación de la fila para que marcar no abra el detalle */}
+                      {isAdmin && (
+                        <td
+                          style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            aria-label={`${t("historialAlertas.selectRow")} #${a.id}`}
+                            checked={seleccionTodoFiltro || seleccion.has(a.id)}
+                            onChange={(e) => toggleFila(a.id, e.target.checked)}
+                            style={{ accentColor: "var(--color-accent)", width: 15, height: 15, cursor: "pointer" }}
+                          />
+                        </td>
+                      )}
+
                       {/* TIMESTAMP */}
                       <td style={{ padding: "0.75rem 0.5rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
                         {formatFechaHora(a.timestamp)}

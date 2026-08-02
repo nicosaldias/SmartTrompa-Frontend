@@ -34,7 +34,8 @@
     "unexpectedError": "Unexpected error",
     "reloadPage": "Reload page",
     "errorLoadingSection": "An error occurred loading this section. Try reloading the page.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "pageSize": "Per page"
   },
   "cascade": {
     "warnTitle": "Cannot be deleted directly",
@@ -86,6 +87,20 @@
     "resetError": "Error: ",
     "backToLogin": "Back to login"
   },
+  "resetPassword": {
+    "title": "Create new password",
+    "subtitle": "Enter and confirm your new password to complete the recovery.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "placeholder": "At least 12 characters, letters and numbers",
+    "submit": "SAVE PASSWORD",
+    "submitting": "Saving...",
+    "success": "Password updated. You can now sign in.",
+    "goToLogin": "Go to login",
+    "errorMismatch": "Passwords do not match",
+    "errorPolicy": "Password must be 12–72 characters and include letters and numbers",
+    "errorNoToken": "The link is invalid or incomplete. Request a new one from the login page."
+  },
   "branding": {
     "appName": "SIMOR",
     "appTagline": "Respirator Monitoring System",
@@ -116,7 +131,8 @@
     "logoutConfirmText": "Are you sure you want to sign out?",
     "logoutConfirmYes": "Yes, sign out",
     "appSubtitle": "Respirator Monitoring",
-    "auditoria": "Audit Log"
+    "auditoria": "Audit Log",
+    "miHistorial": "My history"
   },
   "language": {
     "label": "Language",
@@ -313,7 +329,22 @@
     "soloActivas": "Active only",
     "pageOf": "Page {page} of {total}",
     "firstPage": "First page",
-    "lastPage": "Last page"
+    "lastPage": "Last page",
+    "estadoFilter": "Status",
+    "soloResueltas": "Resolved only",
+    "selectPage": "Select page",
+    "selectRow": "Select alert",
+    "selectedCount": "{count} selected",
+    "selectedAllFilter": "All {count} alerts matching the filter selected",
+    "selectAllFilter": "Select all {count} alerts matching the filter",
+    "deleteSelected": "Delete",
+    "deleteConfirmTitle": "Delete alerts?",
+    "deleteConfirmText": "{count} selected alerts will be permanently deleted. This cannot be undone.",
+    "deleteConfirmFilterText": "All {count} alerts matching the current filter (including those not on this page) will be permanently deleted. This cannot be undone.",
+    "deleteConfirmButton": "Delete permanently",
+    "deleteOk": "{count} alerts deleted",
+    "deleteConflict": "The set changed since the count was shown (new alerts may have arrived). The table was refreshed: review and retry.",
+    "deleteError": "The alerts could not be deleted. Please try again."
   },
   "ayuda": {
     "title": "Help",
@@ -739,5 +770,33 @@
     "colResultado": "Result",
     "colOrigen": "Origin",
     "empty": "No entries for the selected filters"
+  },
+  "miHistorial": {
+    "title": "My history",
+    "subtitle": "Your shifts, alerts and the status of your protection equipment",
+    "filtroTitle": "My filter status",
+    "filtroSinDatos": "No filter information",
+    "filtroHoras": "{usadas} h used of {vida} h",
+    "alertasActivasTitle": "Active alerts",
+    "ultimaJornadaTitle": "Last shift",
+    "sinJornadaAun": "No shifts yet",
+    "enCurso": "In progress",
+    "terminada": "Finished",
+    "alertasTitle": "My alerts",
+    "sinAlertas": "No alerts on record",
+    "jornadasTitle": "My shifts",
+    "sinJornadas": "No shifts on record",
+    "colInicio": "Start",
+    "colFin": "End",
+    "colDispositivo": "Device",
+    "colEstado": "Status",
+    "colTipo": "Type",
+    "colNivel": "Level",
+    "colFecha": "Date",
+    "activa": "Active",
+    "resuelta": "Resolved",
+    "umbralesTitle": "My current thresholds",
+    "sinUmbrales": "No thresholds assigned: system defaults apply",
+    "mostrandoUltimas": "Showing the last {n}"
   }
 }

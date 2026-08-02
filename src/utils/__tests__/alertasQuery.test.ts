@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { buildAlertasServerParams, type FiltrosHistorialAlertas } from "@/utils/alertasQuery";
+import {
+  buildAlertasServerParams,
+  buildEliminarPorFiltroBody,
+  type FiltrosHistorialAlertas,
+} from "@/utils/alertasQuery";
 
 const vacios: FiltrosHistorialAlertas = {
   tipo: "",
@@ -7,7 +11,7 @@ const vacios: FiltrosHistorialAlertas = {
   fechaDesde: "",
   fechaHasta: "",
   trabajadorSearch: "",
-  soloActivas: false,
+  estado: "",
 };
 
 describe("buildAlertasServerParams", () => {
@@ -38,8 +42,29 @@ describe("buildAlertasServerParams", () => {
     expect(buildAlertasServerParams({ ...vacios, trabajadorSearch: "   " })).toEqual({});
   });
 
-  it("soloActivas=true viaja como activa=true; en false se omite (historial completo)", () => {
-    expect(buildAlertasServerParams({ ...vacios, soloActivas: true })).toEqual({ activa: "true" });
+  it("estado viaja como activa=true/false; vacío se omite (historial completo)", () => {
+    expect(buildAlertasServerParams({ ...vacios, estado: "activas" })).toEqual({ activa: "true" });
+    expect(buildAlertasServerParams({ ...vacios, estado: "resueltas" })).toEqual({ activa: "false" });
     expect(buildAlertasServerParams(vacios)).toEqual({});
+  });
+});
+
+describe("buildEliminarPorFiltroBody", () => {
+  it("mapea los mismos filtros del listado + esperadas (contrato: borrar lo que se ve)", () => {
+    const body = buildEliminarPorFiltroBody({ ...vacios, estado: "resueltas", tipo: "FILTRO" }, 7336);
+    expect(body).toEqual({
+      tipo: "FILTRO",
+      nivel: null,
+      activa: false,
+      q: null,
+      inicio: null,
+      fin: null,
+      esperadas: 7336,
+    });
+  });
+
+  it("sin estado, activa viaja null (no filtra por resolución)", () => {
+    const body = buildEliminarPorFiltroBody({ ...vacios, tipo: "BATERIA" }, 3);
+    expect(body.activa).toBeNull();
   });
 });

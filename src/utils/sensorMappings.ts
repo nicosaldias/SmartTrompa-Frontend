@@ -103,6 +103,9 @@ export const DEFAULT_THRESHOLDS = {
 export const VALOR_UNIDAD: Partial<Record<TipoAlerta, string>> = {
   RESPIRATORIA: "bpm",
   BATERIA: "%",
+  // El job de vida útil registra el % de uso del filtro como valor medido;
+  // sin unidad, la columna VALOR iba vacía mientras la descripción decía "870 %".
+  FILTRO_VIDA_UTIL: "%",
 };
 
 export function formatValorAlerta(tipo: TipoAlerta, valor?: number | null): string {

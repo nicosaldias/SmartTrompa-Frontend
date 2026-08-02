@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import Swal from "sweetalert2";
 import { api } from "@/api/client";
 import { FilterStatus } from "@/types";
-import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
+import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Clock, Wrench } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import LeyendaSemaforo from "@/components/LeyendaSemaforo";
 import { API_BASE_URL } from "@/api/endpoints";
@@ -65,6 +66,38 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
   }, []);
 
   const handleCloseModal = useCallback(() => setSelectedRut(null), []);
+
+  // Cierra el ciclo detección→acción: la vista que muestra el VENCIDO ofrece
+  // registrar el cambio físico. El backend reinicia el acumulado de horas y
+  // resuelve la alerta de vida útil activa.
+  const registrarCambio = useCallback(async (item: FilterStatus) => {
+    const { value: notas, isConfirmed } = await Swal.fire({
+      title: t("vidaUtilFiltros.confirmCambioTitle"),
+      text: t("vidaUtilFiltros.confirmCambioText", { nombre: item.trabajadorNombre }),
+      input: "text",
+      inputPlaceholder: t("vidaUtilFiltros.notasPlaceholder"),
+      showCancelButton: true,
+      confirmButtonText: t("vidaUtilFiltros.registrarCambio"),
+      cancelButtonText: t("common.cancel"),
+      background: "var(--color-bg-card)",
+      color: "var(--color-text-primary)",
+    });
+    if (!isConfirmed) return;
+    try {
+      await api.filterLifecycle.registrarCambio(item.trabajadorRut, notas ?? "");
+      await handleRefresh();
+      Swal.fire({
+        icon: "success", title: t("vidaUtilFiltros.cambioOk"),
+        timer: 1600, showConfirmButton: false,
+        background: "var(--color-bg-card)", color: "var(--color-text-primary)",
+      });
+    } catch {
+      Swal.fire({
+        icon: "error", title: t("common.error"), text: t("vidaUtilFiltros.cambioError"),
+        background: "var(--color-bg-card)", color: "var(--color-text-primary)",
+      });
+    }
+  }, [t, handleRefresh]);
 
   const filtered = useMemo(() => {
     let result = data;
@@ -261,6 +294,7 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
                   <th style={thStyle}>{t("vidaUtilFiltros.colUsage")}</th>
                   <th style={thStyle}>{t("vidaUtilFiltros.colHours")}</th>
                   <th style={thStyle}>{t("common.status")}</th>
+                  <th style={thStyle}>{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -322,6 +356,8 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
                       </td>
                       <td style={{ ...tdStyle, minWidth: 180 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          {/* Barra segmentada: sobre 100 % la porción rayada es el EXCESO.
+                              El clamp a 100 % dejaba 7 filtros al 155-870 % viéndose idénticos. */}
                           <div
                             style={{
                               flex: 1,
@@ -330,17 +366,33 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
                               borderRadius: "4px",
                               overflow: "hidden",
                               border: "1px solid var(--color-border)",
+                              display: "flex",
                             }}
                           >
-                            <div
-                              style={{
-                                width: `${Math.min(item.porcentajeUso, 100)}%`,
-                                height: "100%",
-                                backgroundColor: getProgressColor(item.porcentajeUso),
-                                borderRadius: "4px",
-                                transition: "width 0.3s ease",
-                              }}
-                            />
+                            {item.porcentajeUso > 100 ? (
+                              <>
+                                <div style={{
+                                  width: `${(100 / item.porcentajeUso) * 100}%`,
+                                  height: "100%",
+                                  backgroundColor: "#f59e0b",
+                                }} />
+                                <div style={{
+                                  width: `${((item.porcentajeUso - 100) / item.porcentajeUso) * 100}%`,
+                                  height: "100%",
+                                  background: "repeating-linear-gradient(45deg, #ef4444, #ef4444 4px, #7f1d1d 4px, #7f1d1d 8px)",
+                                }} />
+                              </>
+                            ) : (
+                              <div
+                                style={{
+                                  width: `${item.porcentajeUso}%`,
+                                  height: "100%",
+                                  backgroundColor: getProgressColor(item.porcentajeUso),
+                                  borderRadius: "4px",
+                                  transition: "width 0.3s ease",
+                                }}
+                              />
+                            )}
                           </div>
                           <span
                             style={{
@@ -359,6 +411,11 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
                         <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
                           {item.horasUsadas.toFixed(1)} / {item.horasMaximas.toFixed(0)} {t("vidaUtilFiltros.hoursUnit")}
                         </span>
+                        {item.horasUsadas > item.horasMaximas && (
+                          <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#ef4444", marginTop: "0.125rem" }}>
+                            +{(item.horasUsadas - item.horasMaximas).toFixed(1)} {t("vidaUtilFiltros.hoursUnit")} {t("vidaUtilFiltros.excessLabel")}
+                          </div>
+                        )}
                       </td>
                       <td style={tdStyle}>
                         <span
@@ -378,6 +435,20 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
                           {getNivelIcon(item.nivelAlerta)}
                           {badge.text}
                         </span>
+                      </td>
+                      <td style={tdStyle}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); registrarCambio(item); }}
+                          className="btn-secondary"
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: "0.375rem",
+                            fontSize: "0.7rem", padding: "0.375rem 0.625rem", whiteSpace: "nowrap",
+                          }}
+                          title={t("vidaUtilFiltros.registrarCambio")}
+                        >
+                          <Wrench size={12} />
+                          {t("vidaUtilFiltros.registrarCambio")}
+                        </button>
                       </td>
                     </tr>
                   );

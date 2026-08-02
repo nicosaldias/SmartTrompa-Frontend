@@ -490,6 +490,12 @@ export const api = {
         method: 'DELETE',
         cookieHeader,
       }),
+    registrarCambio: (rut: string, notas: string, cookieHeader?: string) =>
+      request<void>(filterLifecycleEndpoints.cambioFiltro(rut), {
+        method: 'POST',
+        body: JSON.stringify({ notas }),
+        cookieHeader,
+      }),
   },
 
   umbrales: {

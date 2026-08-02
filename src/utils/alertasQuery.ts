@@ -8,6 +8,8 @@ export interface FiltrosHistorialAlertas {
   fechaHasta: string;
   /** Búsqueda libre por nombre o rut; se recorta antes de enviar. */
   trabajadorSearch: string;
+  /** true = solo alertas sin resolver; false = historial completo. */
+  soloActivas: boolean;
 }
 
 // Traduce los filtros de la UI a los query params del endpoint paginado
@@ -24,5 +26,6 @@ export function buildAlertasServerParams(f: FiltrosHistorialAlertas): Record<str
   if (f.fechaHasta) params.fin = new Date(f.fechaHasta).toISOString();
   const q = f.trabajadorSearch.trim();
   if (q) params.q = q;
+  if (f.soloActivas) params.activa = "true";
   return params;
 }

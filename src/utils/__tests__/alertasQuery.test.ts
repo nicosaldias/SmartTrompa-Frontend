@@ -7,6 +7,7 @@ const vacios: FiltrosHistorialAlertas = {
   fechaDesde: "",
   fechaHasta: "",
   trabajadorSearch: "",
+  soloActivas: false,
 };
 
 describe("buildAlertasServerParams", () => {
@@ -35,5 +36,10 @@ describe("buildAlertasServerParams", () => {
       q: "Juan Pérez",
     });
     expect(buildAlertasServerParams({ ...vacios, trabajadorSearch: "   " })).toEqual({});
+  });
+
+  it("soloActivas=true viaja como activa=true; en false se omite (historial completo)", () => {
+    expect(buildAlertasServerParams({ ...vacios, soloActivas: true })).toEqual({ activa: "true" });
+    expect(buildAlertasServerParams(vacios)).toEqual({});
   });
 });

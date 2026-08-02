@@ -276,7 +276,14 @@
     "excludeConfirmButton": "Exclude",
     "excludeSuccess": "Shift excluded from calculation",
     "reincludeSuccess": "Shift re-included in calculation",
-    "loadError": "Could not load the breakdown"
+    "loadError": "Could not load the breakdown",
+    "registrarCambio": "Log replacement",
+    "confirmCambioTitle": "Log filter replacement?",
+    "confirmCambioText": "The accumulated hours for {nombre}'s filter will reset to zero and the active service-life alert will be resolved.",
+    "notasPlaceholder": "Notes (optional): batch, brand, reason…",
+    "cambioOk": "Filter replacement logged",
+    "cambioError": "Could not log the filter replacement",
+    "excessLabel": "over limit"
   },
   "historialAlertas": {
     "title": "Alert History",
@@ -300,7 +307,11 @@
     "showingResults": "Showing {from}-{to} of {total} results",
     "invalidDateRangeTitle": "Invalid date range",
     "invalidDateRangeText": "The start date must be earlier than the end date",
-    "viewDetail": "View alert detail"
+    "viewDetail": "View alert detail",
+    "soloActivas": "Active only",
+    "pageOf": "Page {page} of {total}",
+    "firstPage": "First page",
+    "lastPage": "Last page"
   },
   "ayuda": {
     "title": "Help",

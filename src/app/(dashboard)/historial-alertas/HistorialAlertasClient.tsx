@@ -61,6 +61,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
   const [trabajadorSearch, setTrabajadorSearch] = useState("");
   const [tipo, setTipo] = useState<TipoAlerta | "">("");
   const [nivel, setNivel] = useState<NivelAlerta | "">("");
+  const [soloActivas, setSoloActivas] = useState(false);
 
   // Secuencia de peticiones: si dos consultas se solapan (ej. cambiar un filtro y
   // paginar casi a la vez), solo la última aplica su resultado y apaga el loading.
@@ -90,8 +91,8 @@ function HistorialAlertasInner({ initialPage }: Props) {
   // trabajadorSearch se filtraban client-side sobre la página actual y el pie
   // podía decir "N de 800" con la tabla vacía.)
   const serverFilters = useMemo<FiltrosHistorialAlertas>(
-    () => ({ tipo, nivel, fechaDesde, fechaHasta, trabajadorSearch }),
-    [tipo, nivel, fechaDesde, fechaHasta, trabajadorSearch]
+    () => ({ tipo, nivel, fechaDesde, fechaHasta, trabajadorSearch, soloActivas }),
+    [tipo, nivel, fechaDesde, fechaHasta, trabajadorSearch, soloActivas]
   );
   const debouncedFilters = useDebouncedValue(serverFilters, FILTER_DEBOUNCE_MS);
 
@@ -133,6 +134,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
     setTrabajadorSearch("");
     setTipo("");
     setNivel("");
+    setSoloActivas(false);
     // El efecto de auto-aplicado refetchea sin filtros de servidor si hacía falta.
   }
 
@@ -181,8 +183,19 @@ function HistorialAlertasInner({ initialPage }: Props) {
             to: Math.min((currentPage + 1) * PAGE_SIZE, totalElements),
             total: totalElements,
           })}
+          {" · "}
+          {t("historialAlertas.pageOf", { page: currentPage + 1, total: totalPages })}
         </p>
         <div style={{ display: "flex", gap: "0.25rem" }}>
+          <button
+            className="btn-secondary"
+            style={{ padding: "0.375rem 0.625rem", fontSize: "0.8rem" }}
+            disabled={currentPage <= 0 || loading || filtersSettling}
+            onClick={() => handlePageChange(0)}
+            title={t("historialAlertas.firstPage")}
+          >
+            «
+          </button>
           <button
             className="btn-secondary"
             style={{ padding: "0.375rem 0.625rem", fontSize: "0.8rem" }}
@@ -209,6 +222,15 @@ function HistorialAlertasInner({ initialPage }: Props) {
             onClick={() => handlePageChange(currentPage + 1)}
           >
             {t("common.next")}
+          </button>
+          <button
+            className="btn-secondary"
+            style={{ padding: "0.375rem 0.625rem", fontSize: "0.8rem" }}
+            disabled={currentPage >= totalPages - 1 || loading || filtersSettling}
+            onClick={() => handlePageChange(totalPages - 1)}
+            title={t("historialAlertas.lastPage")}
+          >
+            »
           </button>
         </div>
       </div>
@@ -371,6 +393,23 @@ function HistorialAlertasInner({ initialPage }: Props) {
                     <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Solo activas: recorta el ruido histórico a lo que sigue abierto */}
+              <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: "0.375rem" }}>
+                <label style={{
+                  display: "inline-flex", alignItems: "center", gap: "0.5rem",
+                  fontSize: "0.8rem", color: "var(--color-text-secondary)",
+                  cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={soloActivas}
+                    onChange={(e) => setSoloActivas(e.target.checked)}
+                    style={{ accentColor: "var(--color-accent)", width: 14, height: 14 }}
+                  />
+                  {t("historialAlertas.soloActivas")}
+                </label>
               </div>
 
               {/* Limpiar — en la misma fila que los filtros, alineado abajo a la derecha */}

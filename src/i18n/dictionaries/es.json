@@ -276,7 +276,14 @@
     "excludeConfirmButton": "Excluir",
     "excludeSuccess": "Tanda excluida del cálculo",
     "reincludeSuccess": "Tanda re-incluida en el cálculo",
-    "loadError": "No se pudo cargar el desglose"
+    "loadError": "No se pudo cargar el desglose",
+    "registrarCambio": "Registrar cambio",
+    "confirmCambioTitle": "¿Registrar cambio de filtro?",
+    "confirmCambioText": "El acumulado de horas del filtro de {nombre} volverá a cero y la alerta de vida útil activa quedará resuelta.",
+    "notasPlaceholder": "Notas (opcional): lote, marca, motivo…",
+    "cambioOk": "Cambio de filtro registrado",
+    "cambioError": "No se pudo registrar el cambio de filtro",
+    "excessLabel": "de exceso"
   },
   "historialAlertas": {
     "title": "Historial de Alertas",
@@ -300,7 +307,11 @@
     "showingResults": "Mostrando {from}-{to} de {total} resultados",
     "invalidDateRangeTitle": "Rango de fechas inválido",
     "invalidDateRangeText": "La fecha de inicio debe ser anterior a la fecha de fin",
-    "viewDetail": "Ver detalle de la alerta"
+    "viewDetail": "Ver detalle de la alerta",
+    "soloActivas": "Solo activas",
+    "pageOf": "Página {page} de {total}",
+    "firstPage": "Primera página",
+    "lastPage": "Última página"
   },
   "ayuda": {
     "title": "Ayuda",

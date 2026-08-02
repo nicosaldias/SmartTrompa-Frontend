@@ -43,6 +43,11 @@ export default function ResumenJornadaActual({ jornadas, medicionesMap, alertas,
     ? Math.round(bateriaValues.reduce((a, b) => a + b, 0) / bateriaValues.length)
     : null;
 
+  // Sin jornadas activas NO hay vigilancia que reportar: mostrar "—" neutro en
+  // vez de ceros en verde (un 0 verde junto a filtros vencidos transmite una
+  // tranquilidad que nadie midió).
+  const sinJornadas = jornadas.length === 0;
+
   const labelStyle: React.CSSProperties = {
     fontSize: "0.7rem",
     fontWeight: 700,
@@ -92,21 +97,33 @@ export default function ResumenJornadaActual({ jornadas, medicionesMap, alertas,
         {/* Desajustes */}
         <div className="card resumen-sensor-card" style={cardStyle}>
           <p style={labelStyle}>{t("resumen.misfits")}</p>
-          <p className="resumen-sensor-value" style={{ fontSize: "2rem", fontWeight: 800, color: desajusteCount > 0 ? "#ef4444" : "#22c55e" }}>
-            {desajusteCount}
+          <p className="resumen-sensor-value" style={{
+            fontSize: "2rem", fontWeight: 800,
+            color: sinJornadas ? "var(--color-text-secondary)"
+              : desajusteCount > 0 ? "#ef4444" : "#22c55e",
+          }}>
+            {sinJornadas ? "—" : desajusteCount}
           </p>
-          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("resumen.workers")}</p>
+          <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>
+            {sinJornadas ? t("resumen.noShiftData") : t("resumen.workers")}
+          </p>
         </div>
 
         {/* Saturación filtro */}
         <div className="card resumen-sensor-card" style={cardStyle}>
           <p style={labelStyle}>{t("resumen.filterSaturation")}</p>
-          <div style={{ display: "flex", justifyContent: "center", gap: "0.75rem", fontSize: "1.1rem", fontWeight: 700, paddingTop: "0.35rem" }}>
-            <span style={{ color: "#22c55e" }}>{filtroCounts.bajo}</span>
-            <span style={{ color: "#f59e0b" }}>{filtroCounts.medio}</span>
-            <span style={{ color: "#ef4444" }}>{filtroCounts.alto}</span>
-          </div>
-          <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("resumen.saturationLevels")}</p>
+          {sinJornadas ? (
+            <p className="resumen-sensor-value" style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-text-secondary)" }}>—</p>
+          ) : (
+            <div style={{ display: "flex", justifyContent: "center", gap: "0.75rem", fontSize: "1.1rem", fontWeight: 700, paddingTop: "0.35rem" }}>
+              <span style={{ color: "#22c55e" }}>{filtroCounts.bajo}</span>
+              <span style={{ color: "#f59e0b" }}>{filtroCounts.medio}</span>
+              <span style={{ color: "#ef4444" }}>{filtroCounts.alto}</span>
+            </div>
+          )}
+          <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
+            {sinJornadas ? t("resumen.noShiftData") : t("resumen.saturationLevels")}
+          </p>
         </div>
 
         {/* Batería sensores */}

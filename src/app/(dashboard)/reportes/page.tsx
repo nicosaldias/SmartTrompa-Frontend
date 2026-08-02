@@ -20,10 +20,16 @@ export default async function ReportesPage() {
     (t) => t.cargo === "Supervisor" || t.cargo === "Administrador"
   );
 
+  // Vencidos aparte: "por vencer" minimiza cuando el parque ya está vencido.
+  const filtrosVencidosCount = filtrosProximos.filter(
+    (f) => f.nivelAlerta === "VENCIDO"
+  ).length;
+
   return (
     <ReportesClient
       alertasActivasCount={alertasActivas.length}
       filtrosProximosCount={filtrosProximos.length}
+      filtrosVencidosCount={filtrosVencidosCount}
       supervisores={supervisores}
       trabajadores={trabajadores}
     />

@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect, useRef, useCallback, Suspense } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/api/client";
 import type { AlertaHistorial, TipoAlerta, NivelAlerta, PageResponse } from "@/types";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, ChevronUp, ChevronRight, X } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { abrirCalendario } from "@/utils/datePicker";
 import { formatValorAlerta } from "@/utils/sensorMappings";
@@ -402,6 +403,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
                   { key: "nivel", label: t("historialAlertas.colLevel"), align: "center" as const },
                   { key: "valor", label: t("historialAlertas.colValor"), align: "center" as const },
                   { key: "descripcion", label: t("historialAlertas.colDescription"), align: "center" as const },
+                  { key: "detalle", label: "", align: "center" as const },
                 ].map((h) => (
                   <th
                     key={h.key}
@@ -422,13 +424,13 @@ function HistorialAlertasInner({ initialPage }: Props) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
+                  <td colSpan={7} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
                     {t("common.loading")}
                   </td>
                 </tr>
               ) : pageData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
+                  <td colSpan={7} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
                     {t("historialAlertas.noAlertsMatch")}
                   </td>
                 </tr>
@@ -440,7 +442,22 @@ function HistorialAlertasInner({ initialPage }: Props) {
                   const initials = getInitials(a.trabajador?.nombre, a.trabajador?.apellidoPaterno);
 
                   return (
-                    <tr key={a.id} onClick={() => router.push(`/historial-alertas/${a.id}`)} style={{ borderBottom: "1px solid var(--color-border)", cursor: "pointer", transition: "background-color 0.15s" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.03)")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
+                    <tr
+                      key={a.id}
+                      onClick={() => router.push(`/historial-alertas/${a.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/historial-alertas/${a.id}`);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="link"
+                      aria-label={`${t("historialAlertas.viewDetail")}: ${a.tipo} ${nombre ?? ""}`}
+                      style={{ borderBottom: "1px solid var(--color-border)", cursor: "pointer", transition: "background-color 0.15s" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.03)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    >
                       {/* TIMESTAMP */}
                       <td style={{ padding: "0.75rem 0.5rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
                         {new Date(a.timestamp).toLocaleString("es-CL")}
@@ -505,6 +522,24 @@ function HistorialAlertasInner({ initialPage }: Props) {
                         }}
                       >
                         {a.descripcion || "—"}
+                      </td>
+
+                      {/* DETALLE — link real: visible, abre en pestaña nueva con ctrl+clic
+                          y navegable por teclado (la fila clickeable sola era indetectable). */}
+                      <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
+                        <Link
+                          href={`/historial-alertas/${a.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          title={t("historialAlertas.viewDetail")}
+                          aria-label={t("historialAlertas.viewDetail")}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            color: "var(--color-accent)",
+                          }}
+                        >
+                          <ChevronRight size={16} />
+                        </Link>
                       </td>
                     </tr>
                   );

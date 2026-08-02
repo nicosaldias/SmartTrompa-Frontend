@@ -173,7 +173,9 @@
     "tipoFiltro": "Filtro",
     "tipoBateria": "Batería",
     "tipoDesconexion": "Desconexión",
-    "tipoFiltroVidaUtil": "Vida útil filtro"
+    "tipoFiltroVidaUtil": "Vida útil filtro",
+    "noShiftData": "sin jornada activa",
+    "workersAffectedUnit": "trabajador(es) afectado(s)"
   },
   "reportes": {
     "title": "Reportes de Seguridad",
@@ -223,7 +225,8 @@
     "supervisorRequiredTitle": "Supervisor requerido",
     "supervisorRequiredText": "Seleccione un supervisor.",
     "workerRequiredTitle": "Trabajador requerido",
-    "workerRequiredText": "Seleccione un trabajador."
+    "workerRequiredText": "Seleccione un trabajador.",
+    "statFiltersExpired": "Filtros vencidos"
   },
   "vidaUtilFiltros": {
     "title": "Vida Útil de Filtros",
@@ -296,7 +299,8 @@
     "noAlertsMatch": "Sin alertas que coincidan con los filtros",
     "showingResults": "Mostrando {from}-{to} de {total} resultados",
     "invalidDateRangeTitle": "Rango de fechas inválido",
-    "invalidDateRangeText": "La fecha de inicio debe ser anterior a la fecha de fin"
+    "invalidDateRangeText": "La fecha de inicio debe ser anterior a la fecha de fin",
+    "viewDetail": "Ver detalle de la alerta"
   },
   "ayuda": {
     "title": "Ayuda",
@@ -452,7 +456,9 @@
       "notFound": "No se encontraron umbrales",
       "none": "No hay umbrales configurados",
       "tryOtherTerm": "Intenta con otro término de búsqueda",
-      "addFirst": "Agrega el primer umbral usando el botón superior"
+      "addFirst": "Agrega el primer umbral usando el botón superior",
+      "defaultsTitle": "Umbrales vigentes (valores por defecto)",
+      "defaultsHint": "Sin umbrales personalizados, el sistema evalúa con estos valores. Crea un umbral para ajustarlos por trabajador."
     },
     "table": {
       "worker": "Trabajador"

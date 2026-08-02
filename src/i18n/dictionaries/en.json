@@ -173,7 +173,9 @@
     "tipoFiltro": "Filter",
     "tipoBateria": "Battery",
     "tipoDesconexion": "Disconnection",
-    "tipoFiltroVidaUtil": "Filter life"
+    "tipoFiltroVidaUtil": "Filter life",
+    "noShiftData": "no active shift",
+    "workersAffectedUnit": "worker(s) affected"
   },
   "reportes": {
     "title": "Safety Reports",
@@ -223,7 +225,8 @@
     "supervisorRequiredTitle": "Supervisor required",
     "supervisorRequiredText": "Please select a supervisor.",
     "workerRequiredTitle": "Worker required",
-    "workerRequiredText": "Please select a worker."
+    "workerRequiredText": "Please select a worker.",
+    "statFiltersExpired": "Expired filters"
   },
   "vidaUtilFiltros": {
     "title": "Filter Lifespan",
@@ -296,7 +299,8 @@
     "noAlertsMatch": "No alerts match the filters",
     "showingResults": "Showing {from}-{to} of {total} results",
     "invalidDateRangeTitle": "Invalid date range",
-    "invalidDateRangeText": "The start date must be earlier than the end date"
+    "invalidDateRangeText": "The start date must be earlier than the end date",
+    "viewDetail": "View alert detail"
   },
   "ayuda": {
     "title": "Help",
@@ -452,7 +456,9 @@
       "notFound": "No thresholds found",
       "none": "No thresholds configured",
       "tryOtherTerm": "Try another search term",
-      "addFirst": "Add the first threshold using the button above"
+      "addFirst": "Add the first threshold using the button above",
+      "defaultsTitle": "Thresholds in effect (defaults)",
+      "defaultsHint": "Without custom thresholds, the system evaluates with these values. Create a threshold to adjust them per worker."
     },
     "table": {
       "worker": "Worker"

@@ -53,6 +53,11 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [pollFailures, setPollFailures] = useState(0);
 
+  // Umbral EFECTIVO de FR por trabajador: la flecha ↑/↓ debe usar el mismo
+  // umbral con el que el backend/app alertó, no el default global (con umbral
+  // personalizado, la flecha podía contradecir la alerta real).
+  const [umbralesFrMap, setUmbralesFrMap] = useState<Record<string, { respAlto: number; respBajo: number }>>({});
+
   const TIPO_LABELS: Record<TipoAlerta, string> = {
     RESPIRATORIA: t("cuadrilla.tipoRespiratoria"),
     AJUSTE: t("cuadrilla.tipoAjuste"),
@@ -81,7 +86,8 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
   const estadoVariable = (
     tipo: TipoAlerta,
     nivel: NivelAlerta,
-    medicion?: MedicionesAmbientales | null
+    medicion?: MedicionesAmbientales | null,
+    rut?: string
   ): string => {
     if (tipo === "AJUSTE") {
       return nivel === "OK" ? t("cuadrilla.nivelOk") : t("cuadrilla.estadoDesajustado");
@@ -89,11 +95,41 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
     if (tipo === "RESPIRATORIA") {
       if (nivel === "OK") return t("cuadrilla.estadoNormal");
       const fr = medicion?.frecuenciaRespiratoria;
-      const flecha = fr == null ? "" : fr > DEFAULT_THRESHOLDS.respAlto ? " ↑" : fr < DEFAULT_THRESHOLDS.respBajo ? " ↓" : "";
+      const umbral = (rut && umbralesFrMap[rut]) || DEFAULT_THRESHOLDS;
+      const flecha = fr == null ? "" : fr > umbral.respAlto ? " ↑" : fr < umbral.respBajo ? " ↓" : "";
       return t("cuadrilla.estadoAnomalo") + flecha;
     }
     return nivelLabel(nivel);
   };
+
+  // Carga (una vez por rut visible) el último umbral del trabajador; sin registro
+  // o ante error se mantienen los defaults, que es exactamente lo que evalúa el sistema.
+  useEffect(() => {
+    const ruts = [...new Set(jornadas.map((j) => j.rutUsuario))].filter(
+      (rut) => rut && umbralesFrMap[rut] === undefined
+    );
+    if (ruts.length === 0) return;
+    let cancelado = false;
+    (async () => {
+      const entradas = await Promise.all(
+        ruts.map(async (rut) => {
+          try {
+            const u = await api.umbrales.lastByTrabajador(rut);
+            return [rut, {
+              respAlto: u?.alrtRespAlto ?? DEFAULT_THRESHOLDS.respAlto,
+              respBajo: u?.alrtRespBajo ?? DEFAULT_THRESHOLDS.respBajo,
+            }] as const;
+          } catch {
+            return [rut, { respAlto: DEFAULT_THRESHOLDS.respAlto, respBajo: DEFAULT_THRESHOLDS.respBajo }] as const;
+          }
+        })
+      );
+      if (!cancelado) {
+        setUmbralesFrMap((prev) => ({ ...prev, ...Object.fromEntries(entradas) }));
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [jornadas, umbralesFrMap]);
 
   const poll = useCallback(async () => {
     try {
@@ -339,7 +375,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                 display: "flex", alignItems: "center", gap: "0.25rem",
                 padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
                 color: alertColor(nivel), fontSize: "0.65rem", fontWeight: 600,
-              }} title={`${TIPO_LABELS[tipo]}: ${estadoVariable(tipo, nivel, medicion)}`}>
+              }} title={`${TIPO_LABELS[tipo]}: ${estadoVariable(tipo, nivel, medicion, jornada.rutUsuario)}`}>
                 {TIPO_ICONS[tipo]}
                 <span>{TIPO_LABELS[tipo]}</span>
               </div>
@@ -459,7 +495,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                   display: "flex", alignItems: "center", gap: "0.25rem",
                   padding: "0.25rem 0.375rem", borderRadius: "0.25rem",
                   color: alertColor(nivel), fontSize: "0.65rem", fontWeight: 600,
-                }} title={`${TIPO_LABELS[tipo]}: ${estadoVariable(tipo, nivel, medicion)}`}>
+                }} title={`${TIPO_LABELS[tipo]}: ${estadoVariable(tipo, nivel, medicion, supRut)}`}>
                   {TIPO_ICONS[tipo]}
                   <span>{TIPO_LABELS[tipo]}</span>
                 </div>
@@ -714,7 +750,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                 gap: "0.25rem", color: alertColor(nivel), fontSize: "0.7rem", fontWeight: 700,
               }}>
                 {TIPO_ICONS[tipo]}
-                <span>{estadoVariable(tipo, nivel, medicion)}</span>
+                <span>{estadoVariable(tipo, nivel, medicion, supRut)}</span>
               </div>
             </td>
           );
@@ -865,7 +901,7 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                                   gap: "0.25rem", color: alertColor(nivel), fontSize: "0.7rem", fontWeight: 700,
                                 }}>
                                   {TIPO_ICONS[tipo]}
-                                  <span>{estadoVariable(tipo, nivel, medicion)}</span>
+                                  <span>{estadoVariable(tipo, nivel, medicion, jornada.rutUsuario)}</span>
                                 </div>
                               </td>
                             );

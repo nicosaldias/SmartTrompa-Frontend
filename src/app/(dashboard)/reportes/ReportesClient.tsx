@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { api } from "@/api/client";
 import type { Trabajador, JornadaTrabajo } from "@/types";
 import { FileText, Download, Calendar, AlertTriangle, Filter, User, Hash, Users } from "lucide-react";
@@ -11,6 +12,7 @@ import { abrirCalendario } from "@/utils/datePicker";
 interface Props {
   alertasActivasCount: number;
   filtrosProximosCount: number;
+  filtrosVencidosCount: number;
   supervisores: Trabajador[];
   trabajadores: Trabajador[];
 }
@@ -47,6 +49,7 @@ function alerta(opts: { icon: "warning" | "error" | "success"; title: string; te
 export default function ReportesClient({
   alertasActivasCount,
   filtrosProximosCount,
+  filtrosVencidosCount,
   supervisores,
   trabajadores,
 }: Props) {
@@ -238,8 +241,13 @@ export default function ReportesClient({
           marginBottom: "1.5rem",
         }}
       >
-        <StatCard color="#f59e0b" icon={<AlertTriangle size={22} color="#f59e0b" />} label={t("reportes.statActiveAlerts")} value={alertasActivasCount} />
-        <StatCard color="#ef4444" icon={<Filter size={22} color="#ef4444" />} label={t("reportes.statFiltersExpiring")} value={filtrosProximosCount} />
+        <StatCard color="#f59e0b" icon={<AlertTriangle size={22} color="#f59e0b" />} label={t("reportes.statActiveAlerts")} value={alertasActivasCount} href="/historial-alertas" />
+        {/* Vencido ≠ por vencer: si ya hay filtros VENCIDOS, la tarjeta lo dice. */}
+        {filtrosVencidosCount > 0 ? (
+          <StatCard color="#ef4444" icon={<Filter size={22} color="#ef4444" />} label={t("reportes.statFiltersExpired")} value={filtrosVencidosCount} href="/vida-util-filtros" />
+        ) : (
+          <StatCard color="#ef4444" icon={<Filter size={22} color="#ef4444" />} label={t("reportes.statFiltersExpiring")} value={filtrosProximosCount} href="/vida-util-filtros" />
+        )}
         <StatCard color="#f97316" icon={<FileText size={22} color="#f97316" />} label={t("reportes.statReportTypes")} value={4} />
       </div>
 
@@ -433,9 +441,9 @@ export default function ReportesClient({
   );
 }
 
-function StatCard({ icon, label, value }: { color: string; icon: React.ReactNode; label: string; value: number }) {
-  return (
-    <div className="card" style={{ padding: "1.1rem", display: "flex", alignItems: "center", gap: "0.85rem" }}>
+function StatCard({ icon, label, value, href }: { color: string; icon: React.ReactNode; label: string; value: number; href?: string }) {
+  const contenido = (
+    <div className="card" style={{ padding: "1.1rem", display: "flex", alignItems: "center", gap: "0.85rem", cursor: href ? "pointer" : "default" }}>
       <div
         style={{
           width: 44, height: 44, borderRadius: "0.5rem",
@@ -451,6 +459,15 @@ function StatCard({ icon, label, value }: { color: string; icon: React.ReactNode
       </div>
     </div>
   );
+  // Las tarjetas de vigilancia navegan a la vista que muestra el dato en detalle.
+  if (href) {
+    return (
+      <Link href={href} style={{ textDecoration: "none", color: "inherit" }}>
+        {contenido}
+      </Link>
+    );
+  }
+  return contenido;
 }
 
 function RangoFechas({

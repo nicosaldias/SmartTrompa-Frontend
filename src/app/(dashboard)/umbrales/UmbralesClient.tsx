@@ -428,6 +428,32 @@ export default function UmbralesClient() {
           <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
             {busqueda ? t("umbrales.empty.tryOtherTerm") : t("umbrales.empty.addFirst")}
           </p>
+          {/* Vacío honesto: sin registros el sistema NO deja de evaluar — usa estos
+              defaults (los mismos de la app). Ocultarlos hacía indescifrable de
+              dónde salían las alertas CRITICO de frecuencia respiratoria. */}
+          {!busqueda && (
+            <div style={{
+              marginTop: "1.25rem",
+              display: "inline-block",
+              textAlign: "left",
+              padding: "0.875rem 1.25rem",
+              borderRadius: "0.5rem",
+              border: "1px dashed var(--color-border)",
+              backgroundColor: "rgba(139,148,158,0.05)",
+            }}>
+              <p style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
+                {t("umbrales.empty.defaultsTitle")}
+              </p>
+              <ul style={{ fontSize: "0.8rem", color: "var(--color-text-primary)", listStyle: "none", display: "grid", gap: "0.25rem" }}>
+                <li>{t("umbrales.fields.respBajo")}: <strong>{DEFAULT_THRESHOLDS.respBajo} bpm</strong> · {t("umbrales.fields.respAlto")}: <strong>{DEFAULT_THRESHOLDS.respAlto} bpm</strong></li>
+                <li>{t("umbrales.fields.ajusteUmbral")}: <strong>{DEFAULT_THRESHOLDS.ajuste} %</strong></li>
+                <li>{t("umbrales.fields.bateBajo")}: <strong>{DEFAULT_THRESHOLDS.bateBajo} %</strong> · {t("umbrales.fields.bateMedio")}: <strong>{DEFAULT_THRESHOLDS.bateMedio} %</strong> · {t("umbrales.fields.bateAlto")}: <strong>{DEFAULT_THRESHOLDS.bateAlto} %</strong></li>
+              </ul>
+              <p style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", marginTop: "0.5rem" }}>
+                {t("umbrales.empty.defaultsHint")}
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="card umbrales-table-wrap" style={{ padding: 0, overflow: "auto" }}>

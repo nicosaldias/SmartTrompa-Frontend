@@ -112,26 +112,55 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
     }
   });
 
-  const countByTipo = (tipo: TipoAlerta) =>
-    alertas.filter((a) => a.tipo === tipo).length;
+  // Las tarjetas cuentan TRABAJADORES afectados, no eventos: con el job de vida
+  // útil un mismo trabajador puede acumular decenas de alertas idénticas y el
+  // número por eventos deja de significar riesgo (el "7336" de la auditoría).
+  const workersByTipo = (tipo: TipoAlerta) =>
+    new Set(
+      alertas
+        .filter((a) => a.tipo === tipo)
+        .map((a) => a.rutTrabajador ?? a.trabajador?.rut ?? `#${a.id}`)
+    ).size;
 
   const alertCards: { tipo: TipoAlerta; count: number }[] = [
-    { tipo: "RESPIRATORIA", count: countByTipo("RESPIRATORIA") },
-    { tipo: "AJUSTE", count: countByTipo("AJUSTE") },
-    { tipo: "FILTRO", count: countByTipo("FILTRO") },
-    { tipo: "BATERIA", count: countByTipo("BATERIA") },
-    { tipo: "DESCONEXION", count: countByTipo("DESCONEXION") },
+    { tipo: "RESPIRATORIA", count: workersByTipo("RESPIRATORIA") },
+    { tipo: "AJUSTE", count: workersByTipo("AJUSTE") },
+    { tipo: "FILTRO", count: workersByTipo("FILTRO") },
+    { tipo: "FILTRO_VIDA_UTIL", count: workersByTipo("FILTRO_VIDA_UTIL") },
+    { tipo: "BATERIA", count: workersByTipo("BATERIA") },
+    { tipo: "DESCONEXION", count: workersByTipo("DESCONEXION") },
   ];
 
+  // Con fecha: una alerta activa puede llevar días abierta; solo la hora la
+  // disfraza de reciente.
   const formatTime = (timestamp: string): string => {
     const d = new Date(timestamp);
-    return d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: "America/Santiago" });
+    return d.toLocaleString("es-CL", {
+      day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+      hour12: false, timeZone: "America/Santiago",
+    });
   };
 
-  // Ordenar alertas por severidad (CRITICO -> ALERTA -> OK) antes de tomar las 5 ultimas
-  const alertasOrdenadas = [...alertas].sort(
-    (a, b) => (NIVEL_ORDER[a.nivel] ?? 99) - (NIVEL_ORDER[b.nivel] ?? 99)
-  );
+  // Feed: severidad primero y, dentro de cada severidad, la más reciente; una
+  // fila por trabajador (sin esto, 5 CRITICO empatadas del mismo origen ocultan
+  // al resto de la cuadrilla).
+  const alertasFeed = (() => {
+    const orden = [...alertas].sort((a, b) => {
+      const sev = (NIVEL_ORDER[a.nivel] ?? 99) - (NIVEL_ORDER[b.nivel] ?? 99);
+      if (sev !== 0) return sev;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+    const vistos = new Set<string>();
+    const filas: typeof alertas = [];
+    for (const a of orden) {
+      const clave = a.rutTrabajador ?? a.trabajador?.rut ?? `#${a.id}`;
+      if (vistos.has(clave)) continue;
+      vistos.add(clave);
+      filas.push(a);
+      if (filas.length === 5) break;
+    }
+    return filas;
+  })();
 
   return (
     <div>
@@ -222,7 +251,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
       </h2>
 
       {/* Alert cards - full width */}
-      <div className="resumen-alert-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1rem" }}>
+      <div className="resumen-alert-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "1rem" }}>
         {alertCards.map(({ tipo, count }) => {
           const color = TIPO_COLORS[tipo];
           const isActive = count > 0;
@@ -275,7 +304,10 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
                   lineHeight: 1,
                 }}
               >
-                {loading ? "--" : String(count).padStart(2, "0")}
+                {loading ? "--" : count}
+              </p>
+              <p style={{ fontSize: "0.6rem", color: "var(--color-text-secondary)", marginTop: "0.375rem" }}>
+                {t("resumen.workersAffectedUnit")}
               </p>
             </Link>
           );
@@ -298,10 +330,10 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>
-            {alertasOrdenadas.slice(0, 5).map((a, idx) => {
+            {alertasFeed.map((a, idx) => {
               const dotColor = TIPO_COLORS[a.tipo];
               const nivelColor = NIVEL_COLORS[a.nivel] ?? "var(--color-text-secondary)";
-              const isLast = idx === Math.min(alertasOrdenadas.length, 5) - 1;
+              const isLast = idx === alertasFeed.length - 1;
 
               return (
                 <Link

@@ -115,7 +115,8 @@
     "logoutConfirmTitle": "Cerrar sesión",
     "logoutConfirmText": "¿Estás seguro que deseas cerrar sesión?",
     "logoutConfirmYes": "Sí, cerrar sesión",
-    "appSubtitle": "Monitoreo para Respiradores"
+    "appSubtitle": "Monitoreo para Respiradores",
+    "auditoria": "Auditoría"
   },
   "language": {
     "label": "Idioma",
@@ -719,5 +720,24 @@
     "ok": "Normal",
     "alerta": "Atención",
     "critico": "Crítico"
+  },
+  "auditoria": {
+    "title": "Auditoría",
+    "subtitle": "Bitácora de acciones: quién ejecutó qué en la plataforma",
+    "total": "{total} registros",
+    "filterActor": "Actor (RUT)",
+    "filterActorPlaceholder": "12.345.678-9",
+    "filterAccion": "Acción",
+    "filterAccionPlaceholder": "LOGIN, ELIMINAR…",
+    "filterDesde": "Desde",
+    "filterHasta": "Hasta",
+    "colFecha": "Fecha",
+    "colActor": "Actor",
+    "colCargo": "Cargo",
+    "colAccion": "Acción",
+    "colEntidad": "Entidad",
+    "colResultado": "Resultado",
+    "colOrigen": "Origen",
+    "empty": "Sin registros para los filtros seleccionados"
   }
 }

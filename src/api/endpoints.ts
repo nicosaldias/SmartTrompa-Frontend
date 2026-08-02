@@ -75,6 +75,10 @@ export const alertaHistorialEndpoints = {
   detalle: (id: number) => `${API_BASE_URL}/alertas-historial/${id}/detalle/`,
 };
 
+export const auditLogEndpoints = {
+  all: () => `${API_BASE_URL}/audit-log/`,
+};
+
 export const medicionesEndpoints = {
   byJornada: (id: number) => `${API_BASE_URL}/mediciones-ambientales/jornada/${id}/`,
   ajustesByJornada: (id: number) => `${API_BASE_URL}/mediciones-ambientales/jornada/${id}/ajustes/`,

@@ -16,6 +16,7 @@ import {
   LogOut,
   Timer,
   FileBarChart,
+  ScrollText,
   ChevronsLeft,
   ChevronsRight,
   Sun,
@@ -52,6 +53,7 @@ const navItems: NavItem[] = [
   { href: "/vida-util-filtros", labelKey: "sidebar.vidaUtilFiltros", icon: Timer, roles: ALL_ROLES },
   { href: "/reportes", labelKey: "sidebar.reportes", icon: FileBarChart, roles: ALL_ROLES },
   { href: "/roles-ubicaciones", labelKey: "sidebar.rolesUbicaciones", icon: MapPin, roles: ADMIN_ONLY },
+  { href: "/auditoria", labelKey: "sidebar.auditoria", icon: ScrollText, roles: ADMIN_ONLY },
   { href: "/ayuda", labelKey: "sidebar.ayuda", icon: HelpCircle, roles: ALL_ROLES },
 ];
 

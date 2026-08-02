@@ -220,6 +220,20 @@ export interface RelacionesResumen {
   total: number;
 }
 
+// Bitácora append-only del backend (V11). resultado: OK | ERROR | DENEGADO.
+export interface AuditLogEntry {
+  id: number;
+  actorRut: string | null;
+  actorCargo: string | null;
+  accion: string;
+  entidad: string | null;
+  entidadId: string | null;
+  detalle: string | null;
+  resultado: "OK" | "ERROR" | "DENEGADO";
+  origen: string | null;
+  timestamp: string;
+}
+
 export interface AlertasUmbrales {
   id: number;
   alrtRespAlto?: number;

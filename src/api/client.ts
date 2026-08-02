@@ -13,6 +13,7 @@ import {
   trabajadorRolEndpoints,
   trabajadorUbicacionEndpoints,
   medicionesEndpoints,
+  auditLogEndpoints,
 } from './endpoints';
 import type {
   Trabajador,
@@ -33,6 +34,7 @@ import type {
   MedicionesAmbientales,
   Ajustes,
   RelacionesResumen,
+  AuditLogEntry,
 } from '@/types';
 import { getMockResponse } from './mock-data';
 
@@ -496,6 +498,16 @@ export const api = {
         body: JSON.stringify(fecha ? { notas, fecha } : { notas }),
         cookieHeader,
       }),
+  },
+
+  auditLog: {
+    listPaged: (page: number = 0, size: number = 50, params?: Record<string, string>, cookieHeader?: string) => {
+      const allParams = new URLSearchParams({ page: String(page), size: String(size), ...params });
+      return request<PageResponse<AuditLogEntry>>(
+        `${auditLogEndpoints.all()}?${allParams.toString()}`,
+        { cookieHeader }
+      );
+    },
   },
 
   umbrales: {

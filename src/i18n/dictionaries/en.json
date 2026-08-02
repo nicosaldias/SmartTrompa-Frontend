@@ -115,7 +115,8 @@
     "logoutConfirmTitle": "Sign out",
     "logoutConfirmText": "Are you sure you want to sign out?",
     "logoutConfirmYes": "Yes, sign out",
-    "appSubtitle": "Respirator Monitoring"
+    "appSubtitle": "Respirator Monitoring",
+    "auditoria": "Audit Log"
   },
   "language": {
     "label": "Language",
@@ -719,5 +720,24 @@
     "ok": "Normal",
     "alerta": "Warning",
     "critico": "Critical"
+  },
+  "auditoria": {
+    "title": "Audit Log",
+    "subtitle": "Action log: who did what on the platform",
+    "total": "{total} entries",
+    "filterActor": "Actor (RUT)",
+    "filterActorPlaceholder": "12.345.678-9",
+    "filterAccion": "Action",
+    "filterAccionPlaceholder": "LOGIN, DELETE…",
+    "filterDesde": "From",
+    "filterHasta": "To",
+    "colFecha": "Date",
+    "colActor": "Actor",
+    "colCargo": "Role",
+    "colAccion": "Action",
+    "colEntidad": "Entity",
+    "colResultado": "Result",
+    "colOrigen": "Origin",
+    "empty": "No entries for the selected filters"
   }
 }

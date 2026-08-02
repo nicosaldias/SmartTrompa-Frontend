@@ -440,7 +440,14 @@
       "bateria": "Battery",
       "desconexion": "Disconnection",
       "filtroVidaUtil": "Filter life"
-    }
+    },
+    "vistaLista": "List",
+    "vistaCalendario": "Calendar",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "currentWeek": "Current week",
+    "emptyWeek": "No shifts recorded this week",
+    "noAlertsShift": "No alerts in this shift"
   },
   "cuadrilla": {
     "title": "Crew Status",

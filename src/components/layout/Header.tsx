@@ -36,7 +36,20 @@ export default function Header() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async () => {
+    const u = getUserFromCookie();
     try {
+      // Al Trabajador los listados globales le responden 403: sus campanas
+      // se alimentan de SUS alertas y del estado de SU propio filtro.
+      if (u?.cargo === "Trabajador") {
+        if (!u.rut) return;
+        const [filtro, alertas] = await Promise.all([
+          api.filterLifecycle.estadoByRut(u.rut).catch(() => null),
+          api.alertas.byTrabajador(u.rut).catch(() => [] as AlertaHistorial[]),
+        ]);
+        setFiltrosEnRiesgo(filtro && filtro.nivelAlerta !== "OK" ? 1 : 0);
+        setAlertasActivas(alertas.filter((a) => a.activa).length);
+        return;
+      }
       const [filtros, alertas] = await Promise.all([
         api.filterLifecycle.proximosVencer().catch(() => [] as FilterStatus[]),
         api.alertas.activas().catch(() => [] as AlertaHistorial[]),

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCookieHeader } from "@/actions/auth";
+import { getCookieHeader, getCurrentUser } from "@/actions/auth";
 import api from "@/api/client";
 import type { JornadaTrabajo, MedicionesAmbientales } from "@/types";
 import ResumenClient from "./ResumenClient";
@@ -9,6 +9,11 @@ export const metadata = { title: "Resumen - SIMOR" };
 export default async function ResumenPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
+
+  // Vista de supervisión: el Trabajador tiene su propia vista personal.
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.cargo === "Trabajador") redirect("/mi-historial");
 
   const [jornadas, alertas] = await Promise.all([
     api.jornadas.activas(cookieHeader),

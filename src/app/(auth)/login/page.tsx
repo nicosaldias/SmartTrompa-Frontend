@@ -54,7 +54,8 @@ export default function LoginPage() {
         setError(result.error);
         setLoading(false);
       } else {
-        router.push("/resumen");
+        // El Trabajador tiene su vista personal; supervisión va al dashboard.
+        router.push(result?.cargo === "Trabajador" ? "/mi-historial" : "/resumen");
       }
     } catch {
       setError(t("login.unexpectedError"));

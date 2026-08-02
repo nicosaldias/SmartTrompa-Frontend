@@ -440,7 +440,14 @@
       "bateria": "Batería",
       "desconexion": "Desconexión",
       "filtroVidaUtil": "Vida útil filtro"
-    }
+    },
+    "vistaLista": "Lista",
+    "vistaCalendario": "Calendario",
+    "prevWeek": "Semana anterior",
+    "nextWeek": "Semana siguiente",
+    "currentWeek": "Semana actual",
+    "emptyWeek": "No hay jornadas registradas en esta semana",
+    "noAlertsShift": "Sin alertas en esta jornada"
   },
   "cuadrilla": {
     "title": "Estado de Cuadrilla",

@@ -17,6 +17,7 @@ import {
   Timer,
   FileBarChart,
   ScrollText,
+  History,
   ChevronsLeft,
   ChevronsRight,
   Sun,
@@ -41,8 +42,11 @@ interface NavItem {
 
 const ALL_ROLES: Cargo[] = ["Administrador", "Supervisor"];
 const ADMIN_ONLY: Cargo[] = ["Administrador"];
+const TRABAJADOR_ONLY: Cargo[] = ["Trabajador"];
+const TODOS: Cargo[] = ["Administrador", "Supervisor", "Trabajador"];
 
 const navItems: NavItem[] = [
+  { href: "/mi-historial", labelKey: "sidebar.miHistorial", icon: History, roles: TRABAJADOR_ONLY },
   { href: "/resumen", labelKey: "sidebar.resumen", icon: LayoutDashboard, roles: ALL_ROLES },
   { href: "/cuadrilla", labelKey: "sidebar.cuadrilla", icon: Users, roles: ALL_ROLES },
   { href: "/historial-alertas", labelKey: "sidebar.historialAlertas", icon: ClipboardList, roles: ALL_ROLES },
@@ -54,7 +58,7 @@ const navItems: NavItem[] = [
   { href: "/reportes", labelKey: "sidebar.reportes", icon: FileBarChart, roles: ALL_ROLES },
   { href: "/roles-ubicaciones", labelKey: "sidebar.rolesUbicaciones", icon: MapPin, roles: ADMIN_ONLY },
   { href: "/auditoria", labelKey: "sidebar.auditoria", icon: ScrollText, roles: ADMIN_ONLY },
-  { href: "/ayuda", labelKey: "sidebar.ayuda", icon: HelpCircle, roles: ALL_ROLES },
+  { href: "/ayuda", labelKey: "sidebar.ayuda", icon: HelpCircle, roles: TODOS },
 ];
 
 interface SidebarProps {

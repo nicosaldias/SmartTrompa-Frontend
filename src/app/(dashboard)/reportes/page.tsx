@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCookieHeader } from "@/actions/auth";
+import { getCookieHeader, getCurrentUser } from "@/actions/auth";
 import api from "@/api/client";
 import ReportesClient from "./ReportesClient";
 
@@ -8,6 +8,11 @@ export const metadata = { title: "Reportes de Seguridad - SIMOR" };
 export default async function ReportesPage() {
   const cookieHeader = await getCookieHeader();
   if (!cookieHeader) redirect("/login");
+
+  // Vista de supervisión: el Trabajador tiene su propia vista personal.
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.cargo === "Trabajador") redirect("/mi-historial");
 
   const [alertasActivas, filtrosProximos, trabajadores] = await Promise.all([
     api.alertas.activas(cookieHeader),

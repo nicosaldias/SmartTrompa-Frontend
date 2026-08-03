@@ -29,9 +29,10 @@
     "sweetalert2": "^11.26.22",
     "tailwind-merge": "^3.5.0"
   },
-  "//overrides": "sharp entra como dependencia transitiva de next y la version que next fija (0.34.x) arrastra CVEs de libvips explotables al optimizar imagenes subidas por usuarios (next/image sobre /uploads). npm audit fix propone bajar next a 9.3.3, que es peor; forzamos sharp a 0.35+ que es compatible con next 15.5. Revisar si una version futura de next ya lo fija.",
+  "//overrides": "sharp entra como dependencia transitiva de next y la version que next fija (0.34.x) arrastra CVEs de libvips explotables al optimizar imagenes subidas por usuarios (next/image sobre /uploads). npm audit fix propone bajar next a 9.3.3, que es peor; forzamos sharp a 0.35+ que es compatible con next 15.5. Revisar si una version futura de next ya lo fija. Mismo caso con postcss: next 15.5.22 fija 8.4.31, que tiene 3 advisories (XSS por </style> sin escapar, y lectura de archivos via sourceMappingURL en comentarios CSS). Explotables solo con CSS controlado por un atacante en tiempo de build, asi que el riesgo real es bajo, pero el arreglo es gratis: 8.5.x es compatible con next 15.5 y tailwind 4.",
   "overrides": {
-    "sharp": "^0.35.0"
+    "sharp": "^0.35.0",
+    "postcss": "^8.5.18"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

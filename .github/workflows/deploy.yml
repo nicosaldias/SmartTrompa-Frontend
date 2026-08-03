@@ -19,16 +19,34 @@ jobs:
     # así que no hay motivo para materializar el secreto en el runner.
     env:
       NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+      COOKIE_DOMAIN: ${{ secrets.COOKIE_DOMAIN }}
     steps:
+      # Las dos son build-time o determinan si la cookie de sesion es aceptada.
+      # Si llegan vacias el deploy "funciona" y el login falla en silencio, que
+      # es mucho mas caro de diagnosticar que fallar aca.
+      - name: Verificar secrets requeridos
+        run: |
+          faltan=""
+          [ -n "$NEXT_PUBLIC_API_URL" ] || faltan="$faltan NEXT_PUBLIC_API_URL"
+          [ -n "$COOKIE_DOMAIN" ] || faltan="$faltan COOKIE_DOMAIN"
+          if [ -n "$faltan" ]; then
+            echo "Faltan Secrets del repositorio:$faltan"
+            exit 1
+          fi
+          case "$NEXT_PUBLIC_API_URL" in
+            */api|*/api/) ;;
+            *) echo "NEXT_PUBLIC_API_URL deberia terminar en /api (endpoints.ts lo concatena): $NEXT_PUBLIC_API_URL"; exit 1 ;;
+          esac
+
       - name: Sync + build + up
-        working-directory: /home/cmpc/deploy/smarttrompa/smarttrompa
+        working-directory: /opt/smarttrompa/web
         run: |
           git fetch origin main
           git reset --hard origin/main
           docker compose up -d --build
 
       - name: Healthcheck frontend
-        working-directory: /home/cmpc/deploy/smarttrompa/smarttrompa
+        working-directory: /opt/smarttrompa/web
         run: |
           for i in 1 2 3 4 5 6; do
             if curl -fsSL "http://localhost:10801" >/dev/null; then

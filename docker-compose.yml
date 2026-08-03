@@ -4,18 +4,26 @@ services:
       context: .
       args:
         # URL pública del backend — se hornea en el bundle del navegador.
+        # Debe incluir el sufijo /api (src/api/endpoints.ts lo concatena) y el
+        # WebSocket se deriva reemplazando el path por /ws.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-        # Backend real integrado (https://udec.c4i-udec.cl:18091).
         NEXT_PUBLIC_MOCK_MODE: "false"
     ports:
-      - "10801:3000"
+      # Solo Nginx llega al frontend: publicado en 0.0.0.0 quedaba servido por
+      # HTTP plano en el puerto 10801, saltándose TLS (Docker escribe en iptables
+      # antes que UFW, así que el firewall no lo tapa).
+      - "127.0.0.1:10801:3000"
     environment:
       # Sin JWT_SECRET a propósito. El middleware ya no verifica la firma del token
       # (lo hace el backend en cada request, que es donde vive la autorización real).
       # Tener acá el secreto de firma significaba que un compromiso del frontend
       # permitía emitir tokens válidos de cualquier usuario, incluido Administrador.
       # Ver src/middleware.ts.
-      # Dominio raíz compartido para que la cookie viaje entre subdominios
-      # (rfs.c4i-udec.cl ↔ udec.c4i-udec.cl). En local queda sin definir → host-only.
-      COOKIE_DOMAIN: ".c4i-udec.cl"
+      # Dominio raíz compartido para que la cookie viaje entre los subdominios
+      # de la app y del API. Estaba fijado a ".c4i-udec.cl": al mover el
+      # despliegue a otro dominio, el navegador descarta la cookie por no
+      # coincidir y el login falla sin ningún error visible.
+      # En local queda sin definir → host-only, que es lo correcto ahí.
+      # El deploy verifica que el Secret exista antes de construir.
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
     restart: unless-stopped

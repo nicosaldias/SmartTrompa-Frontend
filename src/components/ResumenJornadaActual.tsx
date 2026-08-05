@@ -79,7 +79,10 @@ export default function ResumenJornadaActual({ jornadas, medicionesMap, alertas,
         {/* Trabajadores Activos */}
         <div className="card resumen-sensor-card" style={cardStyle}>
           <p style={labelStyle}>{t("resumen.activeWorkers")}</p>
-          <p className="resumen-sensor-value" style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-accent)" }}>
+          {/* Única de las cinco tarjetas del strip pintada con el acento; las otras usan
+              --color-text-primary. En tema claro medía 2.80:1 sobre .card, así que el dato
+              destacado del dashboard era el peor contrastado de la fila. */}
+          <p className="resumen-sensor-value" style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-accent-text)" }}>
             {jornadas.length}
           </p>
           <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)" }}>{t("resumen.onShift")}</p>

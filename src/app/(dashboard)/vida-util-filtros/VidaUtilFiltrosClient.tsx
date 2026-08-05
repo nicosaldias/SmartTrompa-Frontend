@@ -349,7 +349,11 @@ export default function VidaUtilFiltrosClient({ initialData, isAdmin }: Props) {
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                color: "white",
+                                // Sobre este gradiente el blanco daba 2.80:1 en el extremo
+                                // #f97316 y 3.56:1 en el #ea580c; --color-on-accent sube a
+                                // 5.91:1 y 4.65:1. El par no depende del tema porque el
+                                // gradiente es el mismo en claro y en oscuro.
+                                color: "var(--color-on-accent)",
                                 fontWeight: 700,
                                 fontSize: "0.8rem",
                                 flexShrink: 0,

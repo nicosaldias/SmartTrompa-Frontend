@@ -189,8 +189,19 @@ export default function LoginPage() {
                 flexShrink: 0,
               }}
             >
-              <Wind size={28} color="white" />
+              {/* El ícono va sobre el cuadro naranja #f97316→#ea580c de la línea 187,
+                  donde el blanco daba 2.80:1 / 3.56:1 (bajo el 3:1 de AA para
+                  gráficos en el extremo claro); --color-on-accent lo deja en
+                  5.91:1 / 4.65:1. Se pasa por `style` y no por el prop `color=`
+                  porque lucide vuelca ese prop en el atributo stroke="", donde
+                  var() no resuelve en todos los motores; sin él el trazo queda en
+                  currentColor y hereda el style. */}
+              <Wind size={28} style={{ color: "var(--color-on-accent)" }} />
             </div>
+            {/* El #ffffff del título NO se toca: no vive sobre el naranja sino sobre
+                el panel rgba(13,17,23,0.36) de la línea 160, encima del overlay
+                oscuro rgba(13,17,23,0.55→0.75) de la 119. Ese fondo es oscuro en
+                los dos temas y el blanco es justamente lo que corresponde. */}
             <h1
               style={{
                 fontSize: "3rem",
@@ -229,6 +240,10 @@ export default function LoginPage() {
                   gap: "1rem",
                 }}
               >
+                {/* Se queda con --color-accent a propósito: este chip vive sobre el hero
+                    con imagen + overlay rgba(13,17,23,0.55→0.75) (líneas 119-122), que es
+                    oscuro en ambos temas. Acá el naranja puro rinde >5:1; el token -text
+                    (orange-700) lo apagaría contra ese fondo sin ganar nada. */}
                 <div
                   style={{
                     display: "flex",
@@ -406,6 +421,10 @@ export default function LoginPage() {
                       >
                         {t("login.password")}
                       </label>
+                      {/* Ojo: este botón está en el panel DERECHO, un .card blanco en
+                          tema claro (línea 329), no en el hero oscuro. A 0.7rem el acento
+                          puro daba 2.80:1 — el texto más chico de la pantalla era el peor
+                          contrastado. Con el token -text queda en 5.18:1. */}
                       <button
                         type="button"
                         onClick={() => setShowReset(true)}
@@ -413,7 +432,7 @@ export default function LoginPage() {
                           background: "none",
                           border: "none",
                           cursor: "pointer",
-                          color: "var(--color-accent)",
+                          color: "var(--color-accent-text)",
                           fontSize: "0.7rem",
                           fontWeight: 500,
                           padding: 0,

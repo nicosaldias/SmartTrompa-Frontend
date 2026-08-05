@@ -336,7 +336,11 @@ export default function Header() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "white",
+                  // Iniciales sobre el gradiente naranja: el blanco daba 2.80:1 contra
+                  // #f97316 y 3.56:1 contra #ea580c; --color-on-accent deja 5.91:1 y
+                  // 4.65:1. El `color: "white"` del badge de alertas (línea ~245) NO
+                  // cambia: ese va sobre #ef4444, donde el blanco rinde 3.76:1.
+                  color: "var(--color-on-accent)",
                   fontWeight: 700,
                   fontSize: "0.85rem",
                   border: "2px solid var(--color-accent)",

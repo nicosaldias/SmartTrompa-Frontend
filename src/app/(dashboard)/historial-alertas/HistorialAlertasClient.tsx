@@ -386,9 +386,25 @@ function HistorialAlertasInner({ initialPage }: Props) {
               gap: "0.375rem",
               padding: "0.25rem 0.625rem",
               borderRadius: "9999px",
-              backgroundColor: "rgba(249,115,22,0.12)",
-              border: "1px solid var(--color-accent)",
-              color: "var(--color-accent)",
+              // Caso borde: naranja sobre naranja tenue, y exactamente la misma
+              // construcción que .sidebar-link.active (tinta de --color-accent al
+              // --accent-tint del tema + texto y borde en --color-accent-text), así que
+              // usa los mismos tokens y da las mismas cifras.
+              // El relleno era rgba(249,115,22,0.12) a mano y el borde --color-accent.
+              // Ese 12 % se midió contra .card blanco (#feeee3 → 4.58:1), pero el chip
+              // NO vive en una .card: cuelga suelto de la cabecera, sobre
+              // --color-bg-primary (#f4f6f9 en claro), y allí resolvía a #f6ece5 y la
+              // tinta caía a 4.26:1 — bajo el 4.5:1 de AA. Con --accent-tint (6 % en
+              // claro, 15 % en oscuro) el peor caso real sube a 4.51:1 sobre la página
+              // clara y 4.55:1 sobre .card oscura (5.57:1 sobre la página oscura,
+              // 4.89:1 sobre .card clara).
+              // El borde pasa a --color-accent-text por el mismo motivo que el
+              // border-left del sidebar y el borde de .btn-secondary:hover: como
+              // componente de interfaz le toca 3:1 y el naranja de marca daba 2.59:1
+              // sobre la página clara. Con el token, 4.78:1 (6.75:1 en oscuro).
+              backgroundColor: "color-mix(in srgb, var(--color-accent) var(--accent-tint), transparent)",
+              border: "1px solid var(--color-accent-text)",
+              color: "var(--color-accent-text)",
               fontSize: "0.75rem",
               fontWeight: 700,
               letterSpacing: "0.02em",
@@ -407,7 +423,9 @@ function HistorialAlertasInner({ initialPage }: Props) {
                 border: "none",
                 cursor: "pointer",
                 padding: 0,
-                color: "var(--color-accent)",
+                // Misma tinta que el chip que lo contiene: la X de 14px es el control para
+                // quitar el filtro y a 2.48:1 se perdía dentro del relleno naranja.
+                color: "var(--color-accent-text)",
                 lineHeight: 0,
               }}
             >
@@ -571,7 +589,7 @@ function HistorialAlertasInner({ initialPage }: Props) {
               && Object.keys(buildAlertasServerParams(serverFilters)).length > 0 && (
               <button
                 onClick={() => setSeleccionTodoFiltro(true)}
-                style={{ background: "none", border: "none", color: "var(--color-accent)", cursor: "pointer", fontSize: "0.85rem", textDecoration: "underline", padding: 0 }}
+                style={{ background: "none", border: "none", color: "var(--color-accent-text)", cursor: "pointer", fontSize: "0.85rem", textDecoration: "underline", padding: 0 }}
               >
                 {t("historialAlertas.selectAllFilter", { count: String(totalElements) })}
               </button>
@@ -708,7 +726,12 @@ function HistorialAlertasInner({ initialPage }: Props) {
                               height: 32,
                               borderRadius: "50%",
                               backgroundColor: "var(--color-accent)",
-                              color: "#fff",
+                              // Iniciales sobre relleno naranja plano: con #fff daban
+                              // 2.80:1 en ambos temas (el relleno es #f97316 en los dos),
+                              // con --color-on-accent 5.91:1. El botón rojo de la línea
+                              // 597 conserva su #fff: sobre #ef4444 rinde 3.76:1 y
+                              // oscurecerlo no aporta.
+                              color: "var(--color-on-accent)",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -771,7 +794,10 @@ function HistorialAlertasInner({ initialPage }: Props) {
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
-                            color: "var(--color-accent)",
+                            // Chevron de 16px sin texto acompañante: es el único affordance
+                            // de "ver detalle" de la fila. Sobre .card blanco el acento puro
+                            // daba 2.80:1, bajo el 3:1 de AA para componentes; ahora 5.18:1.
+                            color: "var(--color-accent-text)",
                           }}
                         >
                           <ChevronRight size={16} />

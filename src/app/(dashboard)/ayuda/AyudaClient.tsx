@@ -379,7 +379,10 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                     borderRadius: "0.375rem",
                     border: "1px solid var(--color-border)",
                     background: vistaAdmin ? "var(--color-accent)" : "transparent",
-                    color: vistaAdmin ? "#fff" : "var(--color-text-secondary)",
+                    // Botón activo = relleno #f97316 en los dos temas, así que el par
+                    // texto/fondo no depende del tema: con #fff quedaba en 2.80:1 y con
+                    // --color-on-accent en 5.91:1.
+                    color: vistaAdmin ? "var(--color-on-accent)" : "var(--color-text-secondary)",
                     cursor: "pointer",
                   }}
                 >

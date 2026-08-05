@@ -493,7 +493,10 @@ export default function UmbralesClient() {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            color: "white",
+                            // Sobre el gradiente naranja el blanco daba 2.80:1 / 3.56:1;
+                            // --color-on-accent sube a 5.91:1 / 4.65:1. Vale igual en los
+                            // dos temas porque el gradiente tampoco cambia con el tema.
+                            color: "var(--color-on-accent)",
                             fontWeight: 700,
                             fontSize: "0.85rem",
                             flexShrink: 0,
@@ -549,7 +552,10 @@ export default function UmbralesClient() {
                   <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                     {t("umbrales.bulk.selectWorkers", { selected: selectedRuts.length, total: trabajadores.length })}
                   </p>
-                  <button type="button" onClick={selectAllTrabajadores} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-accent)", fontSize: "0.75rem", fontWeight: 600 }}>
+                  {/* Botón sin fondo ni borde dentro del modal .card (blanco en tema claro):
+                      el color era su único indicio de ser clickeable y a 0.75rem medía
+                      2.80:1. Con -text queda en 5.18:1. */}
+                  <button type="button" onClick={selectAllTrabajadores} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-accent-text)", fontSize: "0.75rem", fontWeight: 600 }}>
                     {selectedRuts.length === trabajadores.length ? t("umbrales.bulk.deselectAll") : t("umbrales.bulk.selectAll")}
                   </button>
                 </div>
@@ -590,7 +596,13 @@ export default function UmbralesClient() {
                           justifyContent: "center",
                           flexShrink: 0,
                         }}>
-                          {selected && <Check size={12} color="#fff" />}
+                          {/* El check es el único indicador dentro de la casilla marcada,
+                              cuyo relleno es var(--color-accent) = #f97316 en los dos
+                              temas: con #fff daba 2.80:1, bajo el 3:1 de AA para gráficos.
+                              Va por `style` y no por el prop `color=` porque lucide vuelca
+                              ese prop en stroke="", donde var() no resuelve en todos los
+                              motores; sin él el trazo queda en currentColor. */}
+                          {selected && <Check size={12} style={{ color: "var(--color-on-accent)" }} />}
                         </div>
                         <span style={{ fontSize: "0.8rem" }}>
                           {t.nombre} {t.apellidoPaterno} — <span style={{ color: "var(--color-text-secondary)" }}>{t.rut}</span>

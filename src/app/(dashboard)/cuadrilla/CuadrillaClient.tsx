@@ -335,11 +335,20 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
               <img src={`${API_URL}/trabajador/${tr.rut}/imagen/`} alt=""
                 style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--color-border)" }} />
             ) : (
+              // Avatar de TRABAJADOR: gradiente naranja #f97316→#ea580c, donde el
+              // blanco daba 2.80:1 en el extremo claro y 3.56:1 en el oscuro.
+              // --color-on-accent sube a 5.91:1 y 4.65:1. Las iniciales son texto,
+              // no adorno: identifican a la persona cuando no hay foto.
+              // Los avatares de SUPERVISOR (líneas 480, 623 y 739) llevan gradiente
+              // AZUL #3b82f6→#2563eb y se quedan en blanco a propósito: sobre azul
+              // el blanco va de 3.68:1 a 5.17:1 y --color-on-accent de 4.50:1 a
+              // 3.20:1, o sea que en el peor extremo del gradiente el blanco gana.
+              // El criterio es el fondo real de cada sitio, no "hay un white".
               <div style={{
                 width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
                 background: "linear-gradient(135deg, #f97316, #ea580c)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "white", fontWeight: 700, fontSize: "0.75rem",
+                color: "var(--color-on-accent)", fontWeight: 700, fontSize: "0.75rem",
               }}>
                 {tr ? `${tr.nombre.charAt(0)}${tr.apellidoPaterno.charAt(0)}` : "?"}
               </div>
@@ -877,11 +886,14 @@ export default function CuadrillaClient({ initialJornadas, initialAlertas, traba
                                 <img src={`${API_URL}/trabajador/${tr.rut}/imagen/`} alt=""
                                   style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--color-border)" }} />
                               ) : (
+                                // Gemelo en tabla del avatar de trabajador de la tarjeta:
+                                // mismo gradiente naranja, misma tinta. Las cifras y el
+                                // porqué del reparto naranja/azul están en la línea 338.
                                 <div style={{
                                   width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
                                   background: "linear-gradient(135deg, #f97316, #ea580c)",
                                   display: "flex", alignItems: "center", justifyContent: "center",
-                                  color: "white", fontWeight: 700, fontSize: "0.65rem",
+                                  color: "var(--color-on-accent)", fontWeight: 700, fontSize: "0.65rem",
                                 }}>
                                   {tr ? `${tr.nombre.charAt(0)}${tr.apellidoPaterno.charAt(0)}` : "?"}
                                 </div>

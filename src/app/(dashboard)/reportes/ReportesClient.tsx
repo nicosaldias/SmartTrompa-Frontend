@@ -241,14 +241,24 @@ export default function ReportesClient({
           marginBottom: "1.5rem",
         }}
       >
-        <StatCard color="#f59e0b" icon={<AlertTriangle size={22} color="#f59e0b" />} label={t("reportes.statActiveAlerts")} value={alertasActivasCount} href="/historial-alertas" />
+        {/* `color` ahora es la única fuente del color de cada tarjeta: StatCard lo usa
+            para la tinta del ícono y para el chip que lo rodea (ver ahí el porqué). Por
+            eso los íconos ya no repiten el color: sin el prop `color=` lucide los deja
+            en stroke="currentColor" y heredan la tinta del chip.
+            Los tres valores son tokens y no hex sueltos: #f59e0b y #ef4444 estaban
+            calibrados para fondo oscuro y no tenían variante clara, así que sobre el
+            chip resuelto contra .card BLANCO el ámbar medía 1.94:1 y el rojo 3.40:1
+            — el primero muy por debajo del 3:1 de AA para gráficos. --color-yellow y
+            --color-red sí traen las dos variantes (#9a6700 y #cf222e en claro,
+            #eab308 y #ef4444 en oscuro) y suben a 4.29:1 y 4.57:1. */}
+        <StatCard color="var(--color-yellow)" icon={<AlertTriangle size={22} />} label={t("reportes.statActiveAlerts")} value={alertasActivasCount} href="/historial-alertas" />
         {/* Vencido ≠ por vencer: si ya hay filtros VENCIDOS, la tarjeta lo dice. */}
         {filtrosVencidosCount > 0 ? (
-          <StatCard color="#ef4444" icon={<Filter size={22} color="#ef4444" />} label={t("reportes.statFiltersExpired")} value={filtrosVencidosCount} href="/vida-util-filtros" />
+          <StatCard color="var(--color-red)" icon={<Filter size={22} />} label={t("reportes.statFiltersExpired")} value={filtrosVencidosCount} href="/vida-util-filtros" />
         ) : (
-          <StatCard color="#ef4444" icon={<Filter size={22} color="#ef4444" />} label={t("reportes.statFiltersExpiring")} value={filtrosProximosCount} href="/vida-util-filtros" />
+          <StatCard color="var(--color-red)" icon={<Filter size={22} />} label={t("reportes.statFiltersExpiring")} value={filtrosProximosCount} href="/vida-util-filtros" />
         )}
-        <StatCard color="#f97316" icon={<FileText size={22} color="#f97316" />} label={t("reportes.statReportTypes")} value={4} />
+        <StatCard color="var(--color-accent-text)" icon={<FileText size={22} />} label={t("reportes.statReportTypes")} value={4} />
       </div>
 
       <div className="card reportes-card" style={{ maxWidth: 960 }}>
@@ -279,7 +289,12 @@ export default function ReportesClient({
                   fontWeight: 600,
                   border: "none",
                   background: "transparent",
-                  color: activo ? "var(--color-accent)" : "var(--color-text-secondary)",
+                  // La pestaña activa se distingue por color + subrayado. El subrayado se
+                  // queda en --color-accent (borde, umbral 3:1); el label y su ícono pasan
+                  // a -text porque sobre .card blanco el acento puro daba 2.80:1 y la
+                  // pestaña activa se leía peor que las inactivas (--color-text-secondary
+                  // #57606a rinde 7.0:1). Era exactamente al revés de lo que se quería.
+                  color: activo ? "var(--color-accent-text)" : "var(--color-text-secondary)",
                   borderBottom: activo ? "2px solid var(--color-accent)" : "2px solid transparent",
                   marginBottom: "-1px",
                   cursor: "pointer",
@@ -441,13 +456,25 @@ export default function ReportesClient({
   );
 }
 
-function StatCard({ icon, label, value, href }: { color: string; icon: React.ReactNode; label: string; value: number; href?: string }) {
+function StatCard({ color, icon, label, value, href }: { color: string; icon: React.ReactNode; label: string; value: number; href?: string }) {
   const contenido = (
     <div className="card" style={{ padding: "1.1rem", display: "flex", alignItems: "center", gap: "0.85rem", cursor: href ? "pointer" : "default" }}>
       <div
         style={{
           width: 44, height: 44, borderRadius: "0.5rem",
-          backgroundColor: "rgba(249,115,22,0.10)",
+          // El chip se tiñe con el color de la tarjeta en vez del rgba(249,115,22,0.10)
+          // fijo que tenía antes. Ese naranja quieto era el que hundía el contraste: el
+          // ícono rojo caía a 3.40:1 y el ámbar a 1.94:1 sobre el #fef1e8 que resultaba
+          // contra .card blanco. Tiñendo con el propio color quedan 4.57:1 (rojo),
+          // 4.29:1 (amarillo) y 4.48:1 (acento) en claro, y 3.82:1 / 6.80:1 / 4.92:1 en
+          // oscuro — los seis por encima del 3:1 de AA para gráficos. De paso deja de
+          // haber íconos rojos sobre chip naranja.
+          // color-mix es el mismo mecanismo que usan las .badge-* de globals.css (líneas
+          // 204-207) y acepta el var() sin resolverlo en JS.
+          backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`,
+          // La tinta va acá y no en el .card para que sólo la herede el ícono: los <p>
+          // de abajo tienen que seguir en --color-text-secondary y en el texto normal.
+          color,
           display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
         }}
       >

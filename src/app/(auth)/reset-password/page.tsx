@@ -85,7 +85,13 @@ function ResetPasswordForm() {
             flexShrink: 0,
           }}
         >
-          <Wind size={24} color="white" />
+          {/* Sobre el cuadro naranja de la línea 84 el blanco medía 2.80:1 en el
+              extremo #f97316 y 3.56:1 en el #ea580c, o sea bajo el 3:1 de AA para
+              gráficos justo donde el gradiente es más claro; --color-on-accent da
+              5.91:1 / 4.65:1. Por `style` y no por el prop `color=`: lucide manda
+              ese prop al atributo stroke="", donde var() no resuelve en todos los
+              motores, y sin él el trazo queda en currentColor. */}
+          <Wind size={24} style={{ color: "var(--color-on-accent)" }} />
         </div>
         <span style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-primary)" }}>
           {t("branding.appName")}
@@ -247,9 +253,12 @@ function ResetPasswordForm() {
           </form>
 
           <p style={{ textAlign: "center", marginTop: "1.5rem" }}>
+            {/* Este enlace vive dentro del .card (línea 65), blanco en tema claro: el
+                acento puro daba 2.80:1 y sin subrayado quedaba casi ilegible. El token
+                -text (orange-700) sube a 5.18:1 sin cambiar el naranja percibido. */}
             <Link
               href="/login"
-              style={{ color: "var(--color-accent)", fontSize: "0.8rem", textDecoration: "none" }}
+              style={{ color: "var(--color-accent-text)", fontSize: "0.8rem", textDecoration: "none" }}
             >
               {t("login.backToLogin")}
             </Link>

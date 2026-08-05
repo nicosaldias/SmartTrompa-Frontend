@@ -416,8 +416,12 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
               display: "flex",
               alignItems: "center",
               gap: "0.5rem",
+              // Este .btn-secondary va en el header, directo sobre el fondo de página
+              // #f4f6f9 (sin .card de por medio): el peor caso del tema claro, 2.59:1 para
+              // el label y el ícono Plus. El borde se queda en --color-accent porque como
+              // borde sí cumple; solo la tinta pasa a -text, que ahí mide 4.78:1.
               borderColor: "var(--color-accent)",
-              color: "var(--color-accent)",
+              color: "var(--color-accent-text)",
             }}
           >
             <Plus size={16} /> {t("filtros.addRespirator")}
@@ -450,7 +454,12 @@ export default function FiltrosClient({ initialFiltros, initialRespiradores }: P
               cursor: "pointer",
               backgroundColor:
                 activeTab === tab ? "var(--color-accent)" : "transparent",
-              color: activeTab === tab ? "white" : "var(--color-text-secondary)",
+              // La pestaña activa es un .btn-primary escrito a mano: mismo relleno
+              // #f97316, misma necesidad de tinta. Con `white` daba 2.80:1 en los dos
+              // temas (el relleno no cambia con el tema, así que el par tampoco);
+              // --color-on-accent lo deja en 5.91:1. Ojo: el `color: "white"` de la
+              // línea 737 NO se toca, ese vive sobre rgba(0,0,0,0.5).
+              color: activeTab === tab ? "var(--color-on-accent)" : "var(--color-text-secondary)",
               transition: "all 0.15s",
               textTransform: "uppercase",
               letterSpacing: "0.025em",

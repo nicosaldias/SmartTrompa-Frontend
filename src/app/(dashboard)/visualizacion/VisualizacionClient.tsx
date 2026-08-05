@@ -275,11 +275,17 @@ export default function VisualizacionClient({ trabajadores }: Props) {
               }}
             />
           ) : (
+            // Avatar de TRABAJADOR sobre gradiente naranja: con blanco daba 2.80:1
+            // contra #f97316 y 3.56:1 contra #ea580c; --color-on-accent deja 5.91:1
+            // y 4.65:1. El avatar de SUPERVISOR de la línea ~360 usa gradiente AZUL
+            // #3b82f6→#2563eb y conserva el blanco: ahí rinde 3.68:1 a 5.17:1 contra
+            // 4.50:1 a 3.20:1 de la tinta oscura, o sea que el blanco es el mejor de
+            // los dos en el peor extremo.
             <div style={{
               width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
               background: "linear-gradient(135deg, #f97316, #ea580c)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "white", fontWeight: 700, fontSize: "0.65rem",
+              color: "var(--color-on-accent)", fontWeight: 700, fontSize: "0.65rem",
             }}>
               {trab ? `${trab.nombre.charAt(0)}${trab.apellidoPaterno.charAt(0)}` : "?"}
             </div>
@@ -403,7 +409,10 @@ export default function VisualizacionClient({ trabajadores }: Props) {
                 padding: "0.45rem 0.875rem", fontSize: "0.8rem", fontWeight: 700,
                 border: "none", cursor: "pointer",
                 backgroundColor: vista === key ? "var(--color-accent)" : "transparent",
-                color: vista === key ? "#fff" : "var(--color-text-secondary)",
+                // Segmento activo = relleno #f97316 (igual en ambos temas): el #fff daba
+                // 2.80:1 y --color-on-accent da 5.91:1. Además el label lleva un ícono
+                // lucide que hereda currentColor, así que la tinta arregla los dos.
+                color: vista === key ? "var(--color-on-accent)" : "var(--color-text-secondary)",
               }}
             >
               {icon} {label}
@@ -510,7 +519,11 @@ export default function VisualizacionClient({ trabajadores }: Props) {
               textAlign: "center",
             }}>
               <div style={{ padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(249,115,22,0.08)" }}>
-                <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f97316" }}>{totalJornadas}</p>
+                {/* Hex suelto que se había escapado del sistema de tokens. Aunque 1.5rem/800
+                    califica como texto grande (umbral 3:1), medía 2.59:1 sobre el relleno
+                    rgba(249,115,22,0.08) resuelto contra .card (#fff4ec). Sus dos hermanas
+                    de al lado usan #3b82f6, que sí pasa; esta era la única que fallaba. */}
+                <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-accent-text)" }}>{totalJornadas}</p>
                 <p style={{ fontSize: "0.65rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>{t("visualizacion.statShifts")}</p>
               </div>
               <div style={{ padding: "0.5rem", borderRadius: "0.5rem", backgroundColor: "rgba(59,130,246,0.08)" }}>

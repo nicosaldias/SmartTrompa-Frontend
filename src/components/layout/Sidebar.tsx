@@ -107,7 +107,11 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
               flexShrink: 0,
             }}
           >
-            <Wind size={22} color="white" />
+            {/* Sobre el cuadro naranja de la línea 103 el blanco medía 2.80:1 contra
+                #f97316, bajo el 3:1 de AA para gráficos; --color-on-accent lo deja en
+                5.91:1. Por `style` y no por el prop `color=` de lucide, que termina en
+                el atributo stroke="" donde var() no resuelve en todos los motores. */}
+            <Wind size={22} style={{ color: "var(--color-on-accent)" }} />
           </div>
           {!isCollapsed && (
             <div>

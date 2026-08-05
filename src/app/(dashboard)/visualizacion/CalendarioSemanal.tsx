@@ -16,6 +16,7 @@ import {
   rangoHorario,
   rangoSemana,
 } from "@/utils/historicoCuadrilla";
+import { tintaLegible } from "@/utils/contraste";
 import EmptyState from "@/components/EmptyState";
 
 interface Props {
@@ -25,6 +26,25 @@ interface Props {
 }
 
 const DIA_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
+
+// Opacidad del relleno del bloque de jornada. El sufijo hex se deriva del número
+// para que la cuenta del contraste y lo que se pinta no puedan separarse: 0.8 →
+// "cc", que es el `${color}cc` de siempre.
+const ALFA_BLOQUE = 0.8;
+const ALFA_BLOQUE_HEX = Math.round(ALFA_BLOQUE * 255).toString(16).padStart(2, "0");
+
+// Valor de --color-bg-secondary en el tema oscuro, que es DEFAULT_THEME. Sólo se
+// usa mientras no hay DOM del que leer el token vigente (SSR y primer render).
+const FONDO_COLUMNA_FALLBACK = "#161b22";
+
+/** Valor actual de un token de color del <html>. Devuelve el fallback si no hay
+ *  DOM o si el token no resuelve a un hex (p. ej. en jsdom, donde globals.css no
+ *  se carga). */
+function colorDeToken(nombre: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const valor = getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(valor) ? valor : fallback;
+}
 
 /**
  * Vista calendario del histórico: una semana lunes-domingo con eje horario
@@ -110,6 +130,21 @@ export default function CalendarioSemanal({ trabajadores, filterSupervisor }: Pr
 
   const ALTO_GRILLA = 480;
 
+  // Fondo REAL sobre el que se compone el bloque de jornada: la columna del día
+  // lleva --color-bg-secondary, que vale #161b22 en oscuro y #ffffff en claro.
+  // Se lee el token en vez de duplicar esos dos hexes aquí, así el cálculo sigue
+  // a globals.css si la paleta se retoca. El toggle de tema no cambia ningún
+  // prop de este componente —sólo el atributo data-theme del <html>—, así que la
+  // relectura se dispara observando ese atributo.
+  const [fondoColumna, setFondoColumna] = useState(FONDO_COLUMNA_FALLBACK);
+  useEffect(() => {
+    const leer = () => setFondoColumna(colorDeToken("--color-bg-secondary", FONDO_COLUMNA_FALLBACK));
+    leer();
+    const obs = new MutationObserver(leer);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <div>
       {/* Navegación de semana */}
@@ -191,9 +226,13 @@ export default function CalendarioSemanal({ trabajadores, filterSupervisor }: Pr
                     <p style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--color-text-secondary)" }}>
                       {DIA_LABELS[i]}
                     </p>
+                    {/* El número de hoy se resalta con naranja contra el resto en
+                        --color-text-primary (#1a1f26, 15.8:1 sobre .card). Con el acento
+                        puro a 2.80:1 el día actual quedaba MENOS legible que los demás
+                        días de la semana, justo el opuesto del énfasis buscado. */}
                     <p style={{
                       fontSize: "0.85rem", fontWeight: esHoy ? 800 : 600,
-                      color: esHoy ? "var(--color-accent)" : "var(--color-text-primary)",
+                      color: esHoy ? "var(--color-accent-text)" : "var(--color-text-primary)",
                     }}>
                       {dia.getDate()}
                     </p>
@@ -236,6 +275,20 @@ export default function CalendarioSemanal({ trabajadores, filterSupervisor }: Pr
                   {jornadasDelDia(dia).map((j) => {
                     const { topPct, heightPct } = bloqueDeJornada(j, hMin, hMax);
                     const color = colorSupervisor(j.idSupervisor || "sin-supervisor");
+                    // Único punto del barrido de contraste donde la tinta NO es
+                    // un token: el relleno lo elige el DATO (qué supervisor), y
+                    // la paleta de colorSupervisor mezcla rellenos oscuros
+                    // (#3b82f6, #6366f1) con rellenos claros (#eab308, #f97316).
+                    // El `color: "#fff"` que había aquí servía para unos y no
+                    // para otros, y el texto es de 0.58rem/700 → texto normal,
+                    // umbral 4.5:1. Compuesto al 80 % sobre la columna CLARA el
+                    // blanco fallaba en los ocho colores (1.69:1 con el amarillo,
+                    // 2.31:1 con el naranja, 3.18:1 el mejor caso); sobre la
+                    // columna oscura fallaba en cuatro. Eligiendo la tinta por la
+                    // luminancia del relleno ya compuesto quedan entre 5.21:1 y
+                    // 9.79:1 en claro y entre 4.58:1 y 5.95:1 en oscuro, salvo el
+                    // naranja en tema oscuro (ver más abajo).
+                    const tinta = tintaLegible(color, ALFA_BLOQUE, fondoColumna);
                     const nAlertas = alertasDeJornada(j).length;
                     const esSeleccionada = seleccionada?.id === j.id;
                     return (
@@ -250,7 +303,7 @@ export default function CalendarioSemanal({ trabajadores, filterSupervisor }: Pr
                           left: 2,
                           right: 2,
                           borderRadius: 4,
-                          backgroundColor: `${color}cc`,
+                          backgroundColor: `${color}${ALFA_BLOQUE_HEX}`,
                           border: esSeleccionada
                             ? "2px solid var(--color-text-primary)"
                             : nAlertas > 0 ? "2px solid #ef4444" : `1px solid ${color}`,
@@ -258,7 +311,14 @@ export default function CalendarioSemanal({ trabajadores, filterSupervisor }: Pr
                           padding: "1px 3px",
                           overflow: "hidden",
                           textAlign: "left",
-                          color: "#fff",
+                          // Residuo conocido: con el naranja #f97316 en tema
+                          // oscuro el compuesto es #cc6118 (L=0.2145), que cae
+                          // en la franja donde ninguna de las dos tintas llega a
+                          // 4.5:1 — blanco 3.97:1, #1a1f26 4.17:1. Se pinta la
+                          // mejor de las dos; cerrarlo del todo pide mover el
+                          // relleno (bajar el alfa no alcanza: el mejor peor-caso
+                          // de la paleta en oscuro es 4.33:1 con alfa 0.65).
+                          color: tinta,
                           fontSize: "0.58rem",
                           fontWeight: 700,
                           lineHeight: 1.1,
@@ -317,7 +377,7 @@ export default function CalendarioSemanal({ trabajadores, filterSupervisor }: Pr
                     >
                       <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: nivelColor(a.nivel), flexShrink: 0 }} />
                       {formatHora(a.timestamp)} · {a.tipo} · {a.nivel}
-                      <ChevronRight size={12} style={{ color: "var(--color-accent)" }} />
+                      <ChevronRight size={12} style={{ color: "var(--color-accent-text)" }} />
                     </button>
                   ))}
                 </div>

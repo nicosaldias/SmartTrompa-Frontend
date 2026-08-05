@@ -166,7 +166,10 @@ export default function DesgloseFiltroModal({ rut, isAdmin, onClose, onChanged }
                 style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
               />
             ) : (
-              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#f97316,#ea580c)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, flexShrink: 0 }}>
+              // Iniciales sobre el gradiente naranja: el blanco medía 2.80:1 contra
+              // #f97316 y 3.56:1 contra #ea580c; --color-on-accent da 5.91:1 y 4.65:1.
+              // El gradiente no cambia — sólo su tinta.
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#f97316,#ea580c)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-on-accent)", fontWeight: 700, flexShrink: 0 }}>
                 {data ? getInitials(data.trabajadorNombre) : "?"}
               </div>
             )}

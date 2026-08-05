@@ -546,7 +546,11 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              color: "white",
+                              // Iniciales sobre el gradiente naranja: el blanco daba 2.80:1
+                              // contra #f97316 y 3.56:1 contra #ea580c, y --color-on-accent
+                              // deja 5.91:1 y 4.65:1. El `color: "white"` de la línea 785
+                              // se queda como está: ese vive sobre rgba(0,0,0,0.5).
+                              color: "var(--color-on-accent)",
                               fontWeight: 700,
                               fontSize: "0.85rem",
                               flexShrink: 0,
@@ -682,11 +686,20 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                       page === currentPage
                         ? "1px solid var(--color-accent)"
                         : "1px solid var(--color-border)",
+                    // El relleno baja del 15 % al 6 %, el mismo valor al que globals.css
+                    // dejó --badge-tint y por el mismo motivo: con 0.15 resuelto contra
+                    // .card blanco el fondo daba #feeadc y orange-700 encima medía 4.44:1,
+                    // 0.06 por debajo del 4.5 de AA para texto normal. Con 0.06 el fondo
+                    // queda en #fff7f1 y la tinta sube a 4.89:1. En tema oscuro también
+                    // mejora (4.55:1 → 5.19:1 sobre .card #1c2333), así que no hay que
+                    // condicionar por tema. Lo que se aclara es el RELLENO, no la tinta:
+                    // el número sigue señalado por el borde --color-accent y por el peso
+                    // 600, que no dependen de la opacidad.
                     backgroundColor:
-                      page === currentPage ? "rgba(249,115,22,0.15)" : "transparent",
+                      page === currentPage ? "rgba(249,115,22,0.06)" : "transparent",
                     color:
                       page === currentPage
-                        ? "var(--color-accent)"
+                        ? "var(--color-accent-text)"
                         : "var(--color-text-secondary)",
                     cursor: "pointer",
                     fontWeight: page === currentPage ? 600 : 400,

@@ -113,8 +113,11 @@ export default function MiHistorialClient({
           marginBottom: "1rem",
         }}
       >
+        {/* Los tres íconos de este strip (Wind/Bell/Clock) son el único indicador visual
+            de cada tarjeta: sobre .card blanco el acento puro daba 2.80:1, bajo el 3:1
+            que WCAG 2.1 AA exige a componentes gráficos. Con -text quedan en 5.18:1. */}
         <div className="card" style={statCard}>
-          <Wind size={20} style={{ color: "var(--color-accent)", flexShrink: 0 }} />
+          <Wind size={20} style={{ color: "var(--color-accent-text)", flexShrink: 0 }} />
           <div>
             <p style={{ fontSize: "0.72rem", color: "var(--color-text-secondary)", textTransform: "uppercase" }}>
               {t("miHistorial.filtroTitle")}
@@ -140,7 +143,7 @@ export default function MiHistorialClient({
         </div>
 
         <div className="card" style={statCard}>
-          <Bell size={20} style={{ color: "var(--color-accent)", flexShrink: 0 }} />
+          <Bell size={20} style={{ color: "var(--color-accent-text)", flexShrink: 0 }} />
           <div>
             <p style={{ fontSize: "0.72rem", color: "var(--color-text-secondary)", textTransform: "uppercase" }}>
               {t("miHistorial.alertasActivasTitle")}
@@ -150,7 +153,7 @@ export default function MiHistorialClient({
         </div>
 
         <div className="card" style={statCard}>
-          <Clock size={20} style={{ color: "var(--color-accent)", flexShrink: 0 }} />
+          <Clock size={20} style={{ color: "var(--color-accent-text)", flexShrink: 0 }} />
           <div>
             <p style={{ fontSize: "0.72rem", color: "var(--color-text-secondary)", textTransform: "uppercase" }}>
               {t("miHistorial.ultimaJornadaTitle")}

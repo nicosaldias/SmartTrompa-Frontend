@@ -61,7 +61,11 @@ export default function LanguageSelector({
               border: "none",
               cursor: isActive ? "default" : "pointer",
               background: isActive ? "var(--color-accent, #f97316)" : "transparent",
-              color: isActive ? "#fff" : "var(--color-text-secondary)",
+              // La píldora activa es el relleno naranja, igual en ambos temas: con #fff
+              // el par daba 2.80:1 y con --color-on-accent da 5.91:1. Es el único
+              // indicador de qué idioma está puesto (aria-pressed aparte), así que
+              // tiene que leerse, y a 0.65rem/700 sigue contando como texto normal.
+              color: isActive ? "var(--color-on-accent, #1a1f26)" : "var(--color-text-secondary)",
               transition: "background 0.15s ease, color 0.15s ease",
             }}
           >

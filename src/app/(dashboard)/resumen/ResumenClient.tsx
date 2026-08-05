@@ -9,7 +9,7 @@ import { useT } from "@/i18n/LanguageProvider";
 import ResumenJornadaActual from "@/components/ResumenJornadaActual";
 import { useRealtime, useRealtimeStatus } from "@/realtime/RealtimeProvider";
 import type { MedicionesEventMsg } from "@/realtime/events";
-import { TIPO_COLORS, NIVEL_COLORS } from "@/utils/alertaTokens";
+import { TIPO_COLORS, TIPO_TEXT_COLORS, NIVEL_COLORS } from "@/utils/alertaTokens";
 import { formatFechaCorta } from "@/utils/fechas";
 
 interface Props {
@@ -234,7 +234,14 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
       {/* Alert cards - full width */}
       <div className="resumen-alert-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "1rem" }}>
         {alertCards.map(({ tipo, count }) => {
+          // Dos colores para el mismo tipo, y no es duplicación: `color` es el
+          // hex de marca y sólo se usa como TRAZO del borderTop (:254), donde
+          // el naranja de AJUSTE debe quedarse porque es identidad y no texto;
+          // `textColor` es la variante legible para el ícono, la etiqueta y el
+          // contador, que son tinta sobre .card. Con el hex, AJUSTE daba 2.80:1
+          // en tema claro (auditoría 2026-08-04); ver TIPO_TEXT_COLORS.
           const color = TIPO_COLORS[tipo];
+          const textColor = TIPO_TEXT_COLORS[tipo];
           const isActive = count > 0;
 
           return (
@@ -259,7 +266,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
                   display: "flex",
                   justifyContent: "center",
                   marginBottom: "0.75rem",
-                  color: isActive ? color : "var(--color-text-secondary)",
+                  color: isActive ? textColor : "var(--color-text-secondary)",
                 }}
               >
                 {TIPO_ICONS[tipo]}
@@ -270,7 +277,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
-                  color: isActive ? color : "var(--color-text-secondary)",
+                  color: isActive ? textColor : "var(--color-text-secondary)",
                   marginBottom: "0.5rem",
                 }}
               >
@@ -281,7 +288,7 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
                 style={{
                   fontSize: "2.5rem",
                   fontWeight: 800,
-                  color: isActive ? color : "var(--color-text-primary)",
+                  color: isActive ? textColor : "var(--color-text-primary)",
                   lineHeight: 1,
                 }}
               >
@@ -379,7 +386,10 @@ export default function ResumenClient({ initialJornadas, initialAlertas, initial
           <Link
             href="/historial-alertas"
             style={{
-              color: "var(--color-accent)",
+              // Sin subrayado, en versalitas de 0.75rem y con el tracking abierto, el color
+              // es la única señal de que esto es un enlace: a 2.80:1 sobre .card blanco no
+              // se leía ni como texto ni como link. orange-700 lo deja en 5.18:1.
+              color: "var(--color-accent-text)",
               fontSize: "0.75rem",
               fontWeight: 700,
               letterSpacing: "0.05em",

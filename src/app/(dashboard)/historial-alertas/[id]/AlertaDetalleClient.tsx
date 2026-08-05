@@ -10,7 +10,7 @@ import { BINARY_ALERT_TYPES } from "@/types";
 import { fmtNum } from "@/utils/format";
 import { VALOR_UNIDAD } from "@/utils/sensorMappings";
 import { formatFechaHora } from "@/utils/fechas";
-import { tipoColor } from "@/utils/alertaTokens";
+import { tipoColor, tipoTextColor } from "@/utils/alertaTokens";
 
 interface Props {
   alertaId: number;
@@ -129,7 +129,10 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
   if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
-        <Loader2 size={32} style={{ animation: "spin 1s linear infinite", color: "var(--color-accent)" }} />
+        {/* Este spinner es todo lo que se ve mientras carga el detalle, y va directo sobre
+            el fondo de página #f4f6f9: a 2.59:1 el usuario en tema claro no distinguía si
+            estaba cargando o si la pantalla había quedado en blanco. Con -text: 4.78:1. */}
+        <Loader2 size={32} style={{ animation: "spin 1s linear infinite", color: "var(--color-accent-text)" }} />
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -160,7 +163,16 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
     ? `${alerta.trabajador.nombre} ${alerta.trabajador.apellidoPaterno} ${alerta.trabajador.apellidoMaterno}`
     : alerta.rutTrabajador;
 
+  // El badge de tipo necesita los dos valores: el hex sigue siendo el que tintan
+  // el fondo y el borde por concatenación (`${tipoColor}22` / `44` en :240 y
+  // :242 — con un var(--...) esa concatenación no sería CSS válido), mientras
+  // que la tinta pasa a la variante de texto. La medición hay que hacerla contra
+  // el fondo REAL del badge, no contra el .card: el `22` es alfa 13.3 %, o sea
+  // naranja sobre papel = #feece0, y ahí el hex de marca no daba 2.80:1 sino
+  // 2.44:1 (el tinte oscurece el fondo y se come parte de la diferencia). Con
+  // --color-accent-text el mismo badge queda en 4.51:1.
   const tipoColor = tipoBadgeColor(alerta.tipo);
+  const tipoTexto = tipoTextColor(alerta.tipo);
   const nivelStyle = nivelBadgeStyle(alerta.nivel);
 
   return (
@@ -226,7 +238,7 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
               fontSize: "0.75rem",
               fontWeight: 600,
               backgroundColor: `${tipoColor}22`,
-              color: tipoColor,
+              color: tipoTexto,
               border: `1px solid ${tipoColor}44`,
             }}
           >
@@ -294,7 +306,17 @@ export default function AlertaDetalleClient({ alertaId }: Props) {
                   height: 36,
                   borderRadius: "50%",
                   backgroundColor: "var(--color-accent)",
-                  color: "#fff",
+                  // Mismo círculo naranja que el resto de los avatares de la app
+                  // (HistorialAlertasClient.tsx:716, Header.tsx:341, …): el
+                  // relleno es #f97316 en los dos temas, así que el par
+                  // tinta/fondo no depende del tema. Con #fff daba 2.80:1, por
+                  // debajo incluso del 3:1 que le tocaría como componente
+                  // gráfico —aquí el contenido es sólo el ícono <User/>, sin
+                  // texto—; con --color-on-accent queda en 5.91:1. El ícono de
+                  // lucide hereda currentColor, así que la tinta lo arregla sin
+                  // tocar el prop `color=` (que va a stroke="" y no resuelve
+                  // var() en todos los motores).
+                  color: "var(--color-on-accent)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

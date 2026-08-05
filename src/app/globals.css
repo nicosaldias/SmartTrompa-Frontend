@@ -8,12 +8,66 @@
     --color-border: #30363d;
     --color-accent: #f97316;
     --color-accent-hover: #ea580c;
+    /* El acento en PRIMER PLANO —texto, íconos, anillos de foco y los bordes que
+       señalan estado— necesita un token propio del que se usa como relleno: la
+       auditoría de contraste del 2026-08-04 midió #f97316 en 2.59:1 sobre el
+       fondo de página en tema claro, y una revisión posterior comprobó que
+       tampoco llegaba al 3:1 de componente de interfaz que se le suponía a los
+       bordes. En tema OSCURO el naranja está bien (6.75:1 sobre la página,
+       5.60:1 sobre .card), así que aquí vale lo mismo que --color-accent y el
+       que se corrige es el bloque claro.
+       --color-accent NO se toca: la identidad de marca queda intacta. */
+    --color-accent-text: #f97316;
+    /* Texto e íconos que van ENCIMA del relleno naranja. Vale exactamente lo
+       mismo en los dos temas a propósito: el fondo del botón es #f97316 en
+       ambos, o sea que el par texto/fondo no depende del tema. Con el
+       `color: white` anterior el botón daba 2.80:1, y el :hover (3.56:1) se leía
+       MEJOR que el estado normal — al revés de lo útil; con #1a1f26 quedan
+       5.91:1 normal y 4.65:1 en hover, ya en el orden correcto. Ojo: no sirve
+       --color-text-primary, porque en tema oscuro vale #e6edf3 y volvería a
+       fallar sobre el naranja. */
+    --color-on-accent: #1a1f26;
+    /* Opacidad de la tinta naranja de fondo (.sidebar-link activo y :hover).
+       Token aparte de --badge-tint porque los dos se corrigen en direcciones
+       distintas: el naranja sólo falla en tema claro, mientras que --badge-tint
+       tuvo que BAJAR aquí en oscuro. En oscuro se queda el 15 % de siempre; la
+       auditoría del 2026-08-04 sólo marcó el tema claro. */
+    --accent-tint: 15%;
     --color-text-primary: #e6edf3;
     --color-text-secondary: #8b949e;
     --color-green: #22c55e;
     --color-yellow: #eab308;
-    --color-red: #ef4444;
-    --color-blue: #3b82f6;
+    /* El rojo y el azul de la paleta oscura eran #ef4444 y #3b82f6 y NO pasaban:
+       como texto plano sobre .card daban 4.17:1 y 4.27:1, y dentro de la badge
+       (teñida al 15 % de entonces) caían a 3.60:1 y 3.52:1. Se aclaran a los
+       red-400/blue-400 de Tailwind, misma familia de color, que sobre .card dan
+       5.68:1 y 6.18:1. El verde y el amarillo oscuros ya pasaban y no se tocan. */
+    --color-red: #f87171;
+    --color-blue: #60a5fa;
+    /* Violeta de tipo de alerta (FILTRO_VIDA_UTIL). Existe porque era el último
+       hex de paleta suelto de src/utils/: alertaTokens.ts lo llevaba a mano como
+       #8b5cf6 y ese valor FALLA en los dos temas — 4.23:1 sobre .card blanca y
+       3.71:1 sobre .card oscura #1c2333. No hay un hex único que sirva para
+       ambos (pasar 4.5:1 sobre blanco pide luminancia ≤0.183 y sobre #1c2333
+       pide ≥0.251: intervalo vacío), y por eso hacía falta el par de tokens por
+       tema en vez de retocar el hex. El violet-400 de Tailwind da 5.77:1 sobre
+       .card, 6.95:1 sobre el fondo de página y 5.58:1 sobre la fila con :hover
+       dentro de .card, que es el peor fondo del tema oscuro. Si algún día se
+       añade una .badge-violet, con la tinta del 5 % queda en 5.35:1 sobre .card
+       y 5.16:1 sobre esa misma fila. */
+    --color-violet: #a78bfa;
+    /* Opacidad de la tinta de fondo de las .badge-* (ver más abajo). En oscuro
+       la tinta ACLARA el fondo de la badge, así que bajarla SUBE el contraste
+       del texto — al revés que en el tema claro, donde lo oscurece.
+       15 % -> 8 % -> 5 %. El 8 % dejó a .badge-gray justo por debajo: sobre
+       .card daba 4.54:1, pero el fondo que hay que medir es el PEOR, que es la
+       fila de tabla con :hover dentro de .card (`table tbody tr:hover` añade una
+       tinta naranja que en oscuro ACLARA), y ahí caía a 4.39:1. Con el 5 % sube
+       a 4.58:1 sobre esa fila y 4.73:1 sobre .card, y las otras cuatro pasan de
+       4.91–6.82:1 a 5.11–7.23:1 sobre la fila resaltada (5.31–7.51:1 sobre
+       .card). Bajar más no compra nada útil: a partir de aquí la tinta deja de
+       distinguirse del fondo de la tarjeta. */
+    --badge-tint: 5%;
   }
 
   /* Tema claro: se activa con data-theme="light" en <html>. Mayor especificidad que :root. */
@@ -24,12 +78,76 @@
     --color-border: #d8dee4;
     --color-accent: #f97316;
     --color-accent-hover: #ea580c;
+    /* orange-700 de Tailwind: la misma familia que #f97316, se lee como el mismo
+       color pero más oscuro. Da 4.78:1 sobre el fondo de página y 5.18:1 sobre
+       .card, donde el naranja de marca daba 2.59:1 y 2.80:1 (medido 2026-08-04).
+       Para texto, íconos, anillos de foco y BORDES de estado (el border-left del
+       .sidebar-link activo y el borde de .btn-secondary:hover, ver más abajo).
+       Los RELLENOS —fondo de .btn-primary, tintas, halo de .input-field— siguen
+       con --color-accent, que es donde vive la identidad de marca. */
+    --color-accent-text: #c2410c;
+    /* Idéntico al valor del tema oscuro, y no es un descuido: el fondo del botón
+       es naranja en los dos temas, así que el texto que va encima tampoco cambia
+       con el tema. Ver el comentario extenso en :root. */
+    --color-on-accent: #1a1f26;
+    /* 6 % en vez del 15 % de :root. El texto naranja del .sidebar-link activo se
+       lee sobre esta tinta, y al 15 % quedaba en 4.44:1 sobre el sidebar blanco
+       y 4.13:1 sobre el fondo de página: seguía fallando pese a usar ya
+       --color-accent-text. Con el 6 % sube a 4.89:1 y 4.51:1, o sea que pasa en
+       los dos fondos, que es la condición que hay que cumplir porque el sidebar
+       no siempre está sobre blanco. */
+    --accent-tint: 6%;
     --color-text-primary: #1a1f26;
     --color-text-secondary: #57606a;
-    --color-green: #1a7f37;
-    --color-yellow: #9a6700;
-    --color-red: #cf222e;
-    --color-blue: #0969da;
+    /* green-800 de Tailwind, bajado desde el #1a7f37 de GitHub. El verde viejo
+       aprobaba sobre fondos quietos (4.68:1 en la badge sobre .card) pero se caía
+       en el peor fondo del tema claro, que es la fila de tabla con :hover cuando
+       la tabla va sobre el fondo de página: allí la badge daba 4.22:1. Con
+       #166534 ese caso sube a 5.88:1, y sobre .card queda en 6.52:1. */
+    --color-green: #166534;
+    /* Bajado desde #9a6700, que pasaba por 0.008 (4.508:1 en la badge sobre
+       .card): margen inexistente, y encima la badge se cae cuando la fila de
+       tabla está en :hover, porque ese hover añade una tinta naranja por debajo
+       (ver `table tbody tr:hover`) y allí el amarillo viejo daba 4.06:1. Con
+       #8a5c00 la badge queda en 4.82:1 sobre la fila con :hover encima del fondo
+       de PÁGINA —el peor de los fondos, y el que hay que citar— y en 5.20:1 si
+       esa misma fila va dentro de .card; sobre .card en reposo, 5.35:1. */
+    --color-yellow: #8a5c00;
+    /* red-700 de Tailwind, bajado desde el #cf222e de GitHub por el MISMO motivo
+       que el verde y el azul de aquí al lado, sólo que a este se le pasó por
+       poco: sobre .card la badge daba 4.88:1 y parecía sana, pero sobre la fila
+       con :hover encima del fondo de página caía a 4.40:1, por debajo del 4.5:1
+       de AA. Con #b91c1c ese caso queda en 5.25:1 y sobre .card en 5.84:1. Como
+       texto plano sube de 5.36:1 a 6.47:1 sobre .card. */
+    --color-red: #b91c1c;
+    /* Bajado desde el #0969da de GitHub: mismo caso que el verde. En la badge
+       sobre la fila con :hover encima del fondo de página daba 4.30:1; con
+       #0b5ed7 pasa a 4.80:1, y sobre .card de 4.77:1 a 5.33:1. */
+    --color-blue: #0b5ed7;
+    /* Contraparte clara de --color-violet (ver :root para el porqué del par).
+       violet-700 de Tailwind: 7.10:1 sobre .card, 6.56:1 sobre el fondo de
+       página y 6.37:1 sobre la fila con :hover encima de la página, que es el
+       peor fondo de este tema. El #8b5cf6 que estaba escrito a mano en
+       alertaTokens.ts daba 4.23:1 sobre .card. Si algún día se añade una
+       .badge-violet, con la tinta del 6 % queda en 6.44:1 sobre .card y 5.80:1
+       sobre la fila resaltada. */
+    --color-violet: #6d28d9;
+    /* La tinta baja del 15 % al 6 % en tema claro: al salir del token del tema
+       claro, la tinta OSCURECE el fondo de la badge y se come la ganancia, así
+       que aquí menos tinta = más contraste. Cifras con la paleta ACTUAL (verde,
+       rojo y azul ya corregidos), midiendo los dos fondos que importan: .card en
+       reposo y la fila con :hover encima del fondo de página, que es el peor.
+       Con el 15 % las cinco quedan en 4.67–5.66:1 sobre .card pero en
+       4.22–5.12:1 sobre la fila resaltada, donde fallan dos; con el 6 %, en
+       5.33–6.52:1 y 4.80–5.88:1, y no falla ninguna. El 8 % del tema oscuro
+       también pasaría aquí (5.18–6.33:1 y 4.67–5.70:1), pero no compra nada: en
+       claro el 6 % es siempre el extremo mejor de la escala y deja el margen que
+       necesita el fondo de fila resaltada.
+       OJO: en oscuro el problema SÍ existía, al contrario de lo que afirmaba
+       este comentario antes de la revisión — lo que cambia es el sentido de la
+       corrección, porque allí la tinta aclara en vez de oscurecer y hay que
+       bajarla igualmente, ya hasta el 5 %. Ver --badge-tint en :root. */
+    --badge-tint: 6%;
   }
 
   * {
@@ -72,20 +190,41 @@
     text-decoration: none;
   }
 
+  /* El fondo era rgba(249,115,22,·) escrito a mano, con la opacidad metida en el
+     rgba(): igual que las badges antes de tokenizarlas, y con la misma
+     consecuencia. Pasar el texto a --color-accent-text no bastó, porque ese
+     texto se lee ENCIMA de la tinta: con el 15 % de entonces quedaba en 4.44:1
+     sobre el sidebar blanco y 4.13:1 sobre el fondo de página. Ahora la opacidad
+     la pone --accent-tint (6 % en claro), y el texto sube a 4.89:1 y 4.51:1.
+     El border-left TAMBIÉN pasa a --color-accent-text. Aquí antes decía que
+     podía quedarse con --color-accent porque «como componente de interfaz el
+     umbral es 3:1», y eso era falso de hecho: en tema claro el naranja de marca
+     da 2.80:1 contra el sidebar blanco y 2.59:1 contra el fondo de página, o sea
+     que no llegaba ni al 3:1 que el propio argumento invocaba. Con
+     --color-accent-text queda en 5.18:1 y 4.78:1. En tema OSCURO ese token vale
+     el mismo #f97316 de marca, así que allí no cambia nada (6.17:1 contra el
+     sidebar y 6.75:1 contra la página). El relleno sí conserva --color-accent:
+     el borde es lo que señala el estado, la tinta es decoración.
+     Hover y activo comparten tinta a propósito: el estado activo se distingue
+     por el borde izquierdo, no por tener el fondo más cargado. */
   .sidebar-link:hover {
-    background-color: rgba(249, 115, 22, 0.1);
-    color: var(--color-accent);
+    background-color: color-mix(in srgb, var(--color-accent) var(--accent-tint), transparent);
+    color: var(--color-accent-text);
   }
 
   .sidebar-link.active {
-    background-color: rgba(249, 115, 22, 0.15);
-    color: var(--color-accent);
-    border-left: 3px solid var(--color-accent);
+    background-color: color-mix(in srgb, var(--color-accent) var(--accent-tint), transparent);
+    color: var(--color-accent-text);
+    border-left: 3px solid var(--color-accent-text);
   }
 
   .btn-primary {
     background-color: var(--color-accent);
-    color: white;
+    /* Antes era `color: white`: 2.80:1 sobre el naranja en LOS DOS temas, y el
+       :hover (3.56:1) contrastaba mejor que el estado normal. Ver
+       --color-on-accent en :root para el porqué del valor y de que sea el mismo
+       en ambos temas. */
+    color: var(--color-on-accent);
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
     font-weight: 600;
@@ -111,9 +250,19 @@
     transition: all 0.15s ease;
   }
 
+  /* Este botón es transparente, así que su etiqueta en hover cae directamente
+     sobre el fondo de la página (2.59:1 en tema claro con el naranja de marca;
+     4.78:1 con --color-accent-text).
+     El borde va al mismo token, y no por gusto: aquí antes decía que podía
+     quedarse con --color-accent porque «como componente de interfaz el umbral es
+     3:1, no 4.5:1». El umbral es correcto, la conclusión no — en tema claro ese
+     naranja da 2.59:1 sobre la página y 2.80:1 sobre .card, así que suspendía
+     incluso el 3:1 que se estaba alegando. Con --color-accent-text sube a 4.78:1
+     y 5.18:1. En tema oscuro el token vale el mismo #f97316, o sea que allí el
+     botón queda exactamente igual que antes. */
   .btn-secondary:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
+    border-color: var(--color-accent-text);
+    color: var(--color-accent-text);
   }
 
   .input-field {
@@ -128,16 +277,45 @@
     transition: border-color 0.15s ease;
   }
 
+  /* Halo y borde son decoración que acompaña al foco, NO el indicador de foco:
+     ese es el box-shadow opaco de :focus-visible del final del archivo, que sí
+     va con --color-accent-text (4.78:1 y 5.18:1). Por eso estos dos se quedan
+     con el naranja de marca aunque el border-left del .sidebar-link activo y el
+     borde de .btn-secondary:hover hayan tenido que cambiar: aquellos eran el
+     ÚNICO portador de su estado y aquí hay un indicador conforme al lado. Lo que
+     se quita es el hex a mano, que era otra copia de #f97316. */
   .input-field:focus {
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 10%, transparent);
   }
 
-  .badge-green { background: rgba(34, 197, 94, 0.15); color: #22c55e; border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 0.75rem; font-weight: 600; }
-  .badge-yellow { background: rgba(234, 179, 8, 0.15); color: #eab308; border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 0.75rem; font-weight: 600; }
-  .badge-red { background: rgba(239, 68, 68, 0.15); color: #ef4444; border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 0.75rem; font-weight: 600; }
-  .badge-blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 0.75rem; font-weight: 600; }
-  .badge-gray { background: rgba(139, 148, 158, 0.15); color: var(--color-text-secondary); border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 0.75rem; font-weight: 600; }
+  /* Cada badge escribía dos veces a mano el hex de la paleta OSCURA: una en
+     `color:` y otra dentro del rgba() del fondo. El tema claro redefine
+     --color-green/-yellow/-red/-blue más arriba y las badges no se enteraban:
+     sobre .card blanca el amarillo quedaba en 1.74:1 y el verde en 2.00:1
+     (auditoría 2026-08-04) — a efectos prácticos, texto invisible.
+     Ahora el texto y su tinta salen del MISMO token, que es la duplicación que
+     causó el bug, y la opacidad la pone --badge-tint según el tema.
+     El tema oscuro tampoco estaba a salvo, aunque se dijera lo contrario: hubo
+     que aclarar --color-red y --color-blue y bajar la tinta hasta el 5 % (ver
+     :root).
+     Resultado, midiendo SIEMPRE el peor fondo de cada tema —la fila de tabla con
+     :hover, que en oscuro es peor dentro de .card y en claro es peor sobre el
+     fondo de página—: 4.58–7.23:1 en oscuro y 4.80–5.88:1 en claro. Sobre .card
+     en reposo, que es el caso cómodo, 4.73–7.51:1 y 5.33–6.52:1. */
+  .badge-green { background: color-mix(in srgb, var(--color-green) var(--badge-tint), transparent); color: var(--color-green); border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 0.75rem; font-weight: 600; }
+  .badge-yellow { background: color-mix(in srgb, var(--color-yellow) var(--badge-tint), transparent); color: var(--color-yellow); border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 0.75rem; font-weight: 600; }
+  .badge-red { background: color-mix(in srgb, var(--color-red) var(--badge-tint), transparent); color: var(--color-red); border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 0.75rem; font-weight: 600; }
+  .badge-blue { background: color-mix(in srgb, var(--color-blue) var(--badge-tint), transparent); color: var(--color-blue); border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 0.75rem; font-weight: 600; }
+  /* Esta se quedó fuera de la tokenización anterior: ese rgba(139,148,158,·) es
+     #8b949e, o sea el --color-text-secondary del tema OSCURO copiado a mano,
+     exactamente la duplicación que se eliminó en sus cuatro hermanas. Es la más
+     apretada de las cinco y por eso es la que fija --badge-tint en oscuro: con
+     la tinta del 5 % queda en 4.73:1 sobre .card y 4.58:1 sobre la fila con
+     :hover dentro de .card (con el 8 % anterior eran 4.54:1 y 4.39:1, o sea que
+     suspendía en el fondo malo). En claro, 5.86:1 sobre .card y 5.29:1 sobre la
+     fila con :hover encima del fondo de página. */
+  .badge-gray { background: color-mix(in srgb, var(--color-text-secondary) var(--badge-tint), transparent); color: var(--color-text-secondary); border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 0.75rem; font-weight: 600; }
 }
 
 /* Skeleton loading animation */
@@ -159,24 +337,39 @@
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+/* Mismo 139,148,158 = #8b949e que arrastraba .badge-gray: el gris del tema
+   OSCURO clavado a mano, que en tema claro deja el pulgar casi fundido con la
+   página (1.32:1 en reposo). Con el token sigue el mismo gesto visual pero
+   sensible al tema, y en claro se despega algo (1.54:1 y 2.14:1 en hover). Es
+   decoración sobre un track transparente, no un indicador de estado, así que no
+   se le exige el 3:1 y por eso las opacidades se quedan como estaban. */
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 148, 158, 0.3);
+  background: color-mix(in srgb, var(--color-text-secondary) 30%, transparent);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 148, 158, 0.5);
+  background: color-mix(in srgb, var(--color-text-secondary) 50%, transparent);
 }
 
 /* Focus visible rings */
+/* El anillo de foco es un indicador de interfaz: umbral 3:1. Con el #f97316 de
+   marca escrito a mano se quedaba en 2.59:1 sobre el fondo de página claro y
+   2.80:1 sobre .card, así que quien navega con teclado en tema claro casi no
+   veía dónde estaba. Con --color-accent-text pasa a 4.78:1 y 5.18:1. */
 :focus-visible {
-  outline: 2px solid #f97316;
+  outline: 2px solid var(--color-accent-text);
   outline-offset: 2px;
 }
+/* Estos campos anulan el outline, o sea que su anillo ES este box-shadow y le
+   toca el mismo umbral 3:1. Estaba en rgba(249,115,22,0.4) y era el peor de los
+   dos casos: diluir el naranja al 40 % lo mezcla con el fondo claro y lo deja en
+   1.48:1 sobre la página y 1.52:1 sobre .card, por debajo incluso del naranja
+   opaco. Va opaco y con el mismo token que el anillo de arriba. */
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.4);
+  box-shadow: 0 0 0 2px var(--color-accent-text);
 }
 
 /* Reduced motion */
@@ -192,8 +385,18 @@ textarea:focus-visible {
 table tbody tr {
   transition: background-color 0.15s;
 }
+/* Última copia a mano de #f97316. Es relleno puro, así que conserva el naranja
+   de marca y su 3 %; lo que importa es que este fondo NO es inocuo: se suma por
+   debajo de las badges de la fila y les baja el contraste, y es el fondo que
+   decide la paleta de badges en LOS DOS temas. Le costó el puesto al amarillo
+   #9a6700, y después al verde #1a7f37, al azul #0969da y al rojo #cf222e del
+   bloque claro, que aprobaban sobre .card y suspendían aquí; en oscuro es lo que
+   obligó a bajar --badge-tint del 8 % al 5 %. Ojo al sentido: en claro la tinta
+   oscurece y el peor caso es la fila sobre el fondo de página, mientras que en
+   oscuro aclara y el peor caso es la fila dentro de .card. Tokenizado queda a la
+   vista de quien vuelva a tocar la opacidad. */
 table tbody tr:hover {
-  background-color: rgba(249, 115, 22, 0.03);
+  background-color: color-mix(in srgb, var(--color-accent) 3%, transparent);
 }
 
 /* Modal fullscreen on mobile */

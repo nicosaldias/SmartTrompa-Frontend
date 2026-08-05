@@ -48,9 +48,20 @@ export function interpretNivelAjuste(value?: number | null): string {
   return value === 0 ? 'Desajustado' : 'Ajustado';
 }
 
+// Este texto responde si el respirador está bien puesto — es el dato de
+// seguridad de la plataforma — y se pinta en negrita sobre .card. Con los hex
+// escritos a mano (los de la paleta OSCURA de globals.css) el tema claro dejaba
+// "Ajustado" en 2.28:1, o sea verde limón sobre papel, y "Desajustado" en
+// 3.76:1 (auditoría de contraste 2026-08-04). Con los tokens y la paleta VIGENTE
+// el tema claro queda en #166534 → 7.13:1 y #b91c1c → 6.47:1 sobre .card blanca.
+// (Los valores que citaba este comentario, #1a7f37 5.08:1 y #cf222e 5.36:1, eran
+// los del bloque claro ANTES de que la fila de tabla con :hover obligara a bajar
+// verde y rojo una parada más.) En tema oscuro --color-green sigue valiendo
+// #22c55e (6.89:1), pero --color-red YA NO es #ef4444: se aclaró a red-400
+// #f87171 (5.68:1) porque el #ef4444 tampoco llegaba a AA sobre .card oscura.
 export function nivelAjusteColor(value?: number | null): string {
   if (value === undefined || value === null) return 'var(--color-text-secondary)';
-  return value === 0 ? '#ef4444' : '#22c55e';
+  return value === 0 ? 'var(--color-red)' : 'var(--color-green)';
 }
 
 // --- Nivel de Atollo (saturacion de filtro) ---
@@ -67,11 +78,30 @@ export function interpretNivelAtollo(value?: number | null): string {
   return 'Alta';
 }
 
+// Hermana de nivelAjusteColor y con exactamente el mismo defecto: los tres hexes
+// eran los de la paleta OSCURA de globals.css. Las dos funciones se pintan en
+// líneas contiguas de la misma tarjeta (CuadrillaClient.tsx:408-409 y :528-529),
+// así que dejar una en tokens y la otra en hex partía el par en tema claro.
+// Medido sobre .card blanco el 2026-08-04: #22c55e daba 2.28:1, #f59e0b 2.15:1
+// y #ef4444 3.76:1 — ninguno llega al 4.5:1 de AA. Con los tokens y la paleta
+// VIGENTE el tema claro pasa a 7.13:1 (#166534), 6.47:1 (#b91c1c) y 5.81:1 el
+// ámbar (#8a5c00). (Las cifras anteriores de este comentario —5.08:1 con
+// #1a7f37, 5.36:1 con #cf222e y 4.87:1 con #9a6700— son las del bloque claro
+// antes de la ronda que bajó verde, amarillo, rojo y azul otra parada para
+// aprobar también sobre la fila de tabla con :hover.)
+// El ámbar se colapsa a --color-yellow aunque #f59e0b NO sea el amarillo de la
+// paleta (#eab308): un token propio habría que declararlo en LOS DOS bloques de
+// tema de globals.css, y sin él uno de los dos temas se quedaría sin valor, que
+// es peor que el corrimiento de tono. Ese es todo el precio: un ámbar→amarillo
+// apenas perceptible y SÓLO en tema oscuro (allí --color-yellow vale #eab308,
+// que sobre .card sube de 7.31:1 a 8.19:1). En oscuro el verde no cambia ni un
+// bit (--color-green = #22c55e, el mismo hex que estaba escrito aquí); el rojo
+// sí, porque --color-red se aclaró a #f87171 (3.76:1 → 5.68:1 sobre .card).
 export function nivelAtolloColor(value?: number | null): string {
   if (value === undefined || value === null || value < 0) return 'var(--color-text-secondary)';
-  if (value <= ATOLLO_CORTE_MEDIO) return '#22c55e';
-  if (value <= ATOLLO_CORTE_ALTO) return '#f59e0b';
-  return '#ef4444';
+  if (value <= ATOLLO_CORTE_MEDIO) return 'var(--color-green)';
+  if (value <= ATOLLO_CORTE_ALTO) return 'var(--color-yellow)';
+  return 'var(--color-red)';
 }
 
 // --- Umbrales por defecto de la app movil ---

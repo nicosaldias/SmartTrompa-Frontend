@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   interpretNivelAjuste,
@@ -36,6 +38,50 @@ function mkJornada(rut: string, id = 1): JornadaTrabajo {
   return { id, rutUsuario: rut, idSupervisor: "sup-1", inicio: "2026-07-20T08:00:00Z", terminada: false };
 }
 
+// --- Lector de tokens de globals.css -----------------------------------------
+// Estas funciones ya no devuelven un hex sino un `var(--color-*)`, y eso NO se
+// puede verificar sólo con el string del token: el bug que la tokenizacion vino
+// a arreglar era precisamente que un color existiera en un tema y no en el otro
+// (las .badge-* llevaban el hex de la paleta OSCURA escrito a mano y el tema
+// claro no las tocaba). Un test que se conforme con "devuelve var(--color-red)"
+// pasaria igual aunque alguien borrara --color-red del bloque de tema claro y
+// dejara ese texto sin color en media aplicacion.
+// Por eso se lee globals.css y se resuelve el token en LOS DOS bloques de tema.
+// (Se resuelve desde process.cwd(), la raiz que fija vitest.config.mts, y no
+//  desde import.meta.url: bajo el entorno jsdom esa URL no es de esquema file.)
+const CSS_GLOBAL = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8")
+  // Los bloques :root llevan comentarios largos que pueden contener hexes de
+  // ejemplo (los valores viejos de la auditoria); si no se quitan, el parser
+  // leeria un valor que no esta vigente.
+  .replace(/\/\*[\s\S]*?\*\//g, "");
+
+function tokensDelBloque(selectorRegex: RegExp): Record<string, string> {
+  const bloque = CSS_GLOBAL.match(selectorRegex);
+  if (!bloque) throw new Error(`No se encontro el bloque de tema ${selectorRegex} en globals.css`);
+  const tokens: Record<string, string> = {};
+  for (const [, nombre, valor] of bloque[1].matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+    tokens[nombre] = valor.trim();
+  }
+  return tokens;
+}
+
+// `:root\s*\{` no matchea `:root[data-theme="light"] {` porque el `[` no es ni
+// espacio ni llave, asi que cada regex cae en su bloque y solo en el suyo.
+const TOKENS_TEMA = {
+  oscuro: tokensDelBloque(/:root\s*\{([^}]*)\}/),
+  claro: tokensDelBloque(/:root\[data-theme="light"\]\s*\{([^}]*)\}/),
+};
+
+/** Resuelve `var(--x)` contra el bloque del tema pedido. Falla si el token no
+ *  esta declarado en ESE tema, que es el modo de fallo que interesa cazar. */
+function resuelveEnTema(valor: string, tema: keyof typeof TOKENS_TEMA): string {
+  const nombre = valor.match(/^var\((--[\w-]+)\)$/)?.[1];
+  expect(nombre, `"${valor}" deberia ser un token var(--...), no un color literal`).toBeTruthy();
+  const resuelto = TOKENS_TEMA[tema][nombre!];
+  expect(resuelto, `${nombre} no esta declarado en el tema ${tema} de globals.css`).toBeTruthy();
+  return resuelto;
+}
+
 // Convencion D3 (la de la app movil): 1 = Ajustado, 0 = Desajustado.
 describe("sensorMappings - interpretNivelAjuste", () => {
   it("retorna '--' cuando el valor es null o undefined", () => {
@@ -53,13 +99,39 @@ describe("sensorMappings - interpretNivelAjuste", () => {
 });
 
 describe("sensorMappings - nivelAjusteColor", () => {
-  it("retorna color secundario cuando falta el valor", () => {
-    expect(nivelAjusteColor(null)).toContain("text-secondary");
+  // El toContain("text-secondary") original tambien pasaba con un literal tipo
+  // "color-text-secondary-oscuro"; se aprieta al token exacto ahora que el resto
+  // del describe lo hace.
+  it("retorna el token de texto secundario cuando falta el valor", () => {
+    expect(nivelAjusteColor(null)).toBe("var(--color-text-secondary)");
+    expect(resuelveEnTema(nivelAjusteColor(null), "claro")).toBe("#57606a");
+    expect(resuelveEnTema(nivelAjusteColor(null), "oscuro")).toBe("#8b949e");
   });
 
-  it("retorna rojo cuando está desajustado (0) y verde cuando está ajustado (1)", () => {
-    expect(nivelAjusteColor(0)).toBe("#ef4444");
-    expect(nivelAjusteColor(1)).toBe("#22c55e");
+  // Antes esto fijaba los hexes #ef4444 / #22c55e. Ese valor concreto era justo
+  // el problema: eran los de la paleta OSCURA quemados en el codigo, de modo que
+  // en tema claro "Ajustado" salia en verde limon sobre papel (2.28:1). El test
+  // los daba por buenos porque solo comparaba strings.
+  it("retorna el TOKEN rojo cuando está desajustado (0) y el verde cuando está ajustado (1)", () => {
+    expect(nivelAjusteColor(0)).toBe("var(--color-red)");
+    expect(nivelAjusteColor(1)).toBe("var(--color-green)");
+  });
+
+  // Este es el caso que sustituye al hex: documenta a que resuelve cada token en
+  // cada tema y, sobre todo, revienta si un tema se queda sin el token. En
+  // oscuro el verde vale exactamente el mismo hex que estaba escrito a mano
+  // antes, o sea que ese tema no cambio; el rojo oscuro si se aclaro a red-400
+  // (#f87171) porque el #ef4444 anterior no llegaba a AA ni sobre .card.
+  // En claro los dos bajaron una parada mas (#1a7f37 -> #166534 y
+  // #cf222e -> #b91c1c): aprobaban sobre .card pero se caian sobre el peor fondo
+  // del tema, la fila de tabla con :hover encima del fondo de pagina.
+  it.each([
+    ["oscuro", 0, "#f87171"],
+    ["oscuro", 1, "#22c55e"],
+    ["claro", 0, "#b91c1c"],
+    ["claro", 1, "#166534"],
+  ] as const)("en tema %s el ajuste %s se pinta %s", (tema, valor, hex) => {
+    expect(resuelveEnTema(nivelAjusteColor(valor), tema)).toBe(hex);
   });
 });
 
@@ -85,17 +157,38 @@ describe("sensorMappings - interpretNivelAtollo", () => {
 });
 
 describe("sensorMappings - nivelAtolloColor", () => {
+  // Misma correccion que en nivelAjusteColor: los tres hexes eran los de la
+  // paleta oscura escritos a mano. Las dos funciones se pintan en lineas
+  // contiguas de la misma tarjeta, asi que se mueven juntas o el par se parte
+  // en tema claro.
   it.each([
-    [30, "#22c55e"],
-    [70, "#f59e0b"],
-    [90, "#ef4444"],
-  ])("color para prediccion %s%% es %s", (input, expected) => {
+    [30, "var(--color-green)"],
+    [70, "var(--color-yellow)"],
+    [90, "var(--color-red)"],
+  ])("color para prediccion %s%% es el token %s", (input, expected) => {
     expect(nivelAtolloColor(input)).toBe(expected);
   });
 
-  it("usa el color secundario para -1/null (sin dato)", () => {
-    expect(nivelAtolloColor(-1)).toContain("text-secondary");
-    expect(nivelAtolloColor(null)).toContain("text-secondary");
+  // OJO al ambar: el hex viejo era #f59e0b y --color-yellow vale #eab308 en
+  // oscuro, o sea que el token NO es una traduccion 1:1 — hay un corrimiento de
+  // tono deliberado (ver el comentario en sensorMappings.ts). Se deja fijado
+  // aqui para que ese corrimiento sea una decision visible y no una sorpresa.
+  it.each([
+    ["oscuro", 30, "#22c55e"],
+    ["oscuro", 70, "#eab308"],
+    ["oscuro", 90, "#f87171"],
+    ["claro", 30, "#166534"],
+    ["claro", 70, "#8a5c00"],
+    ["claro", 90, "#b91c1c"],
+  ] as const)("en tema %s la prediccion %s%% se pinta %s", (tema, valor, hex) => {
+    expect(resuelveEnTema(nivelAtolloColor(valor), tema)).toBe(hex);
+  });
+
+  it("usa el token de texto secundario para -1/null (sin dato)", () => {
+    expect(nivelAtolloColor(-1)).toBe("var(--color-text-secondary)");
+    expect(nivelAtolloColor(null)).toBe("var(--color-text-secondary)");
+    expect(resuelveEnTema(nivelAtolloColor(-1), "claro")).toBe("#57606a");
+    expect(resuelveEnTema(nivelAtolloColor(-1), "oscuro")).toBe("#8b949e");
   });
 });
 

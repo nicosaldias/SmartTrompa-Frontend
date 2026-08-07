@@ -162,7 +162,8 @@
       "label": "Empresa activa",
       "global": "Todas las empresas",
       "sinEmpresas": "Sin empresas registradas",
-      "cargando": "Cargando empresas..."
+      "cargando": "Cargando empresas...",
+      "noDisponible": "{nombre} (no disponible)"
     }
   },
   "roles": {
@@ -380,6 +381,8 @@
     "viewMyTickets": "Ver mis tickets",
     "noTicketsRegistered": "No hay tickets registrados",
     "noTicketsOfMine": "No tienes tickets registrados",
+    "empresaLabel": "Empresa",
+    "sinEmpresa": "Sin empresa",
     "status": {
       "open": "Abierto",
       "inProgress": "En progreso",
@@ -693,7 +696,14 @@
     },
     "relaciones": {
       "title": "La empresa tiene registros asociados",
-      "text": "Reasigna o elimina esos registros antes de borrar la empresa"
+      "text": "Reasigna o elimina esos registros antes de borrar la empresa",
+      "claves": {
+        "trabajadores": "Trabajadores",
+        "roles": "Roles",
+        "ubicaciones": "Ubicaciones",
+        "tiposFiltro": "Tipos de filtro",
+        "tiposRespirador": "Tipos de respirador"
+      }
     },
     "disableWarn": "Los usuarios de una empresa deshabilitada no podrán iniciar sesión",
     "disableConfirmTitle": "¿Deshabilitar empresa?",
@@ -860,10 +870,32 @@
     "colTipo": "Tipo",
     "colNivel": "Nivel",
     "colFecha": "Fecha",
+    "colCalibracion": "Calibración",
     "activa": "Activa",
     "resuelta": "Resuelta",
     "umbralesTitle": "Mis umbrales vigentes",
     "sinUmbrales": "Sin umbrales asignados: aplican los valores por defecto del sistema",
     "mostrandoUltimas": "Mostrando las últimas {n}"
+  },
+  "calibracion": {
+    "titulo": "Calibración",
+    "sinRegistro": "Sin registro",
+    "omitidaSinIntentos": "Omitida sin intentos",
+    "omitidaTrasUnIntento": "Omitida tras 1 intento",
+    "omitidaTrasIntentos": "Omitida tras {n} intentos",
+    "calibroPrimera": "Calibró a la primera",
+    "calibroAlIntento": "Calibró al intento {n}",
+    "verIntentos": "Ver intentos",
+    "ocultarIntentos": "Ocultar intentos",
+    "cargandoIntentos": "Cargando intentos…",
+    "errorIntentos": "No se pudieron cargar los intentos",
+    "sinDetalleIntentos": "Sin detalle de intentos",
+    "intentoN": "Intento {n}",
+    "exitosa": "Exitosa",
+    "fallida": "Fallida",
+    "duracionSegundos": "{s} s",
+    "vcalPa": "Vcal {v} Pa",
+    "rangoPa": "rango {v} Pa",
+    "avisosLabel": "Avisos"
   }
 }

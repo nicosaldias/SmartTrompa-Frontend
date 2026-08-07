@@ -21,6 +21,7 @@ import {
 } from "@/utils/historicoCuadrilla";
 import CalendarioSemanal from "./CalendarioSemanal";
 import EmptyState from "@/components/EmptyState";
+import CalibracionJornada from "@/components/CalibracionJornada";
 
 type VistaHistorico = "lista" | "calendario";
 const VISTA_STORAGE_KEY = "visualizacion.vista";
@@ -330,6 +331,8 @@ export default function VisualizacionClient({ trabajadores }: Props) {
             )}
           </div>
         </div>
+        {/* Calibración pre-jornada: resumen + intentos bajo demanda (spec 2026-08-07) */}
+        <CalibracionJornada jornada={j} />
         {renderJornadaTimeline(j)}
       </div>
     );

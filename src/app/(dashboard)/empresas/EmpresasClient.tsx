@@ -5,6 +5,9 @@ import { api } from "@/api/client";
 import type { Empresa } from "@/types";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
+import type { TranslationKey } from "@/i18n/types";
+import { getEmpresaActivaFromCookie } from "@/utils/cookies";
+import { setEmpresaActivaAction } from "@/actions/auth";
 
 // Duplicado a propósito desde RolesUbicacionesClient: allí es un helper local
 // no exportado, y extraerlo implicaría tocar un archivo de otra familia.
@@ -56,6 +59,21 @@ export default function EmpresasClient({ initialEmpresas }: Props) {
     } catch (err) {
       console.error("Error cargando empresas:", err);
     }
+  }
+
+  /**
+   * Si la empresa recién eliminada/deshabilitada es la activa en st_empresa,
+   * limpia la cookie y recarga: sin esto el superadmin queda scoped a un
+   * tenant fantasma (X-Empresa-Id apuntando a una empresa inválida).
+   * Devuelve true si recargó (el caller no debe seguir actualizando estado).
+   */
+  async function sanearEmpresaActiva(empresaId: number): Promise<boolean> {
+    if (getEmpresaActivaFromCookie()?.id !== empresaId) return false;
+    await setEmpresaActivaAction(null);
+    // Recarga completa: los Server Components deben re-fetchear sin la cookie
+    // y el resto de la UI (Header, WebSocket) volver al scope global.
+    window.location.reload();
+    return true;
   }
 
   function abrirModal(empresa?: Empresa) {
@@ -142,6 +160,8 @@ export default function EmpresasClient({ initialEmpresas }: Props) {
     if (!result.isConfirmed) return;
     try {
       await api.empresas.toggleHabilitada(empresa.id);
+      // Al DESHABILITAR la empresa activa del superadmin, soltar el scope.
+      if (empresa.habilitada && (await sanearEmpresaActiva(empresa.id))) return;
       cargarEmpresas();
     } catch (err: unknown) {
       Swal.fire({
@@ -173,7 +193,14 @@ export default function EmpresasClient({ initialEmpresas }: Props) {
     }
     const conRegistros = Object.entries(relaciones).filter(([, n]) => n > 0);
     if (conRegistros.length > 0) {
-      const detalle = conRegistros.map(([tipo, n]) => `${tipo}: ${n}`).join(", ");
+      // Cada clave del backend se traduce vía empresas.relaciones.claves.*;
+      // si llega una desconocida, t() cae al fallback (la clave cruda).
+      const detalle = conRegistros
+        .map(
+          ([tipo, n]) =>
+            `${t(`empresas.relaciones.claves.${tipo}` as TranslationKey, undefined, tipo)}: ${n}`
+        )
+        .join(", ");
       Swal.fire({
         icon: "warning",
         title: t("empresas.relaciones.title"),
@@ -197,6 +224,8 @@ export default function EmpresasClient({ initialEmpresas }: Props) {
     if (!result.isConfirmed) return;
     try {
       await api.empresas.delete(empresa.id);
+      // Si se eliminó la empresa activa del superadmin, soltar el scope.
+      if (await sanearEmpresaActiva(empresa.id)) return;
       cargarEmpresas();
     } catch (err: unknown) {
       // Carrera posible: alguien creó registros entre relaciones() y delete().

@@ -2,7 +2,7 @@ import type {
   Trabajador, JornadaTrabajo, AlertaHistorial, MedicionesAmbientales,
   AlertasUmbrales, TipoFiltro, TipoRespirador, Rol, Ubicacion,
   Ticket, FilterStatus, TrabajadorRol, TrabajadorUbicacion, PageResponse,
-  Empresa,
+  Empresa, CalibracionIntento, AuditLogEntry, Ajustes,
 } from '@/types';
 
 // ===== Date helpers =====
@@ -81,20 +81,48 @@ export const MOCK_TIPO_RESPIRADORES: TipoRespirador[] = [
 ];
 
 // ===== JORNADAS =====
+// Calibración (V12 + V15): los ejemplos cubren los 5 desenlaces posibles —
+// NULL (app vieja, sin campos: jornadas 3 y 7), 0 (omitió sin intentar: 6),
+// 1 (a la primera: 1, 2 y 5) y N (varios intentos: 4; intentó y aun así
+// omitió: 2). El detalle por intento vive en MOCK_CALIBRACION_INTENTOS.
 const JORNADAS_ACTIVAS: JornadaTrabajo[] = [
-  { id: 1, rutUsuario: '15.678.901-2', idSupervisor: '13.456.789-0', idFiltro: 1, idRespirador: 1, ubicacion: MOCK_UBICACIONES[0], rol: MOCK_ROLES[0], inicio: todayAt(8, 0), terminada: false, dispositivo: 'SENSOR-001', estadoRespirador: 'USADO', estadoFiltro: 'USADO' },
-  { id: 2, rutUsuario: '16.789.012-3', idSupervisor: '13.456.789-0', idFiltro: 2, idRespirador: 2, ubicacion: MOCK_UBICACIONES[2], rol: MOCK_ROLES[2], inicio: todayAt(7, 30), terminada: false, dispositivo: 'SENSOR-002', estadoRespirador: 'NUEVO', estadoFiltro: 'USADO' },
+  { id: 1, rutUsuario: '15.678.901-2', idSupervisor: '13.456.789-0', idFiltro: 1, idRespirador: 1, ubicacion: MOCK_UBICACIONES[0], rol: MOCK_ROLES[0], inicio: todayAt(8, 0), terminada: false, dispositivo: 'SENSOR-001', estadoRespirador: 'USADO', estadoFiltro: 'USADO', origenCalibracion: 'AUTOMATICA', intentosCalibracion: 1 },
+  { id: 2, rutUsuario: '16.789.012-3', idSupervisor: '13.456.789-0', idFiltro: 2, idRespirador: 2, ubicacion: MOCK_UBICACIONES[2], rol: MOCK_ROLES[2], inicio: todayAt(7, 30), terminada: false, dispositivo: 'SENSOR-002', estadoRespirador: 'NUEVO', estadoFiltro: 'USADO', origenCalibracion: 'OMITIDA', intentosCalibracion: 2 },
   { id: 3, rutUsuario: '17.890.123-4', idSupervisor: '14.567.890-1', idFiltro: 3, idRespirador: 3, ubicacion: MOCK_UBICACIONES[3], rol: MOCK_ROLES[1], inicio: todayAt(9, 0), terminada: false, dispositivo: 'SENSOR-003', estadoRespirador: 'USADO', estadoFiltro: 'NUEVO' },
 ];
 
 const JORNADAS_TERMINADAS: JornadaTrabajo[] = [
-  { id: 4, rutUsuario: '15.678.901-2', idSupervisor: '13.456.789-0', idFiltro: 1, idRespirador: 1, ubicacion: MOCK_UBICACIONES[0], rol: MOCK_ROLES[0], inicio: daysAgo(1, 8), fin: daysAgo(1, 17), terminada: true, dispositivo: 'SENSOR-001', estadoRespirador: 'USADO', estadoFiltro: 'USADO' },
-  { id: 5, rutUsuario: '18.901.234-5', idSupervisor: '14.567.890-1', idFiltro: 2, idRespirador: 2, ubicacion: MOCK_UBICACIONES[1], rol: MOCK_ROLES[1], inicio: daysAgo(2, 7), fin: daysAgo(2, 16, 30), terminada: true, dispositivo: 'SENSOR-004', estadoRespirador: 'NUEVO', estadoFiltro: 'USADO' },
-  { id: 6, rutUsuario: '16.789.012-3', idSupervisor: '13.456.789-0', idFiltro: 2, idRespirador: 2, ubicacion: MOCK_UBICACIONES[2], rol: MOCK_ROLES[2], inicio: daysAgo(3, 8), fin: daysAgo(3, 16), terminada: true, dispositivo: 'SENSOR-002', estadoRespirador: 'USADO', estadoFiltro: 'USADO' },
+  { id: 4, rutUsuario: '15.678.901-2', idSupervisor: '13.456.789-0', idFiltro: 1, idRespirador: 1, ubicacion: MOCK_UBICACIONES[0], rol: MOCK_ROLES[0], inicio: daysAgo(1, 8), fin: daysAgo(1, 17), terminada: true, dispositivo: 'SENSOR-001', estadoRespirador: 'USADO', estadoFiltro: 'USADO', origenCalibracion: 'MANUAL', intentosCalibracion: 3 },
+  { id: 5, rutUsuario: '18.901.234-5', idSupervisor: '14.567.890-1', idFiltro: 2, idRespirador: 2, ubicacion: MOCK_UBICACIONES[1], rol: MOCK_ROLES[1], inicio: daysAgo(2, 7), fin: daysAgo(2, 16, 30), terminada: true, dispositivo: 'SENSOR-004', estadoRespirador: 'NUEVO', estadoFiltro: 'USADO', origenCalibracion: 'MANUAL', intentosCalibracion: 1 },
+  { id: 6, rutUsuario: '16.789.012-3', idSupervisor: '13.456.789-0', idFiltro: 2, idRespirador: 2, ubicacion: MOCK_UBICACIONES[2], rol: MOCK_ROLES[2], inicio: daysAgo(3, 8), fin: daysAgo(3, 16), terminada: true, dispositivo: 'SENSOR-002', estadoRespirador: 'USADO', estadoFiltro: 'USADO', origenCalibracion: 'OMITIDA', intentosCalibracion: 0 },
   { id: 7, rutUsuario: '17.890.123-4', idSupervisor: '14.567.890-1', idFiltro: 3, idRespirador: 3, ubicacion: MOCK_UBICACIONES[3], rol: MOCK_ROLES[1], inicio: daysAgo(4, 9), fin: daysAgo(4, 17, 30), terminada: true, dispositivo: 'SENSOR-003', estadoRespirador: 'USADO', estadoFiltro: 'USADO' },
 ];
 
 export const MOCK_JORNADAS: JornadaTrabajo[] = [...JORNADAS_ACTIVAS, ...JORNADAS_TERMINADAS];
+
+// ===== CALIBRACION: DETALLE DE INTENTOS =====
+// vcal ~26700 Pa = base del sensor BLE (misma convención que MedicionesAmbientales).
+export const MOCK_CALIBRACION_INTENTOS: Record<number, CalibracionIntento[]> = {
+  // Jornada 1: recalibración automática válida al primer intento.
+  1: [
+    { numero: 1, exitosa: true, vcalPa: 26703.1, rangoPa: 7.8, motivoDescarte: null, avisos: null, iniciadoEn: todayAt(7, 55), duracionMs: 10003 },
+  ],
+  // Jornada 2: intentó dos veces, ninguna válida, y abrió con la calibración omitida.
+  2: [
+    { numero: 1, exitosa: false, vcalPa: null, rangoPa: 48.3, motivoDescarte: 'Rango de presión excesivo: respire suave y sostenido', avisos: null, iniciadoEn: todayAt(7, 24), duracionMs: 10017 },
+    { numero: 2, exitosa: false, vcalPa: null, rangoPa: null, motivoDescarte: 'Calibración cancelada antes de completar la ventana', avisos: null, iniciadoEn: todayAt(7, 27), duracionMs: 4210 },
+  ],
+  // Jornada 4: dos intentos fallidos y el tercero válido (con aviso de calidad).
+  4: [
+    { numero: 1, exitosa: false, vcalPa: null, rangoPa: 41.8, motivoDescarte: 'Rango de presión excesivo: respire suave y sostenido', avisos: null, iniciadoEn: daysAgo(1, 7, 48), duracionMs: 10021 },
+    { numero: 2, exitosa: false, vcalPa: null, rangoPa: 35.2, motivoDescarte: 'Se detectaron saltos bruscos de presión durante la ventana', avisos: null, iniciadoEn: daysAgo(1, 7, 51), duracionMs: 10008 },
+    { numero: 3, exitosa: true, vcalPa: 26712.4, rangoPa: 12.6, motivoDescarte: null, avisos: 'Humedad alta durante la ventana de calibración', iniciadoEn: daysAgo(1, 7, 54), duracionMs: 10012 },
+  ],
+  // Jornada 5: calibró a la primera, sin avisos.
+  5: [
+    { numero: 1, exitosa: true, vcalPa: 26698.9, rangoPa: 9.4, motivoDescarte: null, avisos: null, iniciadoEn: daysAgo(2, 6, 52), duracionMs: 10005 },
+  ],
+};
 
 // ===== ALERTAS =====
 export const MOCK_ALERTAS: AlertaHistorial[] = [
@@ -146,6 +174,22 @@ export const MOCK_TICKETS: Ticket[] = [
   { id: 2, asunto: 'Solicitud cambio de filtro', descripcion: 'Filtro 3M 6003 presenta resistencia elevada, solicito reemplazo', estado: 'EN_PROGRESO', creadoEn: daysAgo(1, 11), rutTrabajador: '16.789.012-3', trabajador: MOCK_TRABAJADORES[4] },
   { id: 3, asunto: 'Calibración sensor presión', descripcion: 'Sensor de presión requiere calibración mensual', estado: 'CERRADO', creadoEn: daysAgo(3, 9), rutTrabajador: '18.901.234-5', trabajador: MOCK_TRABAJADORES[6] },
   { id: 4, asunto: 'Error lectura batería', descripcion: 'Lectura de batería SENSOR-003 oscila entre 8% y 50%', estado: 'ABIERTO', creadoEn: minutesAgo(30), rutTrabajador: '17.890.123-4', trabajador: MOCK_TRABAJADORES[5] },
+];
+
+// ===== AUDIT LOG =====
+// Bitácora append-only (V11): acciones VERBO_RECURSO[_SUBACCION] como las
+// genera AuditAspect. Multitenant: entradas de las DOS empresas demo (empresaId
+// denormalizado, D14) más una global del SuperAdministrador (empresaId null),
+// para que la columna Empresa de la vista superadmin tenga qué mostrar.
+export const MOCK_AUDIT_LOG: AuditLogEntry[] = [
+  { id: 8, actorRut: '11.111.111-1', actorCargo: 'SuperAdministrador', accion: 'EDITAR_EMPRESA_HABILITADA', entidad: 'empresa', entidadId: '3', detalle: '{"habilitada":false}', resultado: 'OK', origen: '181.43.10.22', timestamp: minutesAgo(10), empresaId: null },
+  { id: 7, actorRut: '12.345.678-5', actorCargo: 'Administrador', accion: 'CREAR_TRABAJADOR_CREATE_USER', entidad: 'trabajador', entidadId: '16.789.012-3', detalle: '{"cargo":"Trabajador"}', resultado: 'OK', origen: '190.161.5.14', timestamp: minutesAgo(35), empresaId: 1 },
+  { id: 6, actorRut: '14.567.890-1', actorCargo: 'Supervisor', accion: 'ELIMINAR_ALERTAS_HISTORIAL', entidad: 'alertas-historial', entidadId: '12', detalle: null, resultado: 'DENEGADO', origen: '200.83.44.7', timestamp: minutesAgo(80), empresaId: 2 },
+  { id: 5, actorRut: '13.456.789-0', actorCargo: 'Supervisor', accion: 'EDITAR_ALERTAS_HISTORIAL_RESOLVER', entidad: 'alertas-historial', entidadId: '8', detalle: '{"resolucion":"Reajuste realizado"}', resultado: 'OK', origen: '190.161.5.20', timestamp: minutesAgo(120), empresaId: 1 },
+  { id: 4, actorRut: '14.567.890-1', actorCargo: 'Supervisor', accion: 'CREAR_ALERTAS_UMBRALES_BULK', entidad: 'alertas-umbrales', entidadId: null, detalle: '{"ruts":2}', resultado: 'OK', origen: '200.83.44.7', timestamp: daysAgo(1, 9, 30), empresaId: 2 },
+  { id: 3, actorRut: '12.345.678-5', actorCargo: 'Administrador', accion: 'EDITAR_TIPO_FILTRO', entidad: 'tipo-filtro', entidadId: '2', detalle: '{"vidaUtilHoras":200}', resultado: 'ERROR', origen: '190.161.5.14', timestamp: daysAgo(1, 16), empresaId: 1 },
+  { id: 2, actorRut: '11.111.111-1', actorCargo: 'SuperAdministrador', accion: 'CREAR_EMPRESA', entidad: 'empresa', entidadId: '2', detalle: '{"nombre":"Constructora Pacífico"}', resultado: 'OK', origen: '181.43.10.22', timestamp: daysAgo(2, 12), empresaId: null },
+  { id: 1, actorRut: null, actorCargo: null, accion: 'CREAR_TRABAJADOR_LOGIN', entidad: 'trabajador', entidadId: null, detalle: '{"rut":"19.012.345-6"}', resultado: 'DENEGADO', origen: '45.170.2.91', timestamp: daysAgo(2, 8), empresaId: 3 },
 ];
 
 // ===== FILTER STATUS =====
@@ -254,6 +298,10 @@ export function getMockResponse(url: string, method: string, body?: BodyInit | n
     const rut = decodeURIComponent(path.split('/')[3]);
     return MOCK_JORNADAS.filter(j => j.rutUsuario === rut);
   }
+  if (path.match(/^\/jornada-trabajo\/\d+\/calibracion-intentos$/)) {
+    const id = +path.split('/')[2];
+    return MOCK_CALIBRACION_INTENTOS[id] ?? [];
+  }
   if (path.match(/^\/jornada-trabajo\/\d+$/)) {
     const id = +path.split('/')[2];
     return MOCK_JORNADAS.find(j => j.id === id) || MOCK_JORNADAS[0];
@@ -307,6 +355,14 @@ export function getMockResponse(url: string, method: string, body?: BodyInit | n
   }
 
   // Mediciones ambientales
+  // Resumen de ajuste de la jornada: coherente con las mediciones mock
+  // (nivelAjuste 1 = ajustado), como calcula el backend en /ajustes/.
+  if (path.match(/^\/mediciones-ambientales\/jornada\/\d+\/ajustes$/)) {
+    const id = +path.split('/')[3];
+    const meds = MOCK_MEDICIONES[id] || [];
+    const ajustado = meds.filter(m => m.nivelAjuste === 1).length;
+    return { ajustado, desajustado: meds.length - ajustado } satisfies Ajustes;
+  }
   if (path.match(/^\/mediciones-ambientales\/jornada\/\d+$/)) {
     const id = +path.split('/')[3];
     return MOCK_MEDICIONES[id] || [];
@@ -366,6 +422,21 @@ export function getMockResponse(url: string, method: string, body?: BodyInit | n
   if (path.match(/^\/ticket\/\d+$/)) {
     const id = +path.split('/')[2];
     return MOCK_TICKETS.find(t => t.id === id) || MOCK_TICKETS[0];
+  }
+
+  // Audit log — como el backend real: filtrar ANTES de paginar para que
+  // totalElements/totalPages correspondan a las filas que cumplen los filtros.
+  if (path === '/audit-log') {
+    const actorParam = params.get('actor')?.trim().toLowerCase();
+    const accionParam = params.get('accion')?.trim().toLowerCase();
+    const desdeParam = params.get('desde');
+    const hastaParam = params.get('hasta');
+    let filtradas = MOCK_AUDIT_LOG;
+    if (actorParam) filtradas = filtradas.filter(e => (e.actorRut ?? '').toLowerCase().includes(actorParam));
+    if (accionParam) filtradas = filtradas.filter(e => e.accion.toLowerCase().includes(accionParam));
+    if (desdeParam) filtradas = filtradas.filter(e => new Date(e.timestamp) >= new Date(desdeParam));
+    if (hastaParam) filtradas = filtradas.filter(e => new Date(e.timestamp) <= new Date(`${hastaParam}T23:59:59`));
+    return createPageResponse(filtradas, +(params.get('page') || 0), +(params.get('size') || 50));
   }
 
   // Filter lifecycle

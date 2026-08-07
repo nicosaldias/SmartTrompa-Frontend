@@ -11,6 +11,7 @@ import type {
 import { Wind, Bell, Clock } from "lucide-react";
 import { useT } from "@/i18n/LanguageProvider";
 import { formatFechaHora } from "@/utils/fechas";
+import { resumenCalibracion } from "@/utils/calibracion";
 import EmptyState from "@/components/EmptyState";
 
 const POLL_MS = 30_000;
@@ -242,28 +243,45 @@ export default function MiHistorialClient({
                   <th style={thStyle}>{t("miHistorial.colInicio")}</th>
                   <th style={thStyle}>{t("miHistorial.colFin")}</th>
                   <th style={thStyle}>{t("miHistorial.colDispositivo")}</th>
+                  <th style={thStyle}>{t("miHistorial.colCalibracion")}</th>
                   <th style={thStyle}>{t("miHistorial.colEstado")}</th>
                 </tr>
               </thead>
               <tbody>
-                {jornadasOrdenadas.slice(0, MAX_FILAS).map((jornada) => (
-                  <tr key={jornada.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                    <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
-                      {formatFechaHora(jornada.inicio)}
-                    </td>
-                    <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
-                      {jornada.fin ? formatFechaHora(jornada.fin) : "—"}
-                    </td>
-                    <td style={tdStyle}>{jornada.dispositivo ?? "—"}</td>
-                    <td style={tdStyle}>
-                      <span
-                        className={`badge ${jornada.terminada ? "badge-green" : "badge-yellow"}`}
-                      >
-                        {jornada.terminada ? t("miHistorial.terminada") : t("miHistorial.enCurso")}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {jornadasOrdenadas.slice(0, MAX_FILAS).map((jornada) => {
+                  // Resumen de calibración pre-jornada (V12+V15): "Calibró a la
+                  // primera", "Omitida sin intentos", "Sin registro" (app vieja)…
+                  const cal = resumenCalibracion(jornada);
+                  return (
+                    <tr key={jornada.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
+                      <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
+                        {formatFechaHora(jornada.inicio)}
+                      </td>
+                      <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
+                        {jornada.fin ? formatFechaHora(jornada.fin) : "—"}
+                      </td>
+                      <td style={tdStyle}>{jornada.dispositivo ?? "—"}</td>
+                      <td style={tdStyle}>
+                        <span
+                          style={{
+                            color: cal.omitida ? "var(--color-yellow)" : "var(--color-text-secondary)",
+                            fontWeight: cal.omitida ? 700 : undefined,
+                            fontStyle: cal.sinRegistro ? "italic" : undefined,
+                          }}
+                        >
+                          {t(cal.key, cal.params)}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>
+                        <span
+                          className={`badge ${jornada.terminada ? "badge-green" : "badge-yellow"}`}
+                        >
+                          {jornada.terminada ? t("miHistorial.terminada") : t("miHistorial.enCurso")}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -40,6 +40,10 @@ export default function EmpresaSelector() {
       .catch(() => setEmpresas([]));
   }, []);
 
+  // Solo las habilitadas son elegibles: activar una empresa deshabilitada
+  // dejaría al superadmin operando un tenant cuyos usuarios no pueden entrar.
+  const habilitadas = (empresas ?? []).filter((e) => e.habilitada);
+
   const onChange = async (valor: string) => {
     const anterior = seleccion;
     // Optimista: el select controlado debe reflejar la elección mientras la
@@ -52,7 +56,7 @@ export default function EmpresaSelector() {
         // al scope global y el backend deja de recibir X-Empresa-Id útil.
         await setEmpresaActivaAction(null);
       } else {
-        const empresa = empresas?.find((e) => String(e.id) === valor);
+        const empresa = habilitadas.find((e) => String(e.id) === valor);
         if (!empresa) throw new Error("empresa no encontrada en el listado");
         await setEmpresaActivaAction({ id: empresa.id, nombre: empresa.nombre });
       }
@@ -70,9 +74,13 @@ export default function EmpresaSelector() {
   };
 
   const cargando = empresas === null;
-  const sinEmpresas = empresas !== null && empresas.length === 0;
-  const deshabilitado = cargando || cambiando || sinEmpresas;
   const scopeEmpresa = seleccion !== SCOPE_GLOBAL;
+  // La empresa activa quedó deshabilitada o ya no existe: se muestra marcada
+  // como no disponible (no elegible) y se deja volver a "Todas las empresas".
+  const activaNoDisponible =
+    !cargando && scopeEmpresa && !habilitadas.some((e) => String(e.id) === seleccion);
+  const sinEmpresas = !cargando && habilitadas.length === 0 && !activaNoDisponible;
+  const deshabilitado = cargando || cambiando || sinEmpresas;
 
   return (
     <span
@@ -115,13 +123,18 @@ export default function EmpresaSelector() {
         ) : (
           <>
             <option value={SCOPE_GLOBAL}>{t("header.empresaSelector.global")}</option>
-            {/* Si la empresa activa ya no viene en el listado (p. ej. quedó
-                deshabilitada), igual se muestra como opción para que el select
-                no apunte a un valor inexistente. */}
-            {scopeEmpresa && !empresas.some((e) => String(e.id) === seleccion) && (
-              <option value={seleccion}>{activaNombre ?? seleccion}</option>
+            {/* La activa quedó fuera de las habilitadas: se conserva como opción
+                (el select no puede apuntar a un valor inexistente) pero marcada
+                como no disponible y disabled, para que solo se pueda salir de
+                ella hacia el scope global u otra empresa habilitada. */}
+            {activaNoDisponible && (
+              <option value={seleccion} disabled>
+                {t("header.empresaSelector.noDisponible", {
+                  nombre: activaNombre ?? seleccion,
+                })}
+              </option>
             )}
-            {empresas.map((e) => (
+            {habilitadas.map((e) => (
               <option key={e.id} value={String(e.id)}>
                 {e.nombre}
               </option>

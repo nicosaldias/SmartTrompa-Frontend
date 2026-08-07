@@ -36,6 +36,8 @@ export const jornadaEndpoints = {
   bySupervisor: (rut: string) => `${API_BASE_URL}/jornada-trabajo/supervisor/${rut}/`,
   historial: () => `${API_BASE_URL}/jornada-trabajo/historial/`,
   finalizar: () => `${API_BASE_URL}/jornada-trabajo/finalizar-jornada/`,
+  // Detalle de intentos de calibración pre-jornada (V15).
+  calibracionIntentos: (id: number) => `${API_BASE_URL}/jornada-trabajo/${id}/calibracion-intentos/`,
 };
 
 export const rolEndpoints = {

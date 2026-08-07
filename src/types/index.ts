@@ -72,6 +72,9 @@ export interface TrabajadorUbicacion {
   ubicacion?: Ubicacion;
 }
 
+// Desenlace de la calibración pre-jornada (V12): cómo terminó, no cuántas veces se intentó.
+export type OrigenCalibracion = 'MANUAL' | 'AUTOMATICA' | 'OMITIDA';
+
 export interface JornadaTrabajo {
   id: number;
   rutUsuario: string;
@@ -86,6 +89,27 @@ export interface JornadaTrabajo {
   estadoRespirador?: EstadoEquipamiento;
   estadoFiltro?: EstadoEquipamiento;
   terminada: boolean;
+  origenCalibracion?: OrigenCalibracion | null;
+  // Contador denormalizado de intentos de calibración (V15). Mismo criterio
+  // NULL-vs-hecho que V12: NULL/ausente = app vieja que no registraba,
+  // 0 = omitió sin intentar, N = cantidad de intentos.
+  intentosCalibracion?: number | null;
+}
+
+/**
+ * Un intento de calibración pre-jornada (1 fila por pulsación de "Calibrar
+ * sensor" en la app). GET /jornada-trabajo/{id}/calibracion-intentos/,
+ * ordenado por numero (1-based, cronológico).
+ */
+export interface CalibracionIntento {
+  numero: number;
+  exitosa: boolean;
+  vcalPa: number | null;
+  rangoPa: number | null;
+  motivoDescarte: string | null;
+  avisos: string | null;
+  iniciadoEn: string | null;
+  duracionMs: number | null;
 }
 
 export interface AlertaHistorial {

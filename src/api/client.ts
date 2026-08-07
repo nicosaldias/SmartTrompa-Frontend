@@ -37,6 +37,7 @@ import type {
   Ajustes,
   RelacionesResumen,
   AuditLogEntry,
+  CalibracionIntento,
 } from '@/types';
 import { getMockResponse } from './mock-data';
 
@@ -166,15 +167,27 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
 
   // On 401, attempt to refresh tokens and retry the original request once
   if (res.status === 401) {
-    // Avoid multiple simultaneous refresh calls
-    if (!isRefreshing) {
-      isRefreshing = true;
-      refreshPromise = attemptRefresh(cookieHeader);
+    // Deduplicar el refresh SOLO en el navegador: ahí el módulo pertenece a
+    // UNA sesión y compartir la promesa evita ráfagas de /refresh/. En SSR el
+    // módulo es compartido por TODAS las requests concurrentes del proceso:
+    // con estado global, el 401 del usuario B esperaba el refresh del usuario
+    // A y lo interpretaba como propio (auditoría 2026-08-07). En el servidor
+    // cada request refresca con SU cookieHeader, sin estado compartido.
+    let promesaRefresh: Promise<boolean>;
+    if (typeof window !== 'undefined') {
+      if (!isRefreshing) {
+        isRefreshing = true;
+        refreshPromise = attemptRefresh(cookieHeader).finally(() => {
+          isRefreshing = false;
+          refreshPromise = null;
+        });
+      }
+      promesaRefresh = refreshPromise as Promise<boolean>;
+    } else {
+      promesaRefresh = attemptRefresh(cookieHeader);
     }
 
-    const refreshed = await refreshPromise;
-    isRefreshing = false;
-    refreshPromise = null;
+    const refreshed = await promesaRefresh;
 
     if (refreshed) {
       // Retry the original request with fresh tokens
@@ -350,6 +363,10 @@ export const api = {
         { cookieHeader }
       );
     },
+    // Intentos de calibración pre-jornada, ordenados por numero. Mismo guard
+    // D15 que byId: jornada ajena o inexistente responden el mismo 404.
+    calibracionIntentos: (id: number, cookieHeader?: string) =>
+      request<CalibracionIntento[]>(jornadaEndpoints.calibracionIntentos(id), { cookieHeader }),
   },
 
   alertas: {

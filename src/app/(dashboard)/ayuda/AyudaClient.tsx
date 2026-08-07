@@ -460,15 +460,32 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                         </p>
                         <p
                           style={{
+                            display: "flex",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: "0.375rem",
                             fontSize: "0.75rem",
                             color: "var(--color-text-secondary)",
                             marginTop: "0.125rem",
                           }}
                         >
-                          {vistaAdmin && ticket.trabajador
-                            ? `${ticket.trabajador.nombre} ${ticket.trabajador.apellidoPaterno || ""} — `
-                            : ""}
-                          {formatFecha(ticket.creadoEn)}
+                          {/* Solo en la vista global del SuperAdministrador: de qué
+                              empresa viene el ticket (via trabajador.empresa). */}
+                          {isSuperAdmin && vistaAdmin && (
+                            <span
+                              className="badge-gray"
+                              style={{ fontSize: "0.65rem", flexShrink: 0 }}
+                              title={t("ayuda.empresaLabel")}
+                            >
+                              {ticket.trabajador?.empresa?.nombre ?? t("ayuda.sinEmpresa")}
+                            </span>
+                          )}
+                          <span>
+                            {vistaAdmin && ticket.trabajador
+                              ? `${ticket.trabajador.nombre} ${ticket.trabajador.apellidoPaterno || ""} — `
+                              : ""}
+                            {formatFecha(ticket.creadoEn)}
+                          </span>
                         </p>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, marginLeft: "0.75rem" }}>

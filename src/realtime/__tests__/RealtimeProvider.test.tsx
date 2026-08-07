@@ -48,12 +48,25 @@ type FakeStompClient = InstanceType<typeof FakeStompClient>;
 
 vi.mock("@stomp/stompjs", () => ({ Client: FakeStompClient }));
 
-function setUserCookie(cargo: string | null) {
+// Desde la auditoría 2026-08-07 el canal es namespaced-only: sin empresa
+// resuelta NO se conecta (nada de topics legacy globales). La cookie lleva
+// empresaId como en las sesiones reales post-multitenant.
+function setUserCookie(cargo: string | null, empresaId: number | null = 7) {
   if (cargo === null) {
     document.cookie = "st_user=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     return;
   }
-  document.cookie = `st_user=${encodeURIComponent(JSON.stringify({ nombre: "Test", cargo }))}`;
+  document.cookie = `st_user=${encodeURIComponent(
+    JSON.stringify({ nombre: "Test", cargo, empresaId })
+  )}`;
+}
+
+function setEmpresaActiva(id: number | null) {
+  if (id === null) {
+    document.cookie = "st_empresa=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    return;
+  }
+  document.cookie = `st_empresa=${encodeURIComponent(JSON.stringify({ id, nombre: "Empresa" }))}`;
 }
 
 function Status() {
@@ -81,6 +94,8 @@ describe("wsUrlFromApi", () => {
 describe("RealtimeProvider", () => {
   beforeEach(() => {
     clientInstances.length = 0;
+    setUserCookie(null);
+    setEmpresaActiva(null);
   });
 
   it("no conecta si la sesión es de un Trabajador", () => {
@@ -104,8 +119,41 @@ describe("RealtimeProvider", () => {
     expect(clientInstances).toHaveLength(0);
   });
 
-  it("con un Administrador conecta, se suscribe a los 3 topics y pasa a live", async () => {
-    setUserCookie("Administrador");
+  it("gestor SIN empresaId (cookie pre-multitenant): no conecta ni cae a topics legacy", () => {
+    // Tras V14 el único cargo sin empresa es el SuperAdministrador; una
+    // sesión vieja sin empresaId queda offline hasta el próximo login.
+    setUserCookie("Administrador", null);
+    render(
+      <RealtimeProvider>
+        <Status />
+      </RealtimeProvider>
+    );
+    expect(clientInstances).toHaveLength(0);
+    expect(screen.getByTestId("status").textContent).toBe("offline");
+  });
+
+  it("superadmin sin empresa activa: no conecta (no hay canal que mirar)", () => {
+    setUserCookie("SuperAdministrador", null);
+    render(<RealtimeProvider>{null}</RealtimeProvider>);
+    expect(clientInstances).toHaveLength(0);
+  });
+
+  it("superadmin con empresa activa: suscribe el namespace de ESA empresa", () => {
+    setUserCookie("SuperAdministrador", null);
+    setEmpresaActiva(3);
+    render(<RealtimeProvider>{null}</RealtimeProvider>);
+    expect(clientInstances).toHaveLength(1);
+    const client = clientInstances[0];
+    act(() => client.config.onConnect?.());
+    expect([...client.subscriptions.keys()].sort()).toEqual([
+      "/topic/empresa/3/alertas",
+      "/topic/empresa/3/jornadas",
+      "/topic/empresa/3/mediciones",
+    ]);
+  });
+
+  it("con un Administrador conecta, se suscribe a los 3 topics de su empresa y pasa a live", async () => {
+    setUserCookie("Administrador", 7);
     render(
       <RealtimeProvider>
         <Status />
@@ -122,14 +170,14 @@ describe("RealtimeProvider", () => {
       expect(screen.getByTestId("status").textContent).toBe("live");
     });
     expect([...client.subscriptions.keys()].sort()).toEqual([
-      "/topic/alertas",
-      "/topic/jornadas",
-      "/topic/mediciones",
+      "/topic/empresa/7/alertas",
+      "/topic/empresa/7/jornadas",
+      "/topic/empresa/7/mediciones",
     ]);
   });
 
   it("entrega cada mensaje parseado al handler de su topic y vuelve a offline al cerrarse", async () => {
-    setUserCookie("Supervisor");
+    setUserCookie("Supervisor", 7);
     const recibidos: unknown[] = [];
     function Consumidor() {
       useRealtime("alertas", (payload) => recibidos.push(payload));
@@ -145,12 +193,12 @@ describe("RealtimeProvider", () => {
     act(() => client.config.onConnect?.());
 
     act(() => {
-      client.subscriptions.get("/topic/alertas")?.({
+      client.subscriptions.get("/topic/empresa/7/alertas")?.({
         body: JSON.stringify({ tipo: "CREADA", id: 7 }),
       });
       // Un frame corrupto no debe romper ni llegar al handler.
-      client.subscriptions.get("/topic/alertas")?.({ body: "{no-json" });
-      client.subscriptions.get("/topic/jornadas")?.({
+      client.subscriptions.get("/topic/empresa/7/alertas")?.({ body: "{no-json" });
+      client.subscriptions.get("/topic/empresa/7/jornadas")?.({
         body: JSON.stringify({ tipo: "INICIADA", id: 1 }),
       });
     });
@@ -164,7 +212,7 @@ describe("RealtimeProvider", () => {
   });
 
   it("espacia la reconexión tras 5 cierres seguidos y la restablece al conectar", () => {
-    setUserCookie("Administrador");
+    setUserCookie("Administrador", 7);
     render(<RealtimeProvider>{null}</RealtimeProvider>);
     const client = clientInstances[0];
 

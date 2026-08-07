@@ -83,6 +83,9 @@ function clearSessionAndRedirectToLogin(request: NextRequest): NextResponse {
   response.cookies.delete({ name: "accessToken", path: "/", domain: COOKIE_DOMAIN });
   response.cookies.delete({ name: "refreshToken", path: "/", domain: COOKIE_DOMAIN });
   response.cookies.delete({ name: "st_user", path: "/", domain: COOKIE_DOMAIN });
+  // La empresa activa del superadmin muere con la sesión: si otro usuario
+  // entra después en este navegador, no debe heredar el scope st_empresa.
+  response.cookies.delete({ name: "st_empresa", path: "/", domain: COOKIE_DOMAIN });
   return response;
 }
 

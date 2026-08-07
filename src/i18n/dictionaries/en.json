@@ -162,7 +162,8 @@
       "label": "Active company",
       "global": "All companies",
       "sinEmpresas": "No companies registered",
-      "cargando": "Loading companies..."
+      "cargando": "Loading companies...",
+      "noDisponible": "{nombre} (unavailable)"
     }
   },
   "roles": {
@@ -380,6 +381,8 @@
     "viewMyTickets": "View my tickets",
     "noTicketsRegistered": "No tickets registered",
     "noTicketsOfMine": "You have no tickets registered",
+    "empresaLabel": "Company",
+    "sinEmpresa": "No company",
     "status": {
       "open": "Open",
       "inProgress": "In progress",
@@ -693,7 +696,14 @@
     },
     "relaciones": {
       "title": "The company has associated records",
-      "text": "Reassign or delete those records before deleting the company"
+      "text": "Reassign or delete those records before deleting the company",
+      "claves": {
+        "trabajadores": "Workers",
+        "roles": "Roles",
+        "ubicaciones": "Locations",
+        "tiposFiltro": "Filter types",
+        "tiposRespirador": "Respirator types"
+      }
     },
     "disableWarn": "Users of a disabled company will not be able to sign in",
     "disableConfirmTitle": "Disable company?",
@@ -860,10 +870,32 @@
     "colTipo": "Type",
     "colNivel": "Level",
     "colFecha": "Date",
+    "colCalibracion": "Calibration",
     "activa": "Active",
     "resuelta": "Resolved",
     "umbralesTitle": "My current thresholds",
     "sinUmbrales": "No thresholds assigned: system defaults apply",
     "mostrandoUltimas": "Showing the last {n}"
+  },
+  "calibracion": {
+    "titulo": "Calibration",
+    "sinRegistro": "No record",
+    "omitidaSinIntentos": "Skipped without attempts",
+    "omitidaTrasUnIntento": "Skipped after 1 attempt",
+    "omitidaTrasIntentos": "Skipped after {n} attempts",
+    "calibroPrimera": "Calibrated on the first try",
+    "calibroAlIntento": "Calibrated on attempt {n}",
+    "verIntentos": "View attempts",
+    "ocultarIntentos": "Hide attempts",
+    "cargandoIntentos": "Loading attempts…",
+    "errorIntentos": "Could not load the attempts",
+    "sinDetalleIntentos": "No attempt details",
+    "intentoN": "Attempt {n}",
+    "exitosa": "Successful",
+    "fallida": "Failed",
+    "duracionSegundos": "{s} s",
+    "vcalPa": "Vcal {v} Pa",
+    "rangoPa": "range {v} Pa",
+    "avisosLabel": "Warnings"
   }
 }

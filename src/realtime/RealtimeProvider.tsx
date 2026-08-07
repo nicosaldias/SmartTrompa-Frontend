@@ -90,16 +90,19 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       empresaId = getEmpresaActivaFromCookie()?.id ?? null;
       if (empresaId === null) return;
     } else {
+      // Tras el endurecimiento V14 el ÚNICO cargo sin empresa es el
+      // SuperAdministrador: si st_user no trae empresaId es una sesión
+      // anterior al multitenant. Antes esto caía en silencio a los topics
+      // legacy globales (el stream de la empresa 1 — auditoría 2026-08-07);
+      // ahora sin empresa no se conecta: el badge queda offline, el polling
+      // de 30 s sigue cubriendo y el próximo login regenera la cookie.
       empresaId = user?.empresaId ?? null;
+      if (empresaId === null) return;
     }
 
-    // Mapeo canal lógico → destino STOMP. Con empresa resuelta, el topic
-    // namespaced; sin empresa (usuario legacy aún sin migrar), los topics
-    // globales del modo transición D8 (solo emiten eventos de la empresa 1).
+    // Mapeo canal lógico → destino STOMP, siempre namespaced por empresa.
     const destinoDe = (topic: RealtimeTopic): string =>
-      empresaId !== null
-        ? `/topic/empresa/${empresaId}/${topic}`
-        : `/topic/${topic}`;
+      `/topic/empresa/${empresaId}/${topic}`;
 
     let fallosSeguidos = 0;
     const client = new Client({

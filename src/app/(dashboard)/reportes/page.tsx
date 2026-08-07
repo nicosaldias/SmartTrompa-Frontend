@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCookieHeader, getCurrentUser } from "@/actions/auth";
+import { esTrabajador, esGestor, esSuperAdmin } from "@/utils/roles";
 import api from "@/api/client";
 import ReportesClient from "./ReportesClient";
 
@@ -12,7 +13,7 @@ export default async function ReportesPage() {
   // Vista de supervisión: el Trabajador tiene su propia vista personal.
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.cargo === "Trabajador") redirect("/mi-historial");
+  if (esTrabajador(user.cargo)) redirect("/mi-historial");
 
   const [alertasActivas, filtrosProximos, trabajadores] = await Promise.all([
     api.alertas.activas(cookieHeader),
@@ -20,9 +21,11 @@ export default async function ReportesPage() {
     api.trabajadores.list(cookieHeader),
   ]);
 
-  // Filtrar supervisores (cargo Supervisor o Administrador)
+  // Supervisores asignables a jornadas: gestores de la empresa. El
+  // SuperAdministrador se excluye a propósito — es global (empresa null) y no
+  // supervisa jornadas de ninguna cuadrilla.
   const supervisores = trabajadores.filter(
-    (t) => t.cargo === "Supervisor" || t.cargo === "Administrador"
+    (t) => esGestor(t.cargo) && !esSuperAdmin(t.cargo)
   );
 
   // Vencidos aparte: "por vencer" minimiza cuando el parque ya está vencido.

@@ -21,6 +21,13 @@ export const trabajadorEndpoints = {
   refresh: () => `${API_BASE_URL}/trabajador/refresh/`,
 };
 
+export const empresaEndpoints = {
+  all: () => `${API_BASE_URL}/empresa/`,
+  byId: (id: number) => `${API_BASE_URL}/empresa/${id}/`,
+  toggleHabilitada: (id: number) => `${API_BASE_URL}/empresa/${id}/habilitada/`,
+  relaciones: (id: number) => `${API_BASE_URL}/empresa/${id}/relaciones/`,
+};
+
 export const jornadaEndpoints = {
   all: () => `${API_BASE_URL}/jornada-trabajo/`,
   byId: (id: number) => `${API_BASE_URL}/jornada-trabajo/${id}/`,

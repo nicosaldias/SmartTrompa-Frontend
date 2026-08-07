@@ -22,6 +22,8 @@ export async function loginAction(rut: string, password: string) {
     cookieStore.set("st_user", JSON.stringify({
       rut: mockUser.rut, nombre: mockUser.nombre,
       apellidoPaterno: mockUser.apellidoPaterno, cargo: mockUser.cargo,
+      empresaId: mockUser.empresa?.id ?? null,
+      empresaNombre: mockUser.empresa?.nombre ?? null,
     }), { path: "/", maxAge: 60 * 60 * 24 * 7 });
     return { success: true, cargo: mockUser.cargo };
   }
@@ -31,6 +33,7 @@ export async function loginAction(rut: string, password: string) {
   cookieStorePre.delete({ name: "accessToken", path: "/", domain: COOKIE_DOMAIN });
   cookieStorePre.delete({ name: "refreshToken", path: "/", domain: COOKIE_DOMAIN });
   cookieStorePre.delete({ name: "st_user", path: "/", domain: COOKIE_DOMAIN });
+  cookieStorePre.delete({ name: "st_empresa", path: "/", domain: COOKIE_DOMAIN });
 
   let res: Response;
   try {
@@ -114,6 +117,9 @@ export async function loginAction(rut: string, password: string) {
       nombre: data.nombre,
       apellidoPaterno: data.apellidoPaterno,
       cargo: data.cargo,
+      // Tenant del usuario (null para SuperAdministrador global)
+      empresaId: data.empresa?.id ?? null,
+      empresaNombre: data.empresa?.nombre ?? null,
     }),
     { path: "/", maxAge: 60 * 60 * 24 * 7, domain: COOKIE_DOMAIN }
   );
@@ -145,7 +151,39 @@ export async function logoutAction() {
   cookieStore.delete({ name: "accessToken", path: "/", domain: COOKIE_DOMAIN });
   cookieStore.delete({ name: "refreshToken", path: "/", domain: COOKIE_DOMAIN });
   cookieStore.delete({ name: "st_user", path: "/", domain: COOKIE_DOMAIN });
+  cookieStore.delete({ name: "st_empresa", path: "/", domain: COOKIE_DOMAIN });
   redirect("/login");
+}
+
+/**
+ * Empresa activa del SuperAdministrador (D6). Cookie NO httpOnly a propósito:
+ * client.ts la lee para inyectar X-Empresa-Id. No es frontera de seguridad —
+ * el backend solo honra ese header si el actor es SuperAdministrador.
+ */
+export async function setEmpresaActivaAction(empresa: { id: number; nombre: string } | null) {
+  const cookieStore = await cookies();
+  if (!empresa) {
+    cookieStore.delete({ name: "st_empresa", path: "/", domain: COOKIE_DOMAIN });
+    return { success: true };
+  }
+  cookieStore.set(
+    "st_empresa",
+    JSON.stringify({ id: empresa.id, nombre: empresa.nombre }),
+    { path: "/", maxAge: 60 * 60 * 24 * 7, domain: COOKIE_DOMAIN }
+  );
+  return { success: true };
+}
+
+export async function getEmpresaActiva(): Promise<{ id: number; nombre: string } | null> {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get("st_empresa")?.value;
+  if (!raw) return null;
+  try {
+    const empresa = JSON.parse(raw);
+    return empresa && empresa.id != null ? empresa : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function forgotPasswordAction(correo: string) {
@@ -197,9 +235,13 @@ export async function getCookieHeader() {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("accessToken")?.value;
   const refreshToken = cookieStore.get("refreshToken")?.value;
+  // st_empresa viaja en el header para que request() derive X-Empresa-Id
+  // también en Server Components (el backend ignora la cookie en sí).
+  const stEmpresa = cookieStore.get("st_empresa")?.value;
   const parts = [
     accessToken ? `accessToken=${accessToken}` : "",
     refreshToken ? `refreshToken=${refreshToken}` : "",
+    stEmpresa ? `st_empresa=${encodeURIComponent(stEmpresa)}` : "",
   ].filter(Boolean);
   if (parts.length === 0) return null;
   return parts.join("; ");

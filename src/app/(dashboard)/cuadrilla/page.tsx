@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCookieHeader, getCurrentUser } from "@/actions/auth";
+import { esTrabajador } from "@/utils/roles";
 import api from "@/api/client";
 import type { JornadaTrabajo, MedicionesAmbientales, Ajustes } from "@/types";
 import CuadrillaClient from "./CuadrillaClient";
@@ -13,7 +14,7 @@ export default async function CuadrillaPage() {
   // Vista de supervisión: el Trabajador tiene su propia vista personal.
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.cargo === "Trabajador") redirect("/mi-historial");
+  if (esTrabajador(user.cargo)) redirect("/mi-historial");
 
   const [jornadas, alertas, trabajadoresPage] = await Promise.all([
     api.jornadas.activas(cookieHeader),

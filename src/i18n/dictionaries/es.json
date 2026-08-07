@@ -35,7 +35,9 @@
     "reloadPage": "Recargar página",
     "errorLoadingSection": "Ocurrió un error al cargar esta sección. Intenta recargar la página.",
     "retry": "Reintentar",
-    "pageSize": "Por página"
+    "pageSize": "Por página",
+    "empresa": "Empresa",
+    "eligeEmpresa": "Selecciona una empresa para ver sus datos"
   },
   "cascade": {
     "warnTitle": "No se puede eliminar directamente",
@@ -132,7 +134,8 @@
     "logoutConfirmYes": "Sí, cerrar sesión",
     "appSubtitle": "Monitoreo para Respiradores",
     "auditoria": "Auditoría",
-    "miHistorial": "Mi historial"
+    "miHistorial": "Mi historial",
+    "empresas": "Gestión de Empresas"
   },
   "language": {
     "label": "Idioma",
@@ -154,12 +157,19 @@
     "liveOn": "En vivo",
     "liveOff": "Cada 30 s",
     "liveOnTitle": "Conectado en tiempo real: los cambios aparecen al instante",
-    "liveOffTitle": "Sin conexión en tiempo real: los datos se actualizan cada 30 segundos"
+    "liveOffTitle": "Sin conexión en tiempo real: los datos se actualizan cada 30 segundos",
+    "empresaSelector": {
+      "label": "Empresa activa",
+      "global": "Todas las empresas",
+      "sinEmpresas": "Sin empresas registradas",
+      "cargando": "Cargando empresas..."
+    }
   },
   "roles": {
     "administrator": "Administrador",
     "supervisor": "Supervisor",
-    "worker": "Trabajador"
+    "worker": "Trabajador",
+    "superadmin": "Superadministrador"
   },
   "resumen": {
     "title": "Resumen",
@@ -645,6 +655,50 @@
       "descriptionPlaceholder": "Descripción adicional"
     }
   },
+  "empresas": {
+    "title": "Empresas",
+    "subtitle": "Administra las empresas de la plataforma y sus accesos",
+    "addBtn": "Nueva empresa",
+    "searchPlaceholder": "Buscar por nombre o RUT...",
+    "tableNombre": "Nombre",
+    "tableRut": "RUT",
+    "tableEstado": "Estado",
+    "tableActions": "Acciones",
+    "habilitada": "Habilitada",
+    "deshabilitada": "Deshabilitada",
+    "enable": "Habilitar",
+    "disable": "Deshabilitar",
+    "empty": "No hay empresas registradas",
+    "modal": {
+      "newTitle": "Nueva empresa",
+      "editTitle": "Editar empresa",
+      "nombreLabel": "Nombre",
+      "nombrePlaceholder": "Ej: Minera Andina SpA",
+      "rutLabel": "RUT de la empresa",
+      "rutPlaceholder": "Ej: 76.123.456-7",
+      "requiredError": "El nombre y el RUT son obligatorios"
+    },
+    "confirm": {
+      "create": "Se creará la empresa",
+      "update": "Se actualizará la empresa",
+      "saveBtn": "Sí, guardar"
+    },
+    "toast": {
+      "saved": "Guardado"
+    },
+    "delete": {
+      "title": "¿Eliminar empresa?",
+      "text": "Esta acción no se puede deshacer",
+      "confirmBtn": "Sí, eliminar"
+    },
+    "relaciones": {
+      "title": "La empresa tiene registros asociados",
+      "text": "Reasigna o elimina esos registros antes de borrar la empresa"
+    },
+    "disableWarn": "Los usuarios de una empresa deshabilitada no podrán iniciar sesión",
+    "disableConfirmTitle": "¿Deshabilitar empresa?",
+    "enableConfirmTitle": "¿Habilitar empresa?"
+  },
   "trabajadores": {
     "title": "Gestión de Trabajadores",
     "subtitle": "Administra los trabajadores del sistema",
@@ -700,7 +754,12 @@
       "apellidoRequired": "Apellido es obligatorio",
       "correoInvalid": "Correo inválido",
       "passwordMin": "Mínimo 6 caracteres"
-    }
+    },
+    "allCompanies": "Todas las empresas",
+    "tableCompany": "Empresa",
+    "company": "Empresa",
+    "companyPlaceholder": "Selecciona una empresa",
+    "noCompany": "Sin empresa"
   },
   "filtros": {
     "title": "Filtros y Respiradores",
@@ -776,7 +835,8 @@
     "colEntidad": "Entidad",
     "colResultado": "Resultado",
     "colOrigen": "Origen",
-    "empty": "Sin registros para los filtros seleccionados"
+    "empty": "Sin registros para los filtros seleccionados",
+    "colEmpresa": "Empresa"
   },
   "miHistorial": {
     "title": "Mi historial",

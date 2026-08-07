@@ -11,7 +11,18 @@ export interface PageResponse<T> {
   empty: boolean;
 }
 
-export type Cargo = 'Supervisor' | 'Trabajador' | 'Administrador';
+export type Cargo = 'Supervisor' | 'Trabajador' | 'Administrador' | 'SuperAdministrador';
+
+// Tenant: los usuarios y catálogos pertenecen a una empresa; el
+// SuperAdministrador (empresa null) opera globalmente sobre todas.
+export interface Empresa {
+  id: number;
+  nombre: string;
+  rutEmpresa: string;
+  habilitada: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
 // FILTRO = saturación instantánea (sensor, durante la jornada);
 // FILTRO_VIDA_UTIL = desgaste acumulado en horas (job del backend, sin jornada asociada).
 export type TipoAlerta = 'RESPIRATORIA' | 'AJUSTE' | 'FILTRO' | 'FILTRO_VIDA_UTIL' | 'BATERIA' | 'DESCONEXION';
@@ -33,6 +44,7 @@ export interface Trabajador {
   activo: boolean;
   correo: string;
   tieneImagen?: boolean;
+  empresa?: Empresa | null;
   trabajadorRols?: TrabajadorRol[];
   trabajadorUbicacions?: TrabajadorUbicacion[];
 }
@@ -45,6 +57,9 @@ export interface TrabajadorRequest {
   cargo: Cargo;
   correo: string;
   password?: string;
+  // Solo el SuperAdministrador puede elegir empresa; para el resto el backend
+  // fuerza la del actor (payload ajeno → 403).
+  empresa?: { id: number } | null;
 }
 
 export interface TrabajadorRol {
@@ -232,6 +247,9 @@ export interface AuditLogEntry {
   resultado: "OK" | "ERROR" | "DENEGADO";
   origen: string | null;
   timestamp: string;
+  // Empresa del actor al momento del evento (denormalizada, D14). Null en
+  // registros previos al multitenant o de actores sin empresa.
+  empresaId?: number | null;
 }
 
 export interface AlertasUmbrales {

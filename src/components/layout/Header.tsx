@@ -7,16 +7,34 @@ import { api } from "@/api/client";
 import { API_BASE_URL } from "@/api/endpoints";
 import type { FilterStatus, AlertaHistorial } from "@/types";
 import { getUserFromCookie } from "@/utils/cookies";
+import { esSuperAdmin } from "@/utils/roles";
 import { logoutAction } from "@/actions/auth";
+import EmpresaSelector from "@/components/layout/EmpresaSelector";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
 import type { TranslationKey } from "@/i18n/types";
 import { useRealtime, useRealtimeStatus } from "@/realtime/RealtimeProvider";
 
 const ROLE_KEYS: Record<string, TranslationKey> = {
+  SuperAdministrador: "roles.superadmin",
   Administrador: "roles.administrator",
   Supervisor: "roles.supervisor",
   Trabajador: "roles.worker",
+};
+
+// Colores del badge de cargo. El SuperAdministrador comparte la familia roja
+// (danger) del Administrador pero con fondo y borde más intensos: debe saltar
+// a la vista cuando se navega con poderes globales. El resto conserva los
+// colores que ya tenía en los ternarios que este mapa reemplaza.
+const BADGE_STYLES: Record<string, { bg: string; fg: string; border: string }> = {
+  SuperAdministrador: { bg: "rgba(239,68,68,0.28)", fg: "#ef4444", border: "rgba(239,68,68,0.55)" },
+  Administrador: { bg: "rgba(239,68,68,0.15)", fg: "#ef4444", border: "rgba(239,68,68,0.3)" },
+  Supervisor: { bg: "rgba(59,130,246,0.15)", fg: "#3b82f6", border: "rgba(59,130,246,0.3)" },
+};
+const BADGE_DEFAULT = {
+  bg: "rgba(139,148,158,0.15)",
+  fg: "var(--color-text-secondary)",
+  border: "rgba(139,148,158,0.3)",
 };
 
 // Marca configurable (white-label). Sobrescribible en build con:
@@ -142,6 +160,10 @@ export default function Header() {
         </span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        {/* Selector de empresa activa: solo el SuperAdministrador cambia de
+            scope (cookie st_empresa); para el resto la empresa es fija. */}
+        {esSuperAdmin(user?.cargo) && <EmpresaSelector />}
+
         {/* Estado del canal en vivo (solo roles que reciben el stream) */}
         {user?.cargo && user.cargo !== "Trabajador" && (
           <span
@@ -256,39 +278,26 @@ export default function Header() {
         </Link>
 
         {/* Role badge */}
-        {user?.cargo && (
-          <span
-            className="header-hide-mobile"
-            style={{
-              fontSize: "0.65rem",
-              fontWeight: 700,
-              padding: "0.2rem 0.5rem",
-              borderRadius: "9999px",
-              letterSpacing: "0.03em",
-              backgroundColor:
-                user.cargo === "Administrador"
-                  ? "rgba(239,68,68,0.15)"
-                  : user.cargo === "Supervisor"
-                    ? "rgba(59,130,246,0.15)"
-                    : "rgba(139,148,158,0.15)",
-              color:
-                user.cargo === "Administrador"
-                  ? "#ef4444"
-                  : user.cargo === "Supervisor"
-                    ? "#3b82f6"
-                    : "var(--color-text-secondary)",
-              border: `1px solid ${
-                user.cargo === "Administrador"
-                  ? "rgba(239,68,68,0.3)"
-                  : user.cargo === "Supervisor"
-                    ? "rgba(59,130,246,0.3)"
-                    : "rgba(139,148,158,0.3)"
-              }`,
-            }}
-          >
-            {ROLE_KEYS[user.cargo] ? t(ROLE_KEYS[user.cargo]) : user.cargo}
-          </span>
-        )}
+        {user?.cargo && (() => {
+          const badge = BADGE_STYLES[user.cargo] ?? BADGE_DEFAULT;
+          return (
+            <span
+              className="header-hide-mobile"
+              style={{
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                padding: "0.2rem 0.5rem",
+                borderRadius: "9999px",
+                letterSpacing: "0.03em",
+                backgroundColor: badge.bg,
+                color: badge.fg,
+                border: `1px solid ${badge.border}`,
+              }}
+            >
+              {ROLE_KEYS[user.cargo] ? t(ROLE_KEYS[user.cargo]) : user.cargo}
+            </span>
+          );
+        })()}
 
         {/* User avatar + dropdown menu */}
         <div ref={menuRef} style={{ position: "relative" }}>

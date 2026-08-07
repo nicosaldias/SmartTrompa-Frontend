@@ -5,6 +5,7 @@ import { api } from "@/api/client";
 import type { Ticket, EstadoTicket, Cargo } from "@/types";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
+import { esSuperAdmin } from "@/utils/roles";
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const pct = current / max;
@@ -57,7 +58,11 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [vistaAdmin, setVistaAdmin] = useState(false);
-  const isAdmin = userCargo === "Administrador";
+  // Q3 (multitenant): los tickets ahora los gestiona el SuperAdministrador global,
+  // no el Administrador de cada empresa. El backend (F2) solo permite listar todos /
+  // cambiar estado / eliminar a SuperAdministrador; un Administrador queda como
+  // cualquier usuario: crea tickets y ve solo los suyos.
+  const isSuperAdmin = esSuperAdmin(userCargo);
 
   function toggleFaq(i: number) {
     setAbiertos((prev) =>
@@ -116,7 +121,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
   }
 
   useEffect(() => {
-    if (vistaAdmin && isAdmin) {
+    // Q3: solo el SuperAdministrador puede pedir el listado global (GET /api/ticket/).
+    if (vistaAdmin && isSuperAdmin) {
       cargarTodosTickets();
     } else {
       cargarTickets();
@@ -370,7 +376,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
               <h2 style={{ fontWeight: 700, fontSize: "1rem" }}>
                 {vistaAdmin ? t("ayuda.allTickets") : t("ayuda.myTickets")}
               </h2>
-              {isAdmin && (
+              {/* Q3: el toggle de gestión queda oculto para Administrador (solo SuperAdmin). */}
+              {isSuperAdmin && (
                 <button
                   onClick={() => setVistaAdmin(!vistaAdmin)}
                   style={{
@@ -465,7 +472,8 @@ export default function AyudaClient({ userRut, userCargo }: Props) {
                         </p>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, marginLeft: "0.75rem" }}>
-                        {isAdmin && vistaAdmin && ticket.estado !== "CERRADO" ? (
+                        {/* Q3: cambiar estado es acción exclusiva del SuperAdministrador. */}
+                        {isSuperAdmin && vistaAdmin && ticket.estado !== "CERRADO" ? (
                           <select
                             value={ticket.estado}
                             onChange={(e) => cambiarEstadoTicket(ticket.id, e.target.value as EstadoTicket)}

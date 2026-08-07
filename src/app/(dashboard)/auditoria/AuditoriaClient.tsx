@@ -8,10 +8,13 @@ import { useT } from "@/i18n/LanguageProvider";
 import { abrirCalendario } from "@/utils/datePicker";
 import { formatFechaHora } from "@/utils/fechas";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { esSuperAdmin } from "@/utils/roles";
 import EmptyState from "@/components/EmptyState";
 
 interface Props {
   initialPage: PageResponse<AuditLogEntry>;
+  /** Cargo del actor autenticado: decide si la columna Empresa aporta o es ruido. */
+  actorCargo?: string | null;
 }
 
 const PAGE_SIZE = 50;
@@ -39,8 +42,11 @@ function resultadoBadgeClass(resultado: AuditLogEntry["resultado"]): string {
   return "badge-green";
 }
 
-export default function AuditoriaClient({ initialPage }: Props) {
+export default function AuditoriaClient({ initialPage, actorCargo }: Props) {
   const t = useT();
+  // Columna Empresa solo para superadmin: el backend ya scopea las filas por
+  // empresa del actor, así que para un Administrador la columna sería redundante.
+  const mostrarEmpresa = esSuperAdmin(actorCargo);
   const [entries, setEntries] = useState<AuditLogEntry[]>(initialPage.content);
   const [totalElements, setTotalElements] = useState(initialPage.totalElements);
   const [totalPages, setTotalPages] = useState(initialPage.totalPages);
@@ -169,6 +175,9 @@ export default function AuditoriaClient({ initialPage }: Props) {
                   <th style={{ padding: "0.6rem 0.75rem" }}>{t("auditoria.colFecha")}</th>
                   <th style={{ padding: "0.6rem 0.75rem" }}>{t("auditoria.colActor")}</th>
                   <th style={{ padding: "0.6rem 0.75rem" }}>{t("auditoria.colCargo")}</th>
+                  {mostrarEmpresa && (
+                    <th style={{ padding: "0.6rem 0.75rem" }}>{t("auditoria.colEmpresa")}</th>
+                  )}
                   <th style={{ padding: "0.6rem 0.75rem" }}>{t("auditoria.colAccion")}</th>
                   <th style={{ padding: "0.6rem 0.75rem" }}>{t("auditoria.colEntidad")}</th>
                   <th style={{ padding: "0.6rem 0.75rem" }}>{t("auditoria.colResultado")}</th>
@@ -188,6 +197,9 @@ export default function AuditoriaClient({ initialPage }: Props) {
                       <td style={{ padding: "0.5rem 0.75rem", whiteSpace: "nowrap" }}>{formatFechaHora(entry.timestamp)}</td>
                       <td style={{ padding: "0.5rem 0.75rem", whiteSpace: "nowrap" }}>{entry.actorRut ?? "—"}</td>
                       <td style={{ padding: "0.5rem 0.75rem" }}>{entry.actorCargo ?? "—"}</td>
+                      {mostrarEmpresa && (
+                        <td style={{ padding: "0.5rem 0.75rem", whiteSpace: "nowrap" }}>{entry.empresaId ?? "—"}</td>
+                      )}
                       <td style={{ padding: "0.5rem 0.75rem", fontFamily: "monospace", fontSize: "0.78rem" }}>{entry.accion}</td>
                       <td style={{ padding: "0.5rem 0.75rem" }}>
                         {entry.entidad ?? "—"}
@@ -200,7 +212,8 @@ export default function AuditoriaClient({ initialPage }: Props) {
                     </tr>
                     {expandedId === entry.id && entry.detalle && (
                       <tr style={{ borderBottom: "1px solid var(--color-border)", background: "var(--color-bg-secondary)" }}>
-                        <td colSpan={8} style={{ padding: "0.5rem 0.75rem" }}>
+                        {/* colSpan sigue al número real de columnas (la de Empresa es condicional) */}
+                        <td colSpan={mostrarEmpresa ? 9 : 8} style={{ padding: "0.5rem 0.75rem" }}>
                           <code style={{ fontSize: "0.75rem", wordBreak: "break-all", color: "var(--color-text-secondary)" }}>
                             {entry.detalle}
                           </code>

@@ -3,7 +3,8 @@
 import { useState, useMemo } from "react";
 import { api, ApiError } from "@/api/client";
 import { API_BASE_URL } from "@/api/endpoints";
-import { Trabajador, TrabajadorRequest, Cargo, PageResponse } from "@/types";
+import { Trabajador, TrabajadorRequest, Cargo, PageResponse, Empresa } from "@/types";
+import { esSuperAdmin } from "@/utils/roles";
 import { Plus, Pencil, Trash2, Search, Eye, EyeOff, Upload } from "lucide-react";
 import Swal from "sweetalert2";
 import { useT } from "@/i18n/LanguageProvider";
@@ -22,17 +23,23 @@ function CharCounter({ current, max }: { current: number; max: number }) {
 
 interface Props {
   initialPage: PageResponse<Trabajador>;
+  /** Cargo del actor logueado: decide columna/filtro/select de empresa y cargos ofrecibles. */
+  cargoActor: Cargo;
+  /** Catálogo de empresas; solo llega poblado para SuperAdministrador (el endpoint es 403 para el resto). */
+  empresas?: Empresa[];
 }
 
 const CARGOS: Cargo[] = ["Administrador", "Supervisor", "Trabajador"];
 
 const CARGO_BADGE: Record<Cargo, string> = {
+  SuperAdministrador: "badge-red",
   Administrador: "badge-blue",
   Supervisor: "badge-yellow",
   Trabajador: "badge-gray",
 };
 
 const CARGO_I18N_KEY = {
+  SuperAdministrador: "roles.superadmin",
   Administrador: "roles.administrator",
   Supervisor: "roles.supervisor",
   Trabajador: "roles.worker",
@@ -56,14 +63,20 @@ function getInitials(nombre: string, apellido: string): string {
 
 const PAGE_SIZE = 20;
 
-export default function TrabajadoresClient({ initialPage }: Props) {
+export default function TrabajadoresClient({ initialPage, cargoActor, empresas = [] }: Props) {
   const t = useT();
+  // Un admin normal jamás ve UI de empresas: su alcance lo fuerza el backend.
+  const actorEsSuperAdmin = esSuperAdmin(cargoActor);
+  // SuperAdministrador solo es asignable por otro superadmin (el backend
+  // responde 403 si un admin lo intenta), así que ni se ofrece la opción.
+  const cargosDisponibles: Cargo[] = actorEsSuperAdmin ? ["SuperAdministrador", ...CARGOS] : CARGOS;
   const [trabajadores, setTrabajadores] = useState<Trabajador[]>(initialPage.content);
   const [totalElements, setTotalElements] = useState(initialPage.totalElements);
   const [totalPages, setTotalPages] = useState(initialPage.totalPages);
   const [currentPage, setCurrentPage] = useState(initialPage.number);
   const [search, setSearch] = useState("");
   const [cargoFilter, setCargoFilter] = useState<Cargo | "">("");
+  const [empresaFilter, setEmpresaFilter] = useState<number | "">("");
   const [soloActivos, setSoloActivos] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
@@ -76,6 +89,8 @@ export default function TrabajadoresClient({ initialPage }: Props) {
   const [formApellidoMaterno, setFormApellidoMaterno] = useState("");
   const [formCorreo, setFormCorreo] = useState("");
   const [formCargo, setFormCargo] = useState<Cargo>("Trabajador");
+  // "" = sin elegir; solo superadmin ve/usa este campo.
+  const [formEmpresaId, setFormEmpresaId] = useState<number | "">("");
   const [formPassword, setFormPassword] = useState("");
   const [formConfirmPassword, setFormConfirmPassword] = useState("");
   const [formImageFile, setFormImageFile] = useState<File | null>(null);
@@ -120,6 +135,9 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     return trabajadores.filter((t) => {
       if (soloActivos && !t.activo) return false;
       if (cargoFilter && t.cargo !== cargoFilter) return false;
+      // Filtro por empresa: solo superadmin lo ve; el resto recibe la lista ya
+      // scoped por el backend, así que empresaFilter queda siempre en "".
+      if (empresaFilter !== "" && t.empresa?.id !== empresaFilter) return false;
       if (term) {
         const fullName = `${t.nombre} ${t.apellidoPaterno} ${t.apellidoMaterno}`.toLowerCase();
         const rut = t.rut.toLowerCase();
@@ -128,7 +146,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
       }
       return true;
     });
-  }, [trabajadores, search, cargoFilter, soloActivos]);
+  }, [trabajadores, search, cargoFilter, empresaFilter, soloActivos]);
 
   const paginated = filtered;
 
@@ -153,6 +171,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     setFormApellidoMaterno("");
     setFormCorreo("");
     setFormCargo("Trabajador");
+    setFormEmpresaId("");
     setFormPassword("");
     setFormConfirmPassword("");
     setFormImageFile(null);
@@ -169,6 +188,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     setFormApellidoMaterno(t.apellidoMaterno);
     setFormCorreo(t.correo);
     setFormCargo(t.cargo);
+    setFormEmpresaId(t.empresa?.id ?? "");
     setFormPassword("");
     setFormConfirmPassword("");
     if (t.tieneImagen) {
@@ -208,6 +228,11 @@ export default function TrabajadoresClient({ initialPage }: Props) {
     });
     if (!confirmResult.isConfirmed) return;
 
+    // Solo el superadmin manda empresa (y solo si eligió una): para un admin
+    // normal el backend fuerza SU empresa y un payload ajeno le vale 403.
+    const empresaPayload: Pick<TrabajadorRequest, "empresa"> | Record<string, never> =
+      actorEsSuperAdmin && formEmpresaId !== "" ? { empresa: { id: formEmpresaId } } : {};
+
     try {
       if (editingTrabajador) {
         const updateData: Partial<TrabajadorRequest> = {
@@ -217,6 +242,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           correo: formCorreo,
           cargo: formCargo,
           ...(formPassword ? { password: formPassword } : {}),
+          ...empresaPayload,
         };
         await api.trabajadores.update(editingTrabajador.rut, updateData, formImageFile || undefined);
       } else {
@@ -228,6 +254,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           correo: formCorreo,
           cargo: formCargo,
           password: formPassword,
+          ...empresaPayload,
         };
         await api.trabajadores.create(createData, formImageFile || undefined);
       }
@@ -328,8 +355,9 @@ export default function TrabajadoresClient({ initialPage }: Props) {
       }
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 409) {
-        // El guard anti-lockout (propia cuenta / único Administrador) responde 409
-        // con un detail distinto al de FK ("...registros relacionados...", fijo del
+        // El guard anti-lockout (propia cuenta / único Administrador de la
+        // empresa / único SuperAdministrador del sistema) responde 409 con un
+        // detail distinto al de FK ("...registros relacionados...", fijo del
         // GlobalExceptionHandler): ahí se muestra el motivo directo, sin cascada.
         const esPorRelaciones = (err.detail ?? err.message ?? "").includes("registros relacionados");
         if (!esPorRelaciones) {
@@ -422,12 +450,29 @@ export default function TrabajadoresClient({ initialPage }: Props) {
           onChange={(e) => setCargoFilter(e.target.value as Cargo | "")}
         >
           <option value="">{t("trabajadores.allPositions")}</option>
-          {CARGOS.map((c) => (
+          {cargosDisponibles.map((c) => (
             <option key={c} value={c}>
               {t(CARGO_I18N_KEY[c])}
             </option>
           ))}
         </select>
+
+        {/* Filtro por empresa: solo superadmin (los demás ya reciben la lista scoped) */}
+        {actorEsSuperAdmin && (
+          <select
+            className="input-field"
+            style={{ width: 200 }}
+            value={empresaFilter}
+            onChange={(e) => setEmpresaFilter(e.target.value === "" ? "" : Number(e.target.value))}
+          >
+            <option value="">{t("trabajadores.allCompanies")}</option>
+            {empresas.map((emp) => (
+              <option key={emp.id} value={emp.id}>
+                {emp.nombre}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Solo activos toggle */}
         <label
@@ -479,6 +524,9 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                 {[
                   { key: "worker", label: t("trabajadores.tableWorker") },
                   { key: "position", label: t("trabajadores.tablePosition") },
+                  // Columna Empresa solo en vista global: para un admin normal
+                  // todos serían de su propia empresa (ruido sin información).
+                  ...(actorEsSuperAdmin ? [{ key: "company", label: t("trabajadores.tableCompany") }] : []),
                   { key: "contact", label: t("trabajadores.tableContact") },
                   { key: "status", label: t("trabajadores.tableStatus") },
                   { key: "actions", label: t("trabajadores.tableActions") },
@@ -504,7 +552,7 @@ export default function TrabajadoresClient({ initialPage }: Props) {
               {paginated.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={actorEsSuperAdmin ? 6 : 5}
                     style={{
                       padding: "2.5rem",
                       textAlign: "center",
@@ -580,6 +628,19 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                     <td style={{ padding: "0.75rem 0.5rem", textAlign: "center" }}>
                       <span className={CARGO_BADGE[trab.cargo]}>{t(CARGO_I18N_KEY[trab.cargo])}</span>
                     </td>
+
+                    {/* EMPRESA (solo vista global del superadmin) */}
+                    {actorEsSuperAdmin && (
+                      <td
+                        style={{
+                          padding: "0.75rem 0.5rem",
+                          textAlign: "center",
+                          color: trab.empresa ? undefined : "var(--color-text-secondary)",
+                        }}
+                      >
+                        {trab.empresa?.nombre ?? t("trabajadores.noCompany")}
+                      </td>
+                    )}
 
                     {/* CONTACTO */}
                     <td
@@ -1000,13 +1061,42 @@ export default function TrabajadoresClient({ initialPage }: Props) {
                       value={formCargo}
                       onChange={(e) => setFormCargo(e.target.value as Cargo)}
                     >
-                      {CARGOS.map((c) => (
+                      {cargosDisponibles.map((c) => (
                         <option key={c} value={c}>
                           {t(CARGO_I18N_KEY[c])}
                         </option>
                       ))}
                     </select>
                   </div>
+
+                  {/* Empresa: solo superadmin la elige; para un admin normal el
+                      backend fuerza la suya, así que el campo ni se muestra. */}
+                  {actorEsSuperAdmin && (
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.8rem",
+                          color: "var(--color-text-secondary)",
+                          marginBottom: "0.375rem",
+                        }}
+                      >
+                        {t("trabajadores.company")}
+                      </label>
+                      <select
+                        className="input-field"
+                        value={formEmpresaId}
+                        onChange={(e) => setFormEmpresaId(e.target.value === "" ? "" : Number(e.target.value))}
+                      >
+                        <option value="">{t("trabajadores.companyPlaceholder")}</option>
+                        {empresas.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Contrasena | Confirmar contrasena */}
                   <div className="trabajadores-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>

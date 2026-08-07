@@ -1,4 +1,5 @@
 import {
+  empresaEndpoints,
   trabajadorEndpoints,
   jornadaEndpoints,
   rolEndpoints,
@@ -16,6 +17,7 @@ import {
   auditLogEndpoints,
 } from './endpoints';
 import type {
+  Empresa,
   Trabajador,
   TrabajadorRequest,
   TrabajadorRol,
@@ -72,6 +74,42 @@ async function buildApiError(res: Response): Promise<ApiError> {
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
+function valorCookie(fuente: string, nombre: string): string | undefined {
+  return fuente
+    .split('; ')
+    .find((c) => c.startsWith(`${nombre}=`))
+    ?.split('=')
+    .slice(1)
+    .join('=');
+}
+
+/**
+ * Header X-Empresa-Id derivado de la cookie st_empresa (empresa activa del
+ * SuperAdministrador, D6). Se inyecta en TODA petición: el backend solo lo
+ * honra si el actor es SuperAdministrador, para el resto es inocuo. En Server
+ * Components la cookie llega dentro de cookieHeader (getCookieHeader la
+ * incluye); en el navegador se lee de document.cookie.
+ */
+function empresaActivaHeader(cookieHeader?: string): Record<string, string> {
+  let raw = cookieHeader ? valorCookie(cookieHeader, 'st_empresa') : undefined;
+  if (!raw && typeof document !== 'undefined') {
+    raw = valorCookie(document.cookie, 'st_empresa');
+  }
+  if (!raw) return {};
+  try {
+    let decodificado = raw;
+    try {
+      decodificado = decodeURIComponent(raw);
+    } catch {
+      // ya venía sin encoding
+    }
+    const empresa = JSON.parse(decodificado);
+    return empresa?.id != null ? { 'X-Empresa-Id': String(empresa.id) } : {};
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Attempts to refresh tokens by calling the refresh endpoint.
  * Returns true if refresh succeeded, false otherwise.
@@ -120,6 +158,7 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
     headers: {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      ...empresaActivaHeader(cookieHeader),
       ...(headers || {}),
     },
     ...rest,
@@ -144,6 +183,7 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
         headers: {
           ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
           ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+          ...empresaActivaHeader(cookieHeader),
           ...(headers || {}),
         },
         ...rest,
@@ -184,6 +224,34 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
 }
 
 export const api = {
+  empresas: {
+    list: (cookieHeader?: string) =>
+      request<Empresa[]>(empresaEndpoints.all(), { cookieHeader }),
+    byId: (id: number, cookieHeader?: string) =>
+      request<Empresa>(empresaEndpoints.byId(id), { cookieHeader }),
+    create: (data: Partial<Empresa>, cookieHeader?: string) =>
+      request<Empresa>(empresaEndpoints.all(), {
+        method: 'POST',
+        body: JSON.stringify(data),
+        cookieHeader,
+      }),
+    update: (id: number, data: Partial<Empresa>, cookieHeader?: string) =>
+      request<Empresa>(empresaEndpoints.byId(id), {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        cookieHeader,
+      }),
+    toggleHabilitada: (id: number, cookieHeader?: string) =>
+      request<Empresa>(empresaEndpoints.toggleHabilitada(id), {
+        method: 'PATCH',
+        cookieHeader,
+      }),
+    relaciones: (id: number, cookieHeader?: string) =>
+      request<Record<string, number>>(empresaEndpoints.relaciones(id), { cookieHeader }),
+    delete: (id: number, cookieHeader?: string) =>
+      request<void>(empresaEndpoints.byId(id), { method: 'DELETE', cookieHeader }),
+  },
+
   trabajadores: {
     list: async (cookieHeader?: string): Promise<Trabajador[]> => {
       // El backend pagina /api/trabajador/ (devuelve Page<Trabajador>, no un array).
@@ -605,10 +673,12 @@ export const api = {
   reportes: {
     jornada: async (idJornada: number) => {
       if (MOCK_MODE) return new Blob(['Reporte de jornada (demo)'], { type: 'application/pdf' });
+      // Fetch directo (blob, no pasa por request()): el X-Empresa-Id se inyecta
+      // a mano o el superadmin generaría el PDF con scope global en silencio.
       const res = await fetch(reporteEndpoints.jornada(), {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...empresaActivaHeader() },
         body: JSON.stringify({ idJornada }),
       });
       if (!res.ok) throw new Error(await mensajeError(res, 'Error al generar el reporte de jornada'));
@@ -619,7 +689,7 @@ export const api = {
       const res = await fetch(reporteEndpoints.cuadrilla(), {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...empresaActivaHeader() },
         body: JSON.stringify({ rutSupervisor, desde, hasta }),
       });
       if (!res.ok) throw new Error(await mensajeError(res, 'Error al generar el reporte de cuadrilla'));
@@ -630,7 +700,7 @@ export const api = {
       const res = await fetch(reporteEndpoints.trabajador(), {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...empresaActivaHeader() },
         body: JSON.stringify({ rutTrabajador, desde, hasta }),
       });
       if (!res.ok) throw new Error(await mensajeError(res, 'Error al generar el reporte de trabajador'));
@@ -641,7 +711,7 @@ export const api = {
       const res = await fetch(reporteEndpoints.general(), {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...empresaActivaHeader() },
         body: JSON.stringify({ desde, hasta }),
       });
       if (!res.ok) throw new Error(await mensajeError(res, 'Error al generar el reporte general'));

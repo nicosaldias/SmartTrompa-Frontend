@@ -35,7 +35,9 @@
     "reloadPage": "Reload page",
     "errorLoadingSection": "An error occurred loading this section. Try reloading the page.",
     "retry": "Retry",
-    "pageSize": "Per page"
+    "pageSize": "Per page",
+    "empresa": "Company",
+    "eligeEmpresa": "Select a company to view its data"
   },
   "cascade": {
     "warnTitle": "Cannot be deleted directly",
@@ -132,7 +134,8 @@
     "logoutConfirmYes": "Yes, sign out",
     "appSubtitle": "Respirator Monitoring",
     "auditoria": "Audit Log",
-    "miHistorial": "My history"
+    "miHistorial": "My history",
+    "empresas": "Company Management"
   },
   "language": {
     "label": "Language",
@@ -154,12 +157,19 @@
     "liveOn": "Live",
     "liveOff": "Every 30 s",
     "liveOnTitle": "Real-time connection active: changes appear instantly",
-    "liveOffTitle": "No real-time connection: data refreshes every 30 seconds"
+    "liveOffTitle": "No real-time connection: data refreshes every 30 seconds",
+    "empresaSelector": {
+      "label": "Active company",
+      "global": "All companies",
+      "sinEmpresas": "No companies registered",
+      "cargando": "Loading companies..."
+    }
   },
   "roles": {
     "administrator": "Administrator",
     "supervisor": "Supervisor",
-    "worker": "Worker"
+    "worker": "Worker",
+    "superadmin": "Super Administrator"
   },
   "resumen": {
     "title": "Overview",
@@ -645,6 +655,50 @@
       "descriptionPlaceholder": "Additional description"
     }
   },
+  "empresas": {
+    "title": "Companies",
+    "subtitle": "Manage platform companies and their access",
+    "addBtn": "New company",
+    "searchPlaceholder": "Search by name or RUT...",
+    "tableNombre": "Name",
+    "tableRut": "RUT",
+    "tableEstado": "Status",
+    "tableActions": "Actions",
+    "habilitada": "Enabled",
+    "deshabilitada": "Disabled",
+    "enable": "Enable",
+    "disable": "Disable",
+    "empty": "No companies registered",
+    "modal": {
+      "newTitle": "New company",
+      "editTitle": "Edit company",
+      "nombreLabel": "Name",
+      "nombrePlaceholder": "E.g.: Minera Andina SpA",
+      "rutLabel": "Company RUT",
+      "rutPlaceholder": "E.g.: 76.123.456-7",
+      "requiredError": "Name and RUT are required"
+    },
+    "confirm": {
+      "create": "The company will be created",
+      "update": "The company will be updated",
+      "saveBtn": "Yes, save"
+    },
+    "toast": {
+      "saved": "Saved"
+    },
+    "delete": {
+      "title": "Delete company?",
+      "text": "This action cannot be undone",
+      "confirmBtn": "Yes, delete"
+    },
+    "relaciones": {
+      "title": "The company has associated records",
+      "text": "Reassign or delete those records before deleting the company"
+    },
+    "disableWarn": "Users of a disabled company will not be able to sign in",
+    "disableConfirmTitle": "Disable company?",
+    "enableConfirmTitle": "Enable company?"
+  },
   "trabajadores": {
     "title": "Worker Management",
     "subtitle": "Manage the workers in the system",
@@ -700,7 +754,12 @@
       "apellidoRequired": "Last name is required",
       "correoInvalid": "Invalid email",
       "passwordMin": "Minimum 6 characters"
-    }
+    },
+    "allCompanies": "All companies",
+    "tableCompany": "Company",
+    "company": "Company",
+    "companyPlaceholder": "Select a company",
+    "noCompany": "No company"
   },
   "filtros": {
     "title": "Filters and Respirators",
@@ -776,7 +835,8 @@
     "colEntidad": "Entity",
     "colResultado": "Result",
     "colOrigen": "Origin",
-    "empty": "No entries for the selected filters"
+    "empty": "No entries for the selected filters",
+    "colEmpresa": "Company"
   },
   "miHistorial": {
     "title": "My history",

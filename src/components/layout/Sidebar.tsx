@@ -18,6 +18,7 @@ import {
   FileBarChart,
   ScrollText,
   History,
+  Building2,
   ChevronsLeft,
   ChevronsRight,
   Sun,
@@ -30,8 +31,7 @@ import { useT } from "@/i18n/LanguageProvider";
 import type { TranslationKey } from "@/i18n/types";
 import LanguageSelector from "@/components/i18n/LanguageSelector";
 import { useTheme } from "@/theme/ThemeProvider";
-
-type Cargo = "Administrador" | "Supervisor" | "Trabajador";
+import type { Cargo } from "@/types";
 
 interface NavItem {
   href: string;
@@ -40,12 +40,16 @@ interface NavItem {
   roles: Cargo[];
 }
 
-const ALL_ROLES: Cargo[] = ["Administrador", "Supervisor"];
-const ADMIN_ONLY: Cargo[] = ["Administrador"];
+// El SuperAdministrador ve todo lo que ve un Administrador (opera globalmente
+// o dentro de la empresa activa vía cookie st_empresa) y además /empresas.
+const ALL_ROLES: Cargo[] = ["Administrador", "Supervisor", "SuperAdministrador"];
+const ADMIN_ONLY: Cargo[] = ["Administrador", "SuperAdministrador"];
+const SUPERADMIN_ONLY: Cargo[] = ["SuperAdministrador"];
 const TRABAJADOR_ONLY: Cargo[] = ["Trabajador"];
-const TODOS: Cargo[] = ["Administrador", "Supervisor", "Trabajador"];
+const TODOS: Cargo[] = ["Administrador", "Supervisor", "Trabajador", "SuperAdministrador"];
 
 const navItems: NavItem[] = [
+  { href: "/empresas", labelKey: "sidebar.empresas", icon: Building2, roles: SUPERADMIN_ONLY },
   { href: "/mi-historial", labelKey: "sidebar.miHistorial", icon: History, roles: TRABAJADOR_ONLY },
   { href: "/resumen", labelKey: "sidebar.resumen", icon: LayoutDashboard, roles: ALL_ROLES },
   { href: "/cuadrilla", labelKey: "sidebar.cuadrilla", icon: Users, roles: ALL_ROLES },

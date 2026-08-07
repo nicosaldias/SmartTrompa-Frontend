@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginAction, forgotPasswordAction } from "@/actions/auth";
+import { rutaInicial } from "@/utils/roles";
 import { Wind, Eye, EyeOff, ArrowLeft, Shield, Users, Clock, Sun, Moon } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import LanguageSelector from "@/components/i18n/LanguageSelector";
@@ -54,8 +55,9 @@ export default function LoginPage() {
         setError(result.error);
         setLoading(false);
       } else {
-        // El Trabajador tiene su vista personal; supervisión va al dashboard.
-        router.push(result?.cargo === "Trabajador" ? "/mi-historial" : "/resumen");
+        // Cada cargo aterriza en su vista: superadmin → /empresas,
+        // trabajador → /mi-historial, supervisión → /resumen.
+        router.push(rutaInicial(result?.cargo));
       }
     } catch {
       setError(t("login.unexpectedError"));

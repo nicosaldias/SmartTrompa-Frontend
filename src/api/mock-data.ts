@@ -2,6 +2,7 @@ import type {
   Trabajador, JornadaTrabajo, AlertaHistorial, MedicionesAmbientales,
   AlertasUmbrales, TipoFiltro, TipoRespirador, Rol, Ubicacion,
   Ticket, FilterStatus, TrabajadorRol, TrabajadorUbicacion, PageResponse,
+  Empresa,
 } from '@/types';
 
 // ===== Date helpers =====
@@ -14,6 +15,23 @@ const daysAgo = (n: number, h = 8, m = 0) => {
 };
 const minutesAgo = (mins: number) => {
   const d = new Date(NOW); d.setMinutes(d.getMinutes() - mins); return d.toISOString();
+};
+
+// ===== EMPRESAS =====
+// Multitenant demo: dos habilitadas y una deshabilitada para poder probar
+// los estados de la vista de empresas del SuperAdministrador.
+export const MOCK_EMPRESAS: Empresa[] = [
+  { id: 1, nombre: 'Minera Andes Sur', rutEmpresa: '76.123.456-7', habilitada: true, createdAt: daysAgo(120), updatedAt: daysAgo(7) },
+  { id: 2, nombre: 'Constructora Pacífico', rutEmpresa: '77.234.567-8', habilitada: true, createdAt: daysAgo(90), updatedAt: daysAgo(14) },
+  { id: 3, nombre: 'Forestal Los Ríos', rutEmpresa: '78.345.678-9', habilitada: false, createdAt: daysAgo(200), updatedAt: daysAgo(30) },
+];
+
+// Conteos de relaciones por empresa (mismas cinco claves que devuelve el
+// backend en /empresa/{id}/relaciones/): sirven para el aviso previo al borrado.
+const MOCK_EMPRESA_RELACIONES: Record<number, Record<string, number>> = {
+  1: { trabajadores: 4, roles: 4, ubicaciones: 4, tiposFiltro: 3, tiposRespirador: 3 },
+  2: { trabajadores: 3, roles: 2, ubicaciones: 2, tiposFiltro: 2, tiposRespirador: 1 },
+  3: { trabajadores: 1, roles: 1, ubicaciones: 1, tiposFiltro: 0, tiposRespirador: 0 },
 };
 
 // ===== ROLES =====
@@ -33,15 +51,19 @@ export const MOCK_UBICACIONES: Ubicacion[] = [
 ];
 
 // ===== TRABAJADORES =====
+// Multitenant: cada usuario pertenece a una empresa; el SuperAdministrador va
+// al FINAL del array con empresa null porque MOCK_ALERTAS/MOCK_TICKETS
+// referencian a los demás por índice y no deben desplazarse.
 export const MOCK_TRABAJADORES: Trabajador[] = [
-  { rut: '12.345.678-5', nombre: 'Carlos', apellidoPaterno: 'Muñoz', apellidoMaterno: 'Sepúlveda', cargo: 'Administrador', activo: true, correo: 'carlos.munoz@demo.cl' },
-  { rut: '13.456.789-0', nombre: 'María', apellidoPaterno: 'González', apellidoMaterno: 'Herrera', cargo: 'Supervisor', activo: true, correo: 'maria.gonzalez@demo.cl' },
-  { rut: '14.567.890-1', nombre: 'Juan', apellidoPaterno: 'Pérez', apellidoMaterno: 'Contreras', cargo: 'Supervisor', activo: true, correo: 'juan.perez@demo.cl' },
-  { rut: '15.678.901-2', nombre: 'Pedro', apellidoPaterno: 'Soto', apellidoMaterno: 'Villanueva', cargo: 'Trabajador', activo: true, correo: 'pedro.soto@demo.cl' },
-  { rut: '16.789.012-3', nombre: 'Ana', apellidoPaterno: 'López', apellidoMaterno: 'Fuentes', cargo: 'Trabajador', activo: true, correo: 'ana.lopez@demo.cl' },
-  { rut: '17.890.123-4', nombre: 'Luis', apellidoPaterno: 'Martínez', apellidoMaterno: 'Bravo', cargo: 'Trabajador', activo: true, correo: 'luis.martinez@demo.cl' },
-  { rut: '18.901.234-5', nombre: 'José', apellidoPaterno: 'Hernández', apellidoMaterno: 'Rojas', cargo: 'Trabajador', activo: true, correo: 'jose.hernandez@demo.cl' },
-  { rut: '19.012.345-6', nombre: 'Rosa', apellidoPaterno: 'Díaz', apellidoMaterno: 'Morales', cargo: 'Trabajador', activo: false, correo: 'rosa.diaz@demo.cl' },
+  { rut: '12.345.678-5', nombre: 'Carlos', apellidoPaterno: 'Muñoz', apellidoMaterno: 'Sepúlveda', cargo: 'Administrador', activo: true, correo: 'carlos.munoz@demo.cl', empresa: MOCK_EMPRESAS[0] },
+  { rut: '13.456.789-0', nombre: 'María', apellidoPaterno: 'González', apellidoMaterno: 'Herrera', cargo: 'Supervisor', activo: true, correo: 'maria.gonzalez@demo.cl', empresa: MOCK_EMPRESAS[0] },
+  { rut: '14.567.890-1', nombre: 'Juan', apellidoPaterno: 'Pérez', apellidoMaterno: 'Contreras', cargo: 'Supervisor', activo: true, correo: 'juan.perez@demo.cl', empresa: MOCK_EMPRESAS[1] },
+  { rut: '15.678.901-2', nombre: 'Pedro', apellidoPaterno: 'Soto', apellidoMaterno: 'Villanueva', cargo: 'Trabajador', activo: true, correo: 'pedro.soto@demo.cl', empresa: MOCK_EMPRESAS[0] },
+  { rut: '16.789.012-3', nombre: 'Ana', apellidoPaterno: 'López', apellidoMaterno: 'Fuentes', cargo: 'Trabajador', activo: true, correo: 'ana.lopez@demo.cl', empresa: MOCK_EMPRESAS[0] },
+  { rut: '17.890.123-4', nombre: 'Luis', apellidoPaterno: 'Martínez', apellidoMaterno: 'Bravo', cargo: 'Trabajador', activo: true, correo: 'luis.martinez@demo.cl', empresa: MOCK_EMPRESAS[1] },
+  { rut: '18.901.234-5', nombre: 'José', apellidoPaterno: 'Hernández', apellidoMaterno: 'Rojas', cargo: 'Trabajador', activo: true, correo: 'jose.hernandez@demo.cl', empresa: MOCK_EMPRESAS[1] },
+  { rut: '19.012.345-6', nombre: 'Rosa', apellidoPaterno: 'Díaz', apellidoMaterno: 'Morales', cargo: 'Trabajador', activo: false, correo: 'rosa.diaz@demo.cl', empresa: MOCK_EMPRESAS[2] },
+  { rut: '11.111.111-1', nombre: 'Valentina', apellidoPaterno: 'Reyes', apellidoMaterno: 'Campos', cargo: 'SuperAdministrador', activo: true, correo: 'valentina.reyes@demo.cl', empresa: null },
 ];
 
 // ===== TIPO FILTRO =====
@@ -164,6 +186,14 @@ function handleMutation(path: string, body?: BodyInit | null): unknown {
   if (body && typeof body === 'string') {
     try { return JSON.parse(body); } catch { /* FormData */ }
   }
+  // Solo llegan aquí las mutaciones SIN body JSON (las con body ya retornaron
+  // arriba). Para empresa eso es el PATCH /empresa/{id}/habilitada/: devolvemos
+  // la empresa con el flag invertido, como hace el backend real.
+  if (path.startsWith('/empresa')) {
+    const id = +(path.split('/')[2] ?? '');
+    const empresa = MOCK_EMPRESAS.find(e => e.id === id) || MOCK_EMPRESAS[0];
+    return { ...empresa, habilitada: !empresa.habilitada };
+  }
   if (path.startsWith('/trabajador')) return MOCK_TRABAJADORES[0];
   if (path.startsWith('/rol')) return MOCK_ROLES[0];
   if (path.startsWith('/ubicacion')) return MOCK_UBICACIONES[0];
@@ -189,6 +219,18 @@ export function getMockResponse(url: string, method: string, body?: BodyInit | n
   if (method === 'POST' || method === 'PUT' || method === 'PATCH') return handleMutation(path, body);
 
   // ---- GET ROUTES ----
+
+  // Empresas (en backend solo las ve el SuperAdministrador; en demo se exponen
+  // igual porque el mock no distingue actor).
+  if (path === '/empresa') return MOCK_EMPRESAS;
+  if (path.match(/^\/empresa\/\d+\/relaciones$/)) {
+    const id = +path.split('/')[2];
+    return MOCK_EMPRESA_RELACIONES[id] ?? { trabajadores: 0, roles: 0, ubicaciones: 0, tiposFiltro: 0, tiposRespirador: 0 };
+  }
+  if (path.match(/^\/empresa\/\d+$/)) {
+    const id = +path.split('/')[2];
+    return MOCK_EMPRESAS.find(e => e.id === id) || MOCK_EMPRESAS[0];
+  }
 
   // Trabajadores
   if (path === '/trabajador') {

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCookieHeader, getCurrentUser } from "@/actions/auth";
+import { esTrabajador, rutaInicial } from "@/utils/roles";
 import api from "@/api/client";
 import MiHistorialClient from "./MiHistorialClient";
 
@@ -11,8 +12,9 @@ export default async function MiHistorialPage() {
 
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  // Vista personal del Trabajador; los perfiles de supervisión tienen su dashboard.
-  if (user.cargo !== "Trabajador") redirect("/resumen");
+  // Vista personal del Trabajador; el resto va a su ruta inicial (el
+  // SuperAdministrador no tiene historial propio — su empresa es null).
+  if (!esTrabajador(user.cargo)) redirect(rutaInicial(user.cargo));
 
   // Filtro y umbrales pueden no existir aún para el trabajador (404): la vista
   // los muestra como vacío honesto, no como error.

@@ -11,7 +11,8 @@ import {
   type ReactNode,
 } from "react";
 import { API_BASE_URL } from "@/api/endpoints";
-import { getUserFromCookie } from "@/utils/cookies";
+import { getEmpresaActivaFromCookie, getUserFromCookie } from "@/utils/cookies";
+import { ROLES_SUPERVISION, esSuperAdmin } from "@/utils/roles";
 
 // Canal en vivo backend→web (STOMP sobre WebSocket). Es una mejora sobre el
 // polling de 30 s, nunca su reemplazo: si el socket no está "live", cada vista
@@ -20,8 +21,6 @@ export type RealtimeTopic = "jornadas" | "alertas" | "mediciones";
 export type RealtimeStatus = "live" | "offline";
 
 const TOPICS: RealtimeTopic[] = ["jornadas", "alertas", "mediciones"];
-// El backend rechaza SUBSCRIBE de otros cargos; no intentamos conectar.
-const ROLES_SUPERVISION = new Set(["Administrador", "Supervisor"]);
 const RECONNECT_MS = 5_000;
 const RECONNECT_LENTO_MS = 30_000;
 const FALLOS_PARA_ESPACIAR = 5;
@@ -68,15 +67,39 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const brokerURL = wsUrlFromApi(API_BASE_URL);
-    const cargo = getUserFromCookie()?.cargo;
+    const user = getUserFromCookie();
+    const cargo = user?.cargo;
     if (
       !brokerURL ||
       process.env.NEXT_PUBLIC_MOCK_MODE === "true" ||
       !cargo ||
-      !ROLES_SUPERVISION.has(cargo)
+      // El backend rechaza SUBSCRIBE de otros cargos; no intentamos conectar.
+      !(ROLES_SUPERVISION as readonly string[]).includes(cargo)
     ) {
       return;
     }
+
+    // Namespace por empresa (F2-C): el interceptor del backend solo permite
+    // suscribirse a /topic/empresa/{id}/* de la propia empresa (el superadmin
+    // a cualquiera), así que resolvemos la empresa ANTES de abrir el socket.
+    let empresaId: number | null;
+    if (esSuperAdmin(cargo)) {
+      // El superadmin mira la empresa que tenga activada (cookie st_empresa).
+      // Sin empresa activa no hay canal que mirar: no conectamos y el badge
+      // queda en offline (cada vista sigue con su polling de 30 s).
+      empresaId = getEmpresaActivaFromCookie()?.id ?? null;
+      if (empresaId === null) return;
+    } else {
+      empresaId = user?.empresaId ?? null;
+    }
+
+    // Mapeo canal lógico → destino STOMP. Con empresa resuelta, el topic
+    // namespaced; sin empresa (usuario legacy aún sin migrar), los topics
+    // globales del modo transición D8 (solo emiten eventos de la empresa 1).
+    const destinoDe = (topic: RealtimeTopic): string =>
+      empresaId !== null
+        ? `/topic/empresa/${empresaId}/${topic}`
+        : `/topic/${topic}`;
 
     let fallosSeguidos = 0;
     const client = new Client({
@@ -90,7 +113,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         client.reconnectDelay = RECONNECT_MS;
         setStatus("live");
         for (const topic of TOPICS) {
-          client.subscribe(`/topic/${topic}`, (message: IMessage) => {
+          // Los handlers siguen colgados del canal lógico: el contrato de
+          // useRealtime("jornadas"|...) no cambia para los consumidores.
+          client.subscribe(destinoDe(topic), (message: IMessage) => {
             let payload: unknown;
             try {
               payload = JSON.parse(message.body);
